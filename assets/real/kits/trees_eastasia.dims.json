@@ -1,0 +1,26 @@
+{
+ "source": "tools/blender/kit_trees_eastasia.py",
+ "units": "m, [x 길이, 앞뒤 깊이, 높이]",
+ "pieces": {
+  "bamboo_grove": [
+   6.2,
+   6.0,
+   10.39
+  ],
+  "bamboo_small": [
+   3.53,
+   3.51,
+   5.48
+  ],
+  "grass_silver": [
+   1.62,
+   1.67,
+   1.95
+  ],
+  "reed_ea": [
+   1.53,
+   1.44,
+   2.31
+  ]
+ }
+}

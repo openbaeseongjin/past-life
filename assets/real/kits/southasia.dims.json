@@ -1,0 +1,61 @@
+{
+ "source": "tools/blender/kit_southasia.py",
+ "units": "m, [x 길이, 앞뒤 깊이, 높이]",
+ "pieces": {
+  "hut_mud_a": [
+   6.27,
+   5.97,
+   4.04
+  ],
+  "hut_mud_b": [
+   6.65,
+   6.87,
+   5.75
+  ],
+  "house_courtyard": [
+   12.71,
+   12.02,
+   3.7
+  ],
+  "house_town": [
+   6.51,
+   9.28,
+   9.25
+  ],
+  "temple_small": [
+   6.3,
+   9.9,
+   12.88
+  ],
+  "shrine_tree": [
+   5.34,
+   5.72,
+   2.02
+  ],
+  "well_step": [
+   6.14,
+   6.52,
+   3.89
+  ],
+  "well_kuan": [
+   4.49,
+   4.48,
+   2.68
+  ],
+  "granary": [
+   3.94,
+   4.0,
+   4.17
+  ],
+  "market_stall_sa": [
+   3.5,
+   2.72,
+   2.55
+  ],
+  "smithy_sa": [
+   7.22,
+   6.89,
+   4.7
+  ]
+ }
+}
