@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>구슬 실 시험</title>
+<link rel="icon" href="data:,">
+<style>
+html,body{margin:0;background:#121329;color:#f6efe2;font:12px "IBM Plex Sans KR",system-ui,sans-serif}
+body{padding:14px 16px 40px}
+h2{font-size:11px;font-weight:500;opacity:.6;margin:14px 0 5px}
+canvas{display:block;max-width:100%;outline:1px dashed rgba(246,239,226,.1)}
+.row{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+.dusk{background:linear-gradient(#7d68ad,#f0a985)}
+.wrap{position:relative;display:inline-block}
+.medal{position:absolute;border-radius:50%;border:2px solid #e2b65e;background:radial-gradient(#3a3f6e,#1d2140);transform:translate(-50%,-50%);box-sizing:border-box;color:#e2b65e;display:grid;place-items:center;font-size:11px}
+</style>
+</head>
+<body>
+<h2>구슬 실 · 60알 · 동갑내기 넷 (떠난 나이 3·40·70, present 하나) — 저녁 하늘 위 · 누르면 새 구슬 다시 꿰기</h2>
+<canvas id="thread" class="dusk" style="width:800px;height:120px"></canvas>
+<h2>구슬 실 · 밤 · 17알</h2>
+<canvas id="thread17" style="width:800px;height:120px"></canvas>
+<h2>구슬 실 · 폰 폭 390 · 60알 (끌어서 옆으로 밀기)</h2>
+<canvas id="threadPhone" style="width:390px;height:100px;touch-action:none"></canvas>
+<div class="row">
+  <div><h2>매듭 · 52알</h2><canvas id="knot" style="width:600px;height:300px"></canvas></div>
+  <div><h2>매듭짓지 않은 실 · 42알 (open)</h2><canvas id="knotOpen" style="width:600px;height:300px"></canvas></div>
+</div>
+<div class="row">
+  <div><h2>백 가닥 · 시대 7 유럽 · 51살</h2><canvas id="hundred" style="width:400px;height:300px"></canvas><div id="hcap"></div></div>
+  <div><h2>매듭 · 3알 (아기)</h2><canvas id="knotBaby" style="width:390px;height:220px"></canvas></div>
+</div>
+<div class="row">
+  <div><h2>염주 · 4생 (41·58·0·42, 58은 beads 없음)</h2><div class="wrap" id="rwrap"><canvas id="rosary" style="width:500px;height:500px"></canvas></div></div>
+  <div><h2>염주 · 이어지는 중 (ended=false)</h2><div class="wrap" id="rwrap2"><canvas id="rosary2" style="width:360px;height:360px"></canvas></div></div>
+</div>
+<h2>탄생 하늘 · t=1 (누르면 처음부터)</h2>
+<canvas id="sky" style="width:600px;height:340px"></canvas>
+<h2>탄생 하늘 · t=0.4</h2>
+<canvas id="sky2" style="width:600px;height:340px"></canvas>
+<h2>화면 밖 캔버스 900×360 에 drawKnot 두 번 → 그림으로 옮김 (공유 그림용)</h2>
+<div id="offInfo"></div>
+<img id="offImg" alt="" style="display:block;max-width:100%;outline:1px dashed rgba(246,239,226,.1)">
+<script type="module">
+import { encodeBeads, hundredThreads } from './beads.js';
+import { drawThread, drawKnot, drawHundred, drawRosary, drawBirthSky } from './strand.js';
+import { shapeFor } from './lifetable.js';
+const $ = (id) => document.getElementById(id);
+// 가짜 구슬: 마음은 사인 곡선 0~4, 10살마다 별, 23살에 금
+const mk = (n, ph = 0) => Array.from({ length: n }, (_, a) => ({ age: a, mood: Math.round(2 + 2 * Math.sin(a / 6 + ph)), star: a > 0 && a % 10 === 0, crack: a === 23 }));
+const B60 = mk(60);
+const peers = [{ birth: { year: 1312 }, death: { age: 3 } }, { birth: { year: 1312 }, death: { age: 40 } }, { birth: { year: 1312 }, death: { age: 70 } }, { birth: { year: 1312 }, death: { age: 59, present: true } }];
+window.__out = {};
+// 새 구슬 꿰기: fresh 0→1 을 1초 동안
+function play() {
+  const t0 = performance.now();
+  const step = (now) => {
+    const f = Math.min(1, (now - t0) / 1000);
+    window.__out.thread = drawThread($('thread'), { beads: B60, peers, age: 59, fresh: f });
+    if (f < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+play();
+$('thread').addEventListener('click', play);
+drawThread($('thread17'), { beads: mk(18, 1), peers: [{ death: { age: 2 } }, { death: { age: 30 } }, { death: { age: 60 } }, { death: { age: 12 } }], age: 17 });
+let off = 0, drag = null;
+const phone = () => { const o = drawThread($('threadPhone'), { beads: B60, peers, age: 59, offset: off }); off = Math.min(off, o.maxOffset); window.__out.phone = o; };
+phone();
+$('threadPhone').addEventListener('pointerdown', (e) => { drag = { x: e.clientX, off }; $('threadPhone').setPointerCapture(e.pointerId); });
+$('threadPhone').addEventListener('pointermove', (e) => { if (drag) { off = Math.max(0, drag.off + (e.clientX - drag.x)); phone(); } });
+$('threadPhone').addEventListener('pointerup', () => { drag = null; });
+drawKnot($('knot'), mk(52, 0.5));
+drawKnot($('knotOpen'), mk(42, 2), { open: true });
+drawKnot($('knotBaby'), mk(3, 3));
+const hun = hundredThreads(shapeFor(7, 'europe'), 'X', 51);
+drawHundred($('hundred'), hun);
+$('hcap').textContent = `백 명 가운데 ${hun.outlived}명보다 오래 살았어요 · 가장 긴 실 ${Math.max(...hun.lengths)}`;
+window.__out.hundred = hun;
+// 염주: 메달 자리에 둥근 자리표를 얹어 고리 바깥인지 본다
+function medals(wrap, cv, list) {
+  const R = Math.min(cv.clientWidth, cv.clientHeight) * 0.34;
+  for (const m of list) {
+    const d = document.createElement('div'); d.className = 'medal';
+    Object.assign(d.style, { left: m.x + 'px', top: m.y + 'px', width: R * 0.34 + 'px', height: R * 0.34 + 'px' });
+    d.textContent = m.i + 1; wrap.appendChild(d);
+  }
+}
+const lives = [{ years: 41, beads: encodeBeads(mk(42, 1)) }, { years: 58 }, { years: 0, beads: encodeBeads(mk(1)) }, { years: 42, beads: encodeBeads(mk(43, 2.5)) }];
+window.__out.rosary = drawRosary($('rosary'), lives, { ended: true });
+medals($('rwrap'), $('rosary'), window.__out.rosary);
+window.__out.rosary2 = drawRosary($('rosary2'), lives.slice(0, 3), { ended: false });
+medals($('rwrap2'), $('rosary2'), window.__out.rosary2);
+window.__out.sky = drawBirthSky($('sky'), 1, { seed: 'X' });
+drawBirthSky($('sky2'), 0.4, { seed: 'X' });
+$('sky').addEventListener('click', () => {
+  const t0 = performance.now();
+  const step = (now) => { const t = Math.min(1, (now - t0) / 2600); drawBirthSky($('sky'), t, { seed: 'X' }); if (t < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+});
+// 화면 밖 캔버스: 크기가 그대로이고 비어 있지 않은지 (두 번 그려도 같은 크기)
+const offCv = document.createElement('canvas'); offCv.width = 900; offCv.height = 360;
+drawKnot(offCv, mk(52, 0.5));
+drawKnot(offCv, mk(52, 0.5));
+const px = offCv.getContext('2d').getImageData(0, 0, offCv.width, offCv.height).data;
+let painted = 0;
+for (let i = 3; i < px.length; i += 4) if (px[i] > 0) painted++;
+window.__out.offscreen = { w: offCv.width, h: offCv.height, painted };
+$('offInfo').textContent = `크기 ${offCv.width}×${offCv.height} · 칠해진 픽셀 ${painted}`;
+$('offImg').src = offCv.toDataURL();
+window.__ready = true;
+</script>
+</body>
+</html>

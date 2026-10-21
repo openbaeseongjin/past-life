@@ -1,0 +1,71 @@
+{
+ "source": "tools/blender/kit_eastasia.py (KIT_VARIANT=korea)",
+ "units": "m, [x 길이, 앞뒤 깊이, 높이]",
+ "pieces": {
+  "house_thatch_ea": [
+   8.86,
+   6.61,
+   3.86
+  ],
+  "house_tile_ea": [
+   12.88,
+   9.52,
+   5.61
+  ],
+  "house_town_ea": [
+   11.24,
+   7.64,
+   5.05
+  ],
+  "temple_ea": [
+   13.92,
+   13.66,
+   8.5
+  ],
+  "pagoda_small": [
+   3.16,
+   3.16,
+   7.16
+  ],
+  "gate_ea": [
+   4.52,
+   3.1,
+   4.22
+  ],
+  "well_ea": [
+   3.0,
+   3.0,
+   1.8
+  ],
+  "granary_ea": [
+   4.39,
+   3.96,
+   3.77
+  ],
+  "smithy_ea": [
+   7.21,
+   7.03,
+   4.84
+  ],
+  "shrine_ea": [
+   5.58,
+   3.86,
+   4.34
+  ],
+  "stall_ea": [
+   3.7,
+   2.81,
+   2.83
+  ],
+  "pit_house_ea": [
+   6.04,
+   6.5,
+   4.04
+  ],
+  "camp_hearth": [
+   5.4,
+   3.6,
+   1.6
+  ]
+ }
+}

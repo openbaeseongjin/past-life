@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>마을 시험</title>
+<link rel="icon" href="data:,">
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#121329}#c{width:100%;height:100%;display:block}</style>
+</head>
+<body>
+<div style="width:100vw;height:100vh"><canvas id="c"></canvas></div>
+<script type="module">
+// ?style=mudbrick&area=mesopotamia&age=30&phase=noon&kit=0 (kit=0: 코드 도형만)
+import { createVillage } from './village.js';
+import { loadHex } from './assets.js';
+const Q = new URLSearchParams(location.search);
+const v = createVillage(document.getElementById('c'));
+window.v = v;   // 화면 확인에서 콘솔로 부른다 (v.setCampfire · v.flameRise · v.setView)
+v.fast = true;
+if (Q.get('kit') !== '0') { const kit = await loadHex(); if (kit) v.setKit(kit); }
+const area = Q.get('area') || 'mesopotamia';
+const birth = { seed: 'VT', year: +(Q.get('year') || -1200), region: Q.get('region') || 'west', area, tags: [Q.get('tag') || 'farm'] };
+v.setLife(birth, { style: Q.get('style') || undefined });
+v.setAge(+(Q.get('age') || 30), birth.year);
+v.setPhase(Q.get('phase') || 'noon');
+window.__ready = true;
+</script>
+</body>
+</html>

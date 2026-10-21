@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>실사 무대 시험</title>
+<link rel="icon" href="data:,">
+<script type="importmap">{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "@dgreenheck/ez-tree": "https://cdn.jsdelivr.net/npm/@dgreenheck/ez-tree@1.1.0/build/ez-tree.es.js"
+} }</script>
+<style>
+:root{--night:#121329;--paper:#f6efe2;--gold:#e2b65e;--glass:rgba(18,19,41,.62)}
+html,body{margin:0;height:100%;overflow:hidden;background:#121329;color:var(--paper);font:13px/1.4 system-ui,"Malgun Gothic",sans-serif}
+#c{width:100vw;height:100vh;display:block}
+#hud{position:fixed;left:12px;bottom:12px;background:var(--glass);border:1px solid rgba(246,239,226,.18);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-width:280px;backdrop-filter:blur(6px)}
+#hud.hide{display:none}
+#hud .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#hud button{background:rgba(246,239,226,.1);color:var(--paper);border:1px solid rgba(246,239,226,.25);border-radius:6px;padding:4px 8px;cursor:pointer;font:inherit}
+#hud button.on{background:var(--gold);color:#1d2140;border-color:var(--gold)}
+#hud input[type=range]{flex:1}
+#stat{font-variant-numeric:tabular-nums;opacity:.85;white-space:pre}
+#stat.bad{color:#ffb0a0;opacity:1}
+#load{position:fixed;inset:0;display:grid;place-items:center;font-size:15px;pointer-events:none;color:var(--paper);text-shadow:0 1px 3px #000}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="load">장면을 짓는 중…</div>
+<div id="hud">
+  <div class="row"><b>1329 · 잉글랜드 마을</b><span style="opacity:.6">— 실사 시험 (PC)</span></div>
+  <div class="row">시각 <input id="t" type="range" min="4.6" max="19.4" step="0.05"><span id="tv"></span></div>
+  <div class="row" id="times"><button data-t="6.5">아침</button><button data-t="12">한낮</button><button data-t="19.15">해질녘</button></div>
+  <div class="row" id="views"><button data-v="overview">마을 전경</button><button data-v="street">골목 눈높이</button><button data-v="high">높은 곳</button><button data-v="church">교회</button><button data-v="forge">대장간</button><button data-v="market">장터</button><button data-v="pasture">풀밭</button><button id="orbit">천천히 돌기</button></div>
+  <div class="row"><button id="post">후처리</button><button id="ao">AO</button><button id="bloom">빛번짐</button><button id="hide">HUD 숨김 (H)</button></div>
+  <div id="stat"></div>
+</div>
+<script type="module">
+// 주소 인자: ?t=6.5&view=overview&post=1&ao=1&bloom=1&hud=0&seed=1329&people=16&set=southasia&land=monsoon&area=india&year=1304&kit=<세트 glb 주소(시험용)>&props=<소품 glb 주소(시험용)>
+//   set = 세트 묶음 (england · southasia: 건물·소품·나무·사람·마을 요리법을 함께 바꾼다), land = 땅 모습 (temperate · dry · monsoon · steppe · cold · tropical)
+//   area·year = 태어난 땅·해 (villageplan.js recipeFor: 시대·땅에 맞지 않는 조각을 거른다, 동남아 땅은 사람 옷 갈래 seasia)
+//   set=eastasia (작업 2-2): area=china|korea|japan 이 건물 glb·사람·물감 갈래, year 가 FARM_FROM 전이면 움집 야영 (예: set=eastasia&land=monsoon&area=korea&year=1700)
+//   shared=1 = 그리개 하나를 장면들이 함께 쓴다 → window.__swap(set, land, area, year) 로 장면을 바꿔 지으며 캐시·GPU 메모리를 잰다 (수정 1차 I-3 시험)
+import * as THREE from 'three';
+import { createRealScene } from './realscene.js';
+const Q = new URLSearchParams(location.search);
+const on = (k, d) => (Q.has(k) ? Q.get(k) !== '0' : d);
+const canvas = document.getElementById('c');
+const shared = Q.has('shared') ? new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false }) : null;
+if (shared) shared.setSize(innerWidth, innerHeight, false);
+const make = (o = {}) => createRealScene(canvas, {
+  era: Q.has('year') ? +Q.get('year') : 1329, region: 'england', timeOfDay: +(Q.get('t') || 6.5), view: Q.get('view') || 'overview',
+  post: on('post', true), ao: on('ao', true), bloom: on('bloom', true), pixelRatio: +(Q.get('pr') || 1),
+  kitUrl: Q.get('kit') || undefined, propsUrl: Q.get('props') || undefined, seed: Q.has('seed') ? +Q.get('seed') : undefined,
+  people: Q.has('people') ? +Q.get('people') : undefined, kit: Q.get('set') || undefined, land: Q.get('land') || undefined, area: Q.get('area') || undefined,
+  renderer: shared || undefined, ...o,
+});
+let real = make();
+window.__real = real;
+window.__swap = async (set, land, area, year) => {
+  real.dispose();
+  real = make({ kit: set, land, area: area || undefined, era: year ?? 1329 });
+  window.__real = real; await real.ready; setT(+tr.value || 6.5);
+  return real.info();
+};
+const $ = (s) => document.querySelector(s);
+const hud = $('#hud'); if (!on('hud', true)) hud.classList.add('hide');
+const tr = $('#t'), tv = $('#tv');
+const fmt = (h) => `${Math.floor(h)}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
+function setT(h) { const s = real.setTime(h); tr.value = h; tv.textContent = `${fmt(h)} · 해 ${s.el.toFixed(0)}°`; }
+setT(+(Q.get('t') || 6.5));
+tr.oninput = () => setT(+tr.value);
+for (const b of document.querySelectorAll('#times button')) b.onclick = () => setT(+b.dataset.t);
+for (const b of document.querySelectorAll('#views button[data-v]')) b.onclick = () => { real.setOrbit(false); real.setView(b.dataset.v); };
+let orbit = false; $('#orbit').onclick = (e) => { orbit = !orbit; real.setOrbit(orbit); e.target.classList.toggle('on', orbit); };
+const flags = { post: on('post', true), ao: on('ao', true), bloom: on('bloom', true) };
+function paint() { for (const k of ['post', 'ao', 'bloom']) $('#' + k).classList.toggle('on', flags[k]); real.setPost(flags.post, { ao: flags.ao, bloom: flags.bloom }); }
+for (const k of ['post', 'ao', 'bloom']) $('#' + k).onclick = () => { flags[k] = !flags[k]; paint(); };
+paint();
+$('#hide').onclick = () => hud.classList.add('hide');
+addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') hud.classList.toggle('hide'); });
+const kitText = (k) => (k.ok ? `건물 세트 ${k.placed}채 (그리기 ${k.draws})` : k.err ? `※ 건물 세트 못 불러옴: ${k.err.split('\n')[0]}` : '건물 세트 부르는 중…');
+const propText = (p) => (p.ok ? `소품·가축 ${p.items}개 (그리기 ${p.draws})` : p.err ? `※ 소품 세트 못 불러옴: ${p.err.split('\n')[0]}` : '소품 세트 부르는 중…');
+setInterval(() => { const r = real.rafStats(), i = real.info(); $('#stat').textContent = `프레임 ${r.avg.toFixed(1)}ms (p95 ${r.p95?.toFixed(1)}) · 그리기 ${i.calls} · 삼각형 ${(i.triangles / 1e6).toFixed(2)}M\n나무 ${i.trees.near}+${i.trees.far} · 풀 ${i.grass} · 사람 ${i.people.count}\n${kitText(i.kit)} · ${propText(i.props)}`; $('#stat').classList.toggle('bad', !!(i.kit.err || i.props.err)); }, 1000);
+await real.ready;
+$('#load').remove();
+if (real.info().kit.err) { hud.classList.remove('hide'); console.warn('건물 세트를 못 불러와 건물 없이 보인다:', real.info().kit.err); }
+if (real.info().props.err) { hud.classList.remove('hide'); console.warn('소품 세트를 못 불러와 소품 없이 보인다:', real.info().props.err); }
+window.__ready = true;
+</script>
+</body>
+</html>

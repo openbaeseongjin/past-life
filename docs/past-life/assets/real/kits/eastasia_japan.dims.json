@@ -1,0 +1,71 @@
+{
+ "source": "tools/blender/kit_eastasia.py (KIT_VARIANT=japan)",
+ "units": "m, [x 길이, 앞뒤 깊이, 높이]",
+ "pieces": {
+  "house_thatch_ea": [
+   10.5,
+   7.7,
+   7.14
+  ],
+  "house_tile_ea": [
+   12.1,
+   8.2,
+   5.05
+  ],
+  "house_town_ea": [
+   7.76,
+   8.9,
+   6.96
+  ],
+  "temple_ea": [
+   13.7,
+   12.88,
+   8.45
+  ],
+  "pagoda_small": [
+   7.2,
+   7.2,
+   13.08
+  ],
+  "gate_ea": [
+   4.16,
+   2.5,
+   3.92
+  ],
+  "well_ea": [
+   3.0,
+   3.0,
+   2.49
+  ],
+  "granary_ea": [
+   4.51,
+   4.25,
+   5.55
+  ],
+  "smithy_ea": [
+   7.26,
+   7.2,
+   5.01
+  ],
+  "shrine_ea": [
+   3.2,
+   5.34,
+   2.68
+  ],
+  "stall_ea": [
+   3.7,
+   2.81,
+   2.83
+  ],
+  "pit_house_ea": [
+   6.04,
+   6.5,
+   4.04
+  ],
+  "camp_hearth": [
+   5.4,
+   3.6,
+   1.6
+  ]
+ }
+}

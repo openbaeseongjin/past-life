@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>남아시아 나무 미리보기</title>
+<!-- 개발용 미리보기: kitdata.js 의 TREES_SA·BUSHES_SA (ez-tree 1.1.0 프리셋) + kits/trees_southasia.glb (야자·대나무·바나나·반얀 공기뿌리·풀).
+     python tools/serve.py 8781 로 띄우고 http://127.0.0.1:8781/tools/trees_preview.html (완료되면 window.__done = true). -->
+<script type="importmap">{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "@dgreenheck/ez-tree": "https://cdn.jsdelivr.net/npm/@dgreenheck/ez-tree@1.1.0/build/ez-tree.es.js"
+} }</script>
+<style>
+html, body { margin: 0; height: 100%; overflow: hidden; background: #c9d6dc; font: 14px system-ui, "Malgun Gothic", sans-serif; }
+canvas { display: block; }
+#lab { position: fixed; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+#lab div { position: absolute; transform: translate(-50%, 0); color: #222; background: rgba(255, 255, 255, .7); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="lab"></div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import * as ez from '@dgreenheck/ez-tree';
+import { TREES_SA, BUSHES_SA } from '../kitdata.js';
+
+const W = innerWidth, H = innerHeight;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(W, H); renderer.setPixelRatio(1);
+renderer.shadowMap.enabled = true; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMappingExposure = 1.5;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xc9d6dc);
+scene.fog = new THREE.Fog(0xc9d6dc, 90, 220);
+scene.add(new THREE.HemisphereLight(0xdfe8f0, 0x9a8a68, 2.2));
+const sun = new THREE.DirectionalLight(0xfff0d8, 3.2);
+sun.position.set(-30, 50, 40); sun.castShadow = true;
+Object.assign(sun.shadow.camera, { left: -90, right: 90, top: 50, bottom: -30, far: 260 }); sun.shadow.mapSize.set(4096, 4096);
+scene.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshStandardMaterial({ color: 0x9c8a5c, roughness: 1 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+const camera = new THREE.PerspectiveCamera(32, W / H, 0.5, 600);
+camera.position.set(-10, 16, 112); camera.lookAt(-10, 6, 0);
+const labels = [];
+const deepSet = (a, b) => { for (const k in b) { if (b[k] && typeof b[k] === 'object') { a[k] ??= {}; deepSet(a[k], b[k]); } else a[k] = b[k]; } return a; };
+const waitTex = async (list) => { for (let k = 0; k < 100 && list.some((t) => t && !(t.image && (t.image.complete ?? true) && (t.image.width ?? 1) > 0)); k++) await new Promise((r) => setTimeout(r, 50)); };
+
+async function ezTree(def, x, z) {
+  const t = new ez.Tree(); t.loadPreset(def.preset); t.options.seed = def.seed;
+  if (def.opt) deepSet(t.options, def.opt);
+  t.generate(); t.updateMatrixWorld(true);
+  const bb = new THREE.Box3().setFromObject(t), s = def.h / (bb.max.y - bb.min.y);
+  const bm = t.branchesMesh.material, lm = t.leavesMesh.material;
+  await waitTex([bm.map, lm.map]);
+  bm.color = new THREE.Color(...(def.barkTint || [0.75, 0.72, 0.68]));
+  lm.color = new THREE.Color(def.tint ?? 0x88aa55);
+  t.scale.setScalar(s); t.position.set(x, -bb.min.y * s, z);
+  t.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  scene.add(t);
+  const w = (bb.max.x - bb.min.x) * s;
+  return w;
+}
+function label(text, x, y, z) { labels.push({ text, p: new THREE.Vector3(x, y, z) }); }
+
+const row = [];
+let x = -52;
+for (const def of TREES_SA) {
+  const w0 = 12;
+  row.push(def);
+  const w = await ezTree(def, x + w0 / 2, 0);
+  label(`${def.sp} (${def.preset}, ${def.h} m)`, x + w0 / 2, -1, 4);
+  x += Math.max(w0, w * 0.75) + 6;
+}
+for (const def of BUSHES_SA) { await ezTree(def, x, 6); x += 4; }
+label('덤불 BUSHES_SA', x - 6, -1, 8);
+
+// Blender 식생 (있으면): 반얀 공기뿌리는 반얀 밑에, 나머지는 앞줄에
+try {
+  const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+  const g = await loader.loadAsync('../assets/real/kits/trees_southasia.glb');
+  const pieces = new Map(g.scene.children.map((o) => [o.name, o]));
+  const put = (name, px, pz, ry = 0) => { const o = pieces.get(name); if (!o) return; const c = o.clone(); c.position.set(px, 0, pz); c.rotation.y = ry;
+    c.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } }); scene.add(c); };
+  put('banyan_roots', -46, 0);
+  const front = ['palm_coconut', 'palm_areca', 'palm_date', 'banana', 'bamboo_clump', 'grass_tall', 'grass_dry'];
+  front.forEach((n, i) => { put(n, -36 + i * 11, 26, i * 0.7); label(n, -36 + i * 11, -1, 30); });
+} catch (e) { console.warn('trees_southasia.glb 없음', e); }
+
+renderer.render(scene, camera);
+const lab = document.getElementById('lab');
+for (const l of labels) {
+  const v = l.p.clone().project(camera);
+  const d = document.createElement('div'); d.textContent = l.text;
+  d.style.left = ((v.x + 1) / 2 * W) + 'px'; d.style.top = ((1 - v.y) / 2 * H) + 'px'; lab.appendChild(d);
+}
+window.__done = true;
+</script>
+</body>
+</html>

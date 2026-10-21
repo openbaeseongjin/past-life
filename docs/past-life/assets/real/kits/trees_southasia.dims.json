@@ -1,0 +1,46 @@
+{
+ "source": "tools/blender/kit_trees_southasia.py",
+ "units": "m, [x 길이, 앞뒤 깊이, 높이]",
+ "pieces": {
+  "palm_coconut": [
+   7.0,
+   7.0,
+   11.28
+  ],
+  "palm_areca": [
+   3.98,
+   4.3,
+   12.47
+  ],
+  "palm_date": [
+   6.25,
+   5.42,
+   8.18
+  ],
+  "banana": [
+   3.82,
+   3.43,
+   3.29
+  ],
+  "bamboo_clump": [
+   5.35,
+   5.96,
+   9.63
+  ],
+  "banyan_roots": [
+   15.37,
+   15.56,
+   7.53
+  ],
+  "grass_tall": [
+   1.54,
+   1.99,
+   2.35
+  ],
+  "grass_dry": [
+   1.1,
+   1.02,
+   0.56
+  ]
+ }
+}

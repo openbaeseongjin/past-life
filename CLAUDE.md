@@ -1,0 +1,27 @@
+# 「한 영혼의 여정」 개발 가지 (dev) — 클라우드 세션 규칙
+
+이 저장소의 `dev` 가지는 개발 원본이다. `main` 가지는 GitHub Pages로 나가는 플레이용 빌드다(https://openbaeseongjin.github.io/past-life/).
+먼저 `HANDOFF.md`를 읽고 이어서 한다.
+
+## 반드시 지킬 것 (사용자 선호)
+- **모든 답과 상태 글은 한국어로** 쓴다.
+- **주간 사용량 95%에서 멈춘다.** 사용량은 볼 수 없으니, 무거운 작업(여러 에이전트, 큰 구현)을 시작하기 전에 지금 몇 %인지 사용자에게 묻는다. 95%면 새 작업을 띄우지 않고 진행 기록만 남긴다.
+- 밖으로 나가는 일은 먼저 묻는다: `main` 가지에 올리기(= 공개 사이트 갱신), 새 저장소, 외부 서비스. `dev` 가지에 커밋하는 것은 작업을 잃지 않기 위한 것이라 해도 되지만, 커밋하기 전에 한 줄로 알린다.
+- 커밋 글: `[종류] 한국어 요약`, 끝에 `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- 사용자의 이메일은 신원 확인용일 뿐 어디에도 보내지 않는다. 결제·가입·로그인은 사용자가 한다.
+- 계획·장면은 도형 스케치가 아니라 실제 그림으로 보여 준다.
+
+## 내용 규칙
+- 자산은 CC0·MIT·공개 영역만. Hunyuan3D(한국 제외 라이선스)·Mixamo·Sketchfab 유료/로그인 자산은 쓰지 않는다. 새 자산은 `docs/past-life/assets/real/SOURCES.md`에 적는다.
+- 카드·글: 해요체, 「담담하지만 위트」, 한국어·영어 짝. 실재 인물 이름 금지(시험이 막는다). 아픈 제도(노예·카스트·노비·식민·전쟁)는 그 자리 사람의 눈으로 담담하게, 웃음거리로 쓰지 않는다. 역사 사실은 `CONTENT-SOURCES*.md`에 출처를 한 줄씩.
+- 생명표 맞춤(죽음 굴림 = 생명표 × 건강 배율 + 사건 위험률)은 바꾸지 않는다. 능력치·신분·의술은 죽음 굴림에 넣지 않는다.
+- 모든 무작위는 출생 시드에서(`sub(seed, …)`). 같은 시드 = 같은 생.
+- 0번 선택지에는 `when`을 달지 않는다(자동 경로가 잠긴 선택지에서 끝없이 돈다).
+
+## 실행
+- 시험: `cd docs/past-life && npm test` (Node 20+, 설치할 것 없음). 지금 284개 통과.
+- 화면: `python docs/past-life/tools/serve.py 8780` → `http://localhost:8780/index.html?seed=T4-21` (`&auto=1` 저절로, `&q=normal` 보통 화질). 3D는 three.js 0.160·ez-tree를 jsDelivr에서 받는다.
+- 클라우드에는 Blender와 GPU가 없다: 새 3D 세트(Blender 빌드)·fps 측정은 사용자 PC에서 한다. 여기서는 시뮬·카드·화면·시험을 한다.
+
+## 공개 사이트 갱신 (사용자에게 먼저 묻는다)
+`main` 가지 뿌리에 런타임 파일만 둔다: `docs/past-life/*.js`, `index.html`, `CONTENT-SOURCES*.md`, `assets/hex.glb`, `assets/real/{people,tex,SOURCES.md}`, `assets/real/kits/*.glb`·`*.json` (미리보기·시험·도구 제외), `.nojekyll`, `README.md`. 커밋 `[deploy] …` 뒤 push하면 Pages가 1~2분 안에 새로 짓는다.
