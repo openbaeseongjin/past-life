@@ -20,7 +20,7 @@ export const PLAIN = [[0.22, 0.19, 0.16], [0.3, 0.27, 0.24], [0.4, 0.38, 0.34], 
 export const HAIRS = [[0.18, 0.11, 0.06], [0.3, 0.18, 0.09], [0.09, 0.07, 0.05], [0.5, 0.36, 0.18], [0.62, 0.48, 0.26], [0.45, 0.2, 0.08]];
 // 바래지 않은 리넨(생지) 빛: 누런 귀리색·잿빛·갈색 기 (새하얀 천은 없다)
 export const LINENS = [[0.7, 0.66, 0.56], [0.64, 0.62, 0.56], [0.68, 0.6, 0.48], [0.6, 0.57, 0.5], [0.72, 0.68, 0.6]];
-const GREY_HAIR = [0.7, 0.68, 0.65];
+export const GREY_HAIR = [0.7, 0.68, 0.65];
 // 남아시아 (작업 2-1): 식물 물감 — 쪽빛(인디고) 짙고 옅은 것·꼭두서니 붉은 것·강황 노랑·사프란·석류 껍질 누렁·흙빛·생무명. 머리는 검정·짙은 갈색만.
 export const DYES_SA = [
   [0.17, 0.22, 0.42], [0.26, 0.33, 0.52], [0.13, 0.16, 0.3], [0.62, 0.15, 0.1], [0.5, 0.12, 0.1], [0.72, 0.28, 0.16], [0.86, 0.64, 0.14],
@@ -81,6 +81,21 @@ export const CAMP_SWAP = {
   japan: { m_field: 'm_smith', m_hood: 'm_smith', m_tunic: 'm_smith', f_cloak: 'f_apron' },
 };
 export const campVariant = (v, flavor) => (CAMP_SWAP[flavor || 'china'] || {})[v] || v;
+// 시대가 뚜렷한 옷 (동아시아 세트 검토, 클라우드 2026-10-21): 갈래마다 [이 해 전이면, 바꿈표]. glb 는 그대로, 이미 있는 수수한 변형으로 바꿔 입힌다
+//   한국: 갓·두루마기(m_hood 두루마기+갓, elder 흰 두루마기+갓)는 조선(1392~)의 옷 → 그 전(삼국·고려)은 저고리·바지·상투(m_tunic)
+//   일본: 넓은 오비를 등에 맨 옷(f_cloak)과 하오리(m_hood)는 에도 무렵(1600~) → 그 전은 앞치마·머릿수건(f_apron)과 고소데·띠(m_tunic)
+//   (늙은 사람의 흰머리는 원래 변형(elder)으로 정한다: planPeople 의 hair 는 바꾸기 전 변형을 본다)
+export const ERA_SWAP = {
+  korea: [[1392, { m_hood: 'm_tunic', elder: 'm_tunic' }]],
+  japan: [[1600, { f_cloak: 'f_apron', m_hood: 'm_tunic' }]],
+};
+export function eraVariant(v, flavor, year) {
+  if (!Number.isFinite(year)) return v;
+  for (const [before, swap] of ERA_SWAP[flavor] || []) if (year < before && swap[v]) return swap[v];
+  return v;
+}
+// 무대에 세울 옷: 농사 전 야영이면 야영 옷(CAMP_SWAP), 아니면 시대 옷(ERA_SWAP). realscene.js 의 내 사람·곁 사람도 이것을 쓴다
+export const dressVariant = (v, { flavor = null, year = NaN, camp = false } = {}) => (camp ? campVariant(v, flavor) : eraVariant(v, flavor, year));
 // camp: 농사 전 야영이면 세트에 `<세트>_camp` 물감이 있을 때 그것을 쓴다 (없는 세트는 그대로)
 export const paletteOf = (kit, flavor = null, camp = false) => (camp && PALETTES[kit + '_camp']) || (flavor && PALETTES[flavor]) || PALETTES[kit] || PALETTES.england;
 
@@ -197,7 +212,7 @@ export function planPeople(rng, count, ctx) {
     const hair = r.variant === 'elder' ? GREY_HAIR : pick(PAL.hairs);
     const k = rr(PAL.skin[0], PAL.skin[1]), skin = [k * rr(1.0, 1.04), k, k * rr(0.95, 1.0)];
     const scale = r.variant === 'child' ? rr(0.58, 0.66) : r.variant.startsWith('f_') ? rr(0.95, 1.02) : rr(0.95, 1.04);
-    const p = { id, variant: ctx.camp && PALETTES[kit + '_camp'] ? campVariant(r.variant, ctx.flavor) : r.variant, action: r.action, place: r.place, x: r.x, z: r.z, face: r.face, speed: r.speed ?? 0, phase: r.phase ?? R(), scale,
+    const p = { id, variant: dressVariant(r.variant, { flavor: ctx.flavor, year: ctx.year, camp: !!(ctx.camp && PALETTES[kit + '_camp']) }), action: r.action, place: r.place, x: r.x, z: r.z, face: r.face, speed: r.speed ?? 0, phase: r.phase ?? R(), scale,
       palette: { prim, sec, hair, skin, nat: rr(0.92, 1.06), linen: pick(PAL.linens) } };
     if (r.path) p.path = r.path;
     if (r.sitOn != null) p.sitOn = r.sitOn;

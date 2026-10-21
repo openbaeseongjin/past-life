@@ -303,14 +303,14 @@ export const PIECE_GATES = {
     house_town: { from: -300 },
     cart_bullock: { from: -2600, flavor: { seasia: [-500, Infinity] } },
   },
-  // 동아시아 (작업 2-2): 불교 절·탑은 중국 1세기(100년), 고구려·백제 372년, 일본 538년부터 (그 전 절 자리는 마을 사당 + 나무).
+  // 동아시아 (작업 2-2): 불교 절·탑은 중국 1세기(100년), 고구려·백제 372년, 일본 588년부터 (불교 공식 전래는 538, 첫 큰 절 아스카데라는 588 착공) (그 전 절 자리는 마을 사당 + 나무).
   //   기와(기와집·기와 대문)는 중국 기원전 1000년 무렵 궁·관청부터, 한국 300년, 일본 590년(아스카데라 기와 장인)부터 — 서민 기와 몫은 HOUSE_MIX 가 해마다 늘린다.
   //   가게 딸린 집: 중국 기원전 500년(전국 시장 고을), 한국 1000년(고려 개경 시전), 일본 1300년(무로마치 마치야).
   //   소달구지: 중국 기원전 1500년, 한국 0년, 일본 800년. 누렁소: 중국 −3000, 한국 −1000, 일본 400년. 물소는 중국만. 돼지는 일본에 드물다(없음).
   //   장독대는 한국 300년부터, 큰 독은 중국과 한국 300년 전·일본 1300년 전, 나무통은 일본 1300년부터.
   eastasia: {
-    temple_ea: { from: 100, area: { korea: [372, Infinity], japan: [538, Infinity] } },
-    pagoda_small: { from: 100, area: { korea: [372, Infinity], japan: [538, Infinity] } },
+    temple_ea: { from: 100, area: { korea: [372, Infinity], japan: [588, Infinity] } },
+    pagoda_small: { from: 100, area: { korea: [372, Infinity], japan: [588, Infinity] } },
     house_tile_ea: { from: -1000, area: { korea: [300, Infinity], japan: [590, Infinity] } },
     gate_ea: { from: -1000, area: { korea: [300, Infinity], japan: [590, Infinity] } },
     house_town_ea: { from: -500, area: { korea: [1000, Infinity], japan: [1300, Infinity] } },

@@ -21,3 +21,5 @@ Task 2: implementer DONE_WITH_CONCERNS (284/284; perf GPU free: EA wide 69–80 
 Task 2: controller visual check p2_t2_korea_wide/close — Joseon village, satgat, white hanbok, 엽전·마지기 HUD read well
 Task 2: formal review HELD — user asked to stop at 95% weekly usage; waiting for current % before dispatching reviewer
 PAUSED 2026-10-21 at user's 93% weekly usage (stop at 95%). Next on resume: phase2 Task 2 review → sim2 Task 8 → phase2 Task 3/4 → share build
+Task 2 review (cloud 2026-10-21, code·tests): APPROVED with fixes — 걱정 6 고침: 옷이 시대를 가린다 (peopleplan.js ERA_SWAP·dressVariant: 한국 1392 전 갓·두루마기 m_hood·elder → m_tunic, 일본 1600 전 넓은 오비 f_cloak → f_apron·하오리 m_hood → m_tunic; 마을 사람·내 사람·곁 사람 모두; glb 그대로) + test/eadress.test.mjs 4개 · 걱정 2 고침: 일본 절·탑 538 → 588 (아스카데라) · 걱정 1 한국 glb 4.97 MiB 는 kit.test 5 MB 시험이 이미 막음 · 걱정 3·4·5·7 은 Blender 재빌드가 필요해 사용자 PC 몫으로 남김
+Task 2: complete

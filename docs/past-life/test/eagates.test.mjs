@@ -1,5 +1,5 @@
 // 작업 2-2: 동아시아 세트의 시대·땅 갈래와 농사 전 야영
-//   - 출생 1,500개(동아시아 세트를 쓰는 생)로 마을을 짜 보아: 절·탑(절 문 포함)은 불교가 닿은 해(중국 100, 한국 372, 일본 538) 뒤에만,
+//   - 출생 1,500개(동아시아 세트를 쓰는 생)로 마을을 짜 보아: 절·탑(절 문 포함)은 불교가 닿은 해(중국 100, 한국 372, 일본 588 — 첫 큰 절, 클라우드 검토) 뒤에만,
 //     기와집·큰 집 대문은 중국 −1000·한국 300·일본 590 뒤에만, 농사 전(FARM_FROM) 해에는 움집·야영 화덕만 (장터·가축·수레 없음)
 //   - 갈래(한국·일본)는 그 땅 건물 크기 표·사람 glb·물감, 수렵 시대 생은 동아시아 야영으로 (lands.js sceneKitOf)
 //   - 잉글랜드·남아시아 마을과 사람 계획 고정 (작업 2-2 전과 같은 해시)
@@ -13,7 +13,7 @@ import { drawBirth } from '../birth.js';
 import { planPeople, peopleSeed, PALETTES, paletteOf, campVariant } from '../peopleplan.js';
 
 const env = makeEnv();
-const BUDDHA = { china: 100, korea: 372, japan: 538 }, TILE = { china: -1000, korea: 300, japan: 590 };
+const BUDDHA = { china: 100, korea: 372, japan: 588 }, TILE = { china: -1000, korea: 300, japan: 590 };
 const DIMS = { china: KIT_DIMS_EA, korea: KIT_DIMS_EA_KR, japan: KIT_DIMS_EA_JP };
 const eaBirths = (n, tag = 'EAG-') => {
   const out = [];
@@ -57,7 +57,7 @@ test('출생 1,500개 (동아시아 세트): 절·탑·기와집·대문은 정�
   assert.ok(n.temple > 300 && n.noTemple > 100 && n.camp > 5 && n.korea > 25 && n.japan > 50, `표본이 고르다: ${JSON.stringify(n)}`);
 });
 
-test('경계 해: 불교(중국 100·한국 372·일본 538), 기와(한국 300·일본 590), 장독(한국 300~), 통(일본 1300~), 일본에는 돼지·물소가 없다', () => {
+test('경계 해: 불교(중국 100·한국 372·일본 588), 기와(한국 300·일본 590), 장독(한국 300~), 통(일본 1300~), 일본에는 돼지·물소가 없다', () => {
   for (const [area, y] of Object.entries(BUDDHA)) {
     assert.equal(pieceAllowed('eastasia', 'temple_ea', y - 1, area), false, `${area} ${y - 1}`);
     assert.equal(pieceAllowed('eastasia', 'temple_ea', y, area), true, `${area} ${y}`);
