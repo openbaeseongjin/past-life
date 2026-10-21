@@ -20,6 +20,7 @@ export const HOUSEHOLDS = {
     H('trade', 4, ['trade'], 55, '장사하는 집', 'a merchant family'),
     H('serve', 11, ['serve'], 15, '농노나 하인의 집', 'a family of serfs or servants'),
     H('elite', 5, ['elite'], 75, '영주나 관리의 집', 'a family of lords or officials'),
+    H('herd', 0, ['herd'], 35, '가축 치는 집', 'a herding family'),   // 무게 0: 유목 땅에서만 HERD_SHARE 로 나온다 (다른 시드의 뽑기는 그대로)
   ],
   early: [
     H('farm', 62, ['farm'], 35, '농사짓는 집', 'a farming family'),
@@ -28,6 +29,7 @@ export const HOUSEHOLDS = {
     H('trade', 7, ['trade'], 55, '장사하는 집', 'a merchant family'),
     H('serve', 9, ['serve'], 15, '남의 집 일을 하는 집', 'a family of servants'),
     H('elite', 6, ['elite'], 75, '지주나 귀족의 집', 'a family of landlords or nobles'),
+    H('herd', 0, ['herd'], 35, '가축 치는 집', 'a herding family'),
   ],
   industrial: [
     H('farm', 48, ['farm'], 35, '농사짓는 집', 'a farming family'),
@@ -51,6 +53,10 @@ export const HOUSEHOLDS = {
 export const householdOf = (group, id) => (HOUSEHOLDS[group] || []).find((h) => h.id === id) || (id === 'band' ? HOUSEHOLDS.forager[0] : undefined);
 // 바닷가가 없는 땅이면 바다 집안을 빼고 뽑는다
 export const drawHousehold = (rng, group, area) => rng.weighted(HOUSEHOLDS[group].filter((h) => !h.coast || area.coast), (h) => h.w);
+// 중세·근세 유목 땅: 농사짓는 집으로 뽑힌 생의 이 몫은 가축 치는 집이다 (게임용 어림, 작업 8 — 중세 베두인·몽골 목자가 없던 것).
+// 무게 0 의 herd 를 표 끝에 둬서, 이 땅 밖·다른 시대의 뽑기는 바뀌지 않는다
+export const HERD_GROUPS = ['medieval', 'early'];
+export const HERD_SHARE = { mongolia: 0.9, steppe: 0.6, arabia: 0.45, maghreb: 0.2, east_africa: 0.2, iran: 0.15, anatolia: 0.1, mesopotamia: 0.1 };
 // 농사·목축이 아직 그 땅에 닿지 않은 해 (context_data.js FARM_FROM, 예: 1788년 전 오스트레일리아 · 1580년 전 라플라타 · 기원전 900년 전 일본).
 // 이때 태어나면 그해 묶음이 고대·중세·근세라도 사냥하고 채집하는 무리다 (birth.js). 해·땅 뽑기는 그대로
 export const beforeFarming = (area, year) => year < (FARM_FROM[area] ?? -Infinity);

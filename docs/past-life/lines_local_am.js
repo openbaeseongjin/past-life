@@ -16,7 +16,7 @@ export const LOCAL_LINES_AM = [
   { id: 'l.loc.am.amvil.chinampa', stage: ['teen', 'adult', 'middle'], when: AMV({ areas: ['mesoamerica'], minYear: 1150, maxYear: 1521 }),
     text: { ko: '카누를 저어 물길 사이의 밭에 다녀왔어요. 밭이 물 위에 떠 있는 것만 같았어요.', en: 'You poled a canoe down the canals to the raised fields. They looked as if they were floating.' } },
   // 추뇨: 밤에 얼리고 낮에 밟아 말린 감자
-  { id: 'l.loc.am.amvil.chuno', stage: ALL, tokens: true, when: AMV({ areas: ['andes'], maxYear: 1900 }),
+  { id: 'l.loc.am.amvil.chuno', stage: ALL, tokens: true, when: AMV({ areas: ['andes'], minYear: 600, maxYear: 1900 }),   // 가장 이른 흔적이 중기 지평(600~1000)이라 (검토 m12)
     text: { ko: '얼었다 녹은 감자를 맨발로 밟아 물을 뺐어요. 발은 시려도 {staple:은} 몇 해를 가요.', en: 'You trampled the frozen, thawed potatoes barefoot to squeeze them dry. Cold feet, but {staple} keeps for years.' } },
   // 아이니: 오늘은 내가 돕고 다음엔 네가 돕는다
   { id: 'l.loc.am.amvil.ayni', stage: ['adult', 'middle'], when: AMV({ areas: ['andes'], eraGroups: ['ancient', 'medieval', 'early'] }),
@@ -44,9 +44,9 @@ export const LOCAL_LINES_AM = [
     text: { ko: '도시에 간 친척이 사진 한 장과 돈을 부쳐 왔어요. 사진은 온 마을을 한 바퀴 돌았어요.', en: 'A relative in the city sent a photograph and some money. The photo went round the whole village.' } },
 
   // ── 아프리카 마을 (7) ─────────────────────────────────────────
-  // 고원의 소 쟁기와 아주 작은 씨앗 (동아프리카 고원, 기원전 2500 무렵부터)
+  // 고원의 소 쟁기와 아주 작은 씨앗 (에티오피아 고원, 기원전 2500 무렵부터). 땅 칸이 동아프리카 전체라 길손에게 들은 말로 쓴다 (검토 m12)
   { id: 'l.loc.am.afvil.plough', stage: ['child', 'teen', 'adult', 'middle'], when: AFV({ areas: ['east_africa'], minYear: -2500, maxYear: 1949 }),
-    text: { ko: '고원 밭에서 황소 두 마리가 쟁기를 끌었어요. 뒤따르며 아주 작은 씨앗을 뿌렸어요.', en: 'In the highland fields, two oxen dragged the plough. You followed, scattering seeds almost too small to see.' } },
+    text: { ko: '고원에서 온 길손 말로는, 거기선 황소 둘이 쟁기를 끌고 아주 작은 씨앗을 뿌린대요.', en: 'A traveler from the highlands said that up there, oxen pull the plow and people sow seeds almost too small to see.' } },
   // 그레이트 짐바브웨 돌담 (1150~1450)
   { id: 'l.loc.am.afvil.stonewalls', stage: ['teen', 'adult', 'middle', 'old'], when: AFV({ areas: ['south_africa'], minYear: 1150, maxYear: 1450 }),
     text: { ko: '강 위쪽에 돌담 고을이 있대요. 회반죽도 없이 돌만 쌓았는데 사람 키의 몇 배래요.', en: 'Travelers told of a town upriver walled in stone, piled without mortar, many times the height of a man.' } },
@@ -95,9 +95,9 @@ export const LOCAL_LINES_AM = [
   // 청동 북 (동남아 대륙, −500~300)
   { id: 'l.loc.am.seavil.drum', stage: ALL, tokens: true, when: SEV({ areas: ['mainland_sea'], minYear: -500, maxYear: 300 }),
     text: { ko: '{feast}에 족장의 청동 북이 울렸어요. 북에 새긴 새들이 날아오를 것만 같았어요.', en: 'At {feast} the chief’s bronze drum was struck. The birds cast on its face looked ready to fly.' } },
-  // 물 사원이 정하는 물 차례 (자와·발리, 1050~1500)
+  // 물 차례를 정하는 물길 모임 (발리의 수박이 본보기, 1050~1500). 땅 칸이 인도네시아 전체라 사제·물 사원은 말하지 않는다 (검토 m12)
   { id: 'l.loc.am.seavil.watertemple', stage: ['teen', 'adult', 'middle', 'old'], when: SEV({ areas: ['indonesia'], minYear: 1050, maxYear: 1500 }),
-    text: { ko: '물 사원 사제가 어느 논에 언제 물을 댈지 정해 줬어요. 아무도 토를 달지 않았어요.', en: 'The water-temple priest decided which terraces got water, and when. Nobody argued.' } },
+    text: { ko: '물길 모임이 작은 사당 앞에서 어느 논에 언제 물을 댈지 정했어요. 아무도 토를 달지 않았어요.', en: 'Meeting before the little shrine, the water society decided which paddies got water, and when. Nobody argued.' } },
   // 그림자 인형극 (자와, 900~)
   { id: 'l.loc.am.seavil.wayang', stage: ALL, when: SEV({ areas: ['indonesia'], minYear: 900 }),
     text: { ko: '그림자 인형극이 밤새 이어졌어요. 싸움 대목에서 잠들었다가 우스개 대목에 깼어요.', en: 'The shadow-puppet play ran all night. You fell asleep in the battle and woke up for the jokes.' } },

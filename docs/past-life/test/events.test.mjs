@@ -271,9 +271,9 @@ test('사건 카드가 그 나이·그해에 맞다: 어른 몫 카드는 15살�
 });
 
 test('아픈 제도의 사망 줄: 제도 사건의 사인은 사고·굶주림이 아니다', () => {
-  for (const e of EVENTS.filter((x) => x.kind === 'institution' && x.hazard > 0)) assert.ok(['lung', 'war', 'plague'].includes(e.cause), `${e.id}: ${e.cause}`);
+  for (const e of EVENTS.filter((x) => x.kind === 'institution' && x.hazard > 0)) assert.ok(['lung', 'war', 'plague', 'forced'].includes(e.cause), `${e.id}: ${e.cause}`);
   assert.equal(EVENTS.find((e) => e.id === 'potosi_mita').cause, 'lung');
-  assert.equal(EVENTS.find((e) => e.id === 'congo_rubber').cause, 'war');
+  assert.equal(EVENTS.find((e) => e.id === 'congo_rubber').cause, 'forced');   // 작업 8: 고무 할당은 전쟁이 아니라 강제 노역
   // 사건 사인은 사인 표의 것만 (사망 줄은 deaths.js CAUSES[사인] 두 줄)
   for (const e of EVENTS.filter((x) => x.hazard > 0)) assert.equal(CAUSES[e.cause].ko.length, 2, e.id);
 });

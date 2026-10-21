@@ -212,7 +212,7 @@ const STR = {
     warLevel: ['mostly at peace', 'border skirmishes', 'at war', 'the land is a battlefield'],
     windPriceJump: 'grain prices soar', windPriceUp: 'prices are up', windPriceDown: 'prices are down', windWageUp: 'wages are up', windWageDown: 'wages are down',
     windCommon: (d) => `common sickness: ${d}`, windTech: (x) => `known here: ${x}`,
-    calm: { harvest: 'the {crop} harvest', market: 'a day at the {market}', feast: 'waiting for {feast}', beast: 'following the {beast}', school: 'off to the {school} in the morning' },
+    calm: { harvest: 'harvesting the {crop}', market: 'a day at the {market}', feast: 'waiting for {feast}', beast: 'following the {beast}', school: 'off to the {school} in the morning' },
     ctxNow: 'This year', ctxWar: 'War', ctxDisease: 'Disease & medicine', ctxTech: 'Technology', ctxEcon: 'Economy', ctxStatus: 'Social order', ctxLearn: 'Learning',
     ctxDz: (list, med) => `common: ${list} — medicine: ${med}`, ctxNoDz: 'no great sickness going round', ctxEconX: (p, w) => `prices ×${p} · wages ×${w}`, ctxEconSame: 'prices and wages as usual',
     ctxYou: (s, bound) => `you: ${s}${bound ? ' (bound)' : ''}`, ctxLit: (p) => (p < 1 ? 'almost no one can read' : `about ${p}% can read`),
@@ -292,19 +292,17 @@ export const heartWord = (v, lang) => STR[lang].heartWords[band5(v)];
 // 건강 줄의 「지금 앓는 것」 (설계 2.1 「최근 사건·카드의 병 이름」): 지난 세 해 안의 인생 기록에서 가장 최근 것.
 //   병·부상 표지가 있는 갈림길에서 건강이 3 이상 오르내렸으면(실제로 고른 길·운의 결과) 그 카드 제목을 인용한다:
 //     「지난해 「앓아누운 날들」 뒤 몸이 축남」 · 「… 뒤 기운을 되찾음」. 제목은 그 줄이 적힌 해의 맥락으로 채운다
-//   표지 (illness): 카드 ill: true · 선택지 risk 'plague' 나 skill 'heal' · 유행병 사건 카드 · 아래 ILL_CARDS
-//   표지 (hurt, 내려갈 때만): 다치는 카드 HURT_CARDS · 굶주림 사건 카드
+//   표지 (illness): 카드 ill: true · 선택지 risk 'plague' 나 skill 'heal' · 유행병 사건 카드
+//   표지 (hurt, 내려갈 때만): 다치는 카드 hurt: true · 굶주림 사건 카드
 //   표지가 없는 카드는 제목 없이, 6 이상 내려갔을 때만 「지난해 몸이 많이 축남」 (물레방아·텔레비전 같은 제목을 끌어오지 않는다)
 //   아직 이어지는 유행병 사건 → 「흑사병이 도는 중」. 아무것도 없고 몸이 허약하면(40 밑) 그 땅의 풍토병 「학질이 도는 고장」. 그 밖에는 ''
 // 카드 파일에 ill 표지가 붙기 전까지 쓰는 아이디 목록 (작업 7·8 에서 카드의 ill: true 로 옮긴다)
-const ILL_CARDS = new Set(['u.baby.fever', 'u.teen.sick', 'u.middle.ache', 'e.early.adult.pox', 'e.ind.middle.doctor', 't.fear.plague', 'e.for.middle.leg']);
-const HURT_CARDS = new Set(['h.sea.storm', 'h.hunt.first', 't.fear.fire', 't.fear.heights', 't.fear.beast']);
 const EV = new Map(EVENTS.map((e) => [e.id, e]));
 function illTag(card) {
-  if (card.ill || ILL_CARDS.has(card.id) || card.choices.some((x) => x.risk === 'plague' || x.skill === 'heal')) return 'ill';
+  if (card.ill || card.choices.some((x) => x.risk === 'plague' || x.skill === 'heal')) return 'ill';
   const e = card.event && EV.get(card.event);
   if (e && (e.kind === 'epidemic' || e.cause === 'plague')) return 'ill';
-  if (HURT_CARDS.has(card.id) || (e && e.cause === 'hunger')) return 'hurt';
+  if (card.hurt || (e && e.cause === 'hunger')) return 'hurt';
   return null;
 }
 export function ailmentLine(life, deck, lang) {

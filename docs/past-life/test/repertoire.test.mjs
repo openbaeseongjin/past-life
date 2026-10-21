@@ -1,4 +1,4 @@
-// 레파토리 목표 수치 (시뮬 2.0 설계 4.4, 작업 7). 시드 600개, 자동 결정
+// 레파토리 목표 수치 (시뮬 2.0 설계 4.4, 작업 7). 시드 2,000개(작업 8에서 600 → 계획서대로), 자동 결정
 // 「같은 카드」는 그 생의 그해 맥락으로 채운 카드 본문이 같은 것으로 센다 — 말 바꿈 카드는 땅·시대마다 다른 글이 된다
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -10,7 +10,7 @@ import { ZONE_OF } from '../context_data.js';
 import { contextOf } from '../context.js';
 import { fillTokens } from '../tokens.js';
 
-const N = 600;
+const N = 2000;
 const gated = (c) => { const w = c.when || {}; return !!(w.eraGroups || w.eras || w.regions || w.areas || w.tags || w.minYear != null || w.maxYear != null || w.zones || w.setting || c.event || w.trace); };
 const hh = (b) => (b.household && b.household.id) || b.household;
 const runs = [];

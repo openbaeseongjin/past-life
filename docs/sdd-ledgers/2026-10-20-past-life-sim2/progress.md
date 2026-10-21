@@ -85,3 +85,8 @@ Task 7: minor (deferred → Task 8): Korean births only 0.5% → Korea cards rar
 Task 7: complete (snap 7-base..7-fix1)
 PAUSED 2026-10-21 at user's 93% weekly usage (stop at 95%). Next on resume: phase2 Task 2 review → sim2 Task 8 → phase2 Task 3/4 → share build
 SHARE: GitHub Pages live https://openbaeseongjin.github.io/past-life/ (repo openbaeseongjin/past-life, deploy dir D:/Users/admin/Desktop/past-life-pages, commit f143e12); live check 0 console errors
+Task 8 (cloud 2026-10-21): tools/sweep.mjs — 영혼마다 생을 이어 2,400생을 자동으로 돌려 화면 글 전부(카드·선택지·결과·효과·작은 일·두루마리·모닥불·시대 띠·살림·부고·묘비) ko/en 665k줄을 검사 (중괄호·조사·영어 관사/복수·시대 착오 44규칙·한 생 반복·성별/나이/혼인/집안·빈도); 처음 진짜 흠: en 「the potatoes harvest」(calm 줄 → harvesting the {crop}), 고추 1515 동아프리카(minYear 1540), 커피 1640 발칸(minYear 1555); 2,400생 흠 0건
+Task 8: deferred minors — fear:fire 메아리 화덕·불씨 premodern + 현대 줄 2 · 재능 마음 덤 한 생 상한 8 (TALENT_HAPPY_MAX) · 지식 60에 글 꿈 이룸 · congo_rubber 사인 forced(강제 노역) · ILL/HURT_CARDS → 카드 ill/hurt 표지 · 중세·근세 유목 집안(HERD_SHARE, 무게 0 herd로 다른 시드 뽑기 그대로; 몽골·초원·아라비아…) · 사건 카드도 when 전체 검사 · repertoire 시드 600→2000 · 어른·중년 작은 일 확률 0.4 + 앞 생 줄 가중치 ×0.25 (soul.lives[].lines; 40살 넘은 생의 최다 줄 87%→~65%, 한 영혼 세 생 반복 18%→5%)
+Task 8: 이미 고쳐져 있던 것 — shiftStatus 계단 수, denarii 단수(fixOne); 그대로 — 오바의 길드(설계 2.3 예시·시험 고정), 한국 카드 노출(출생 비율), 짧은 사건 minAge 15 노출(설계)
+Task 8: EU·AM Minor 5–16 (11 고침, 13 그대로) · SA·EA Minor 1–13 (10 고침 + 새 카드 barley_loan·well_law·inheritance) — 하위 에이전트 2 (opus); test/sweep.test.mjs 10개; 294/294
+Task 8: 남음 — 브라우저 auto=1 여섯 생 콘솔 점검(클라우드는 jsDelivr 막힘 → npm 받은 three 로 가로채 시험 중), 일본·중국 큰 집 시대 빈자리

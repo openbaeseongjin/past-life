@@ -34,6 +34,10 @@ export const CAUSES = {
   war: C('전쟁', 'war', 'war',
     ['전쟁은 당신이 고르지 않은 싸움이었어요.', '군대가 마을을 지나갔어요. 당신은 그 길 위에 있었어요.'],
     ['War was a fight you never chose.', 'An army passed through the village. You were on its road.']),
+  // 강제 노역 (사건 사인만: 콩고 자유국의 고무 할당 congo_rubber). 생명표 굴림의 사인표에는 없다
+  forced: C('강제 노역', 'forced labour', null,
+    ['남의 몫을 채우느라 몸이 먼저 무너졌어요.', '할당량은 사람의 사정을 봐주지 않았어요.'],
+    ["Filling someone else's quota, your body gave out first.", 'The quota made no allowance for anyone.']),
   childbirth: C('출산', 'childbirth', null,
     ['아이를 낳다가 숨을 거뒀어요. 흔한 일이었든 드문 일이었든, 슬픔은 같았어요.', '아이를 낳던 날 세상을 떠났어요.'],
     ['You died giving birth. Common or rare in your time, the grief was the same.', 'You died on the day you gave birth.']),

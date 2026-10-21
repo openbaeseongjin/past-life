@@ -86,7 +86,7 @@ export const ERA_CARDS = [
       { text: { ko: '젊은이에게 넘긴다', en: 'Hand it to someone younger' }, effects: { family: 5 },
         result: { ko: '젊은이가 맡았어요. 뒤에서 훈수만 두는 게 생각보다 훨씬 재미있었어요.', en: 'A younger one took it on. Offering advice from the back turned out to be far more fun.' } },
     ] },
-  { id: 'e.for.middle.leg', stage: 'middle', when: { eraGroups: ['forager'] },
+  { id: 'e.for.middle.leg', ill: true, stage: 'middle', when: { eraGroups: ['forager'] },
     title: { ko: '다친 다리', en: 'A bad leg' },
     text: { ko: '지난 사냥에서 다리를 다쳤어요. 무리는 오늘 다시 사냥을 나간대요.', en: 'You hurt your leg on the last hunt. Today the band is heading out again.' },
     choices: [
@@ -378,7 +378,7 @@ export const ERA_CARDS = [
         result: { ko: '떠나는 배를 끝까지 바라봤어요. 저녁은 식구들과 먹었어요.', en: 'You watched the ship until it was gone. Then you went home and had supper with your family.' } },
     ] },
   // 마마 접종(인두법)이 이 묶음 내내 알려져 있던 땅만: 중국, 인도·벵골, 서·동아프리카. 유럽은 1720년대부터라 뺀다
-  { id: 'e.early.adult.pox', stage: 'adult', when: { eraGroups: ['early'], areas: ['china', 'india', 'bengal', 'west_africa', 'east_africa'] },
+  { id: 'e.early.adult.pox', ill: true, stage: 'adult', when: { eraGroups: ['early'], areas: ['china', 'india', 'bengal', 'west_africa', 'east_africa'] },
     title: { ko: '마마를 막는 법', en: 'A guard against smallpox' },
     text: { ko: '마마를 약하게 앓는 사람에게서 조금 옮겨 받으면, 가볍게 앓고 평생 피한대요.', en: 'They say if you take a little from someone with a mild case of smallpox, you catch it lightly, and never again.' },
     choices: [
@@ -504,7 +504,7 @@ export const ERA_CARDS = [
       { text: { ko: '불쏘시개로 쓴다', en: 'Use it to light the fire' }, effects: { health: 3 },
         result: { ko: '신문은 불이 잘 붙었어요. 세상 소식이 저녁밥을 따뜻하게 데웠어요.', en: 'The newspaper burned nicely. The news of the world warmed your supper.' } },
     ] },
-  { id: 'e.ind.middle.doctor', stage: 'middle', tokens: true, when: { eraGroups: ['industrial'] },
+  { id: 'e.ind.middle.doctor', ill: true, stage: 'middle', tokens: true, when: { eraGroups: ['industrial'] },
     title: { ko: '{healer}에게 갈까', en: 'See the {healer}?' },
     text: { ko: '가슴이 자꾸 답답하고 기침이 안 떨어져요. 읍내 {healer:은} 비싸기로 유명해요.', en: 'Your chest feels tight and the cough won’t go away. The {healer} in town is famous for being expensive.' },
     choices: [

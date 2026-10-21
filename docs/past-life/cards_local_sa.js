@@ -1,5 +1,5 @@
 // 땅·자리 고유 카드 묶음 (시뮬 2.0 설계 4.2): 남아시아 (문화권 southasia = india · bengal · indus · himalaya · lanka)
-//   마을 (farm) 11 · 큰 집 (elite 앞마당 + serve 뒤뜰) 7 · 거리 (craft · trade · shop · pro · office) 5 · 야영지 (herd · band) 4
+//   마을 (farm) 12 · 큰 집 (elite 앞마당 + serve 뒤뜰) 7 · 거리 (craft · trade · shop · pro · office) 5 · 야영지 (herd · band) 4
 // 모든 카드는 when.zones + when.setting 에 시대(eraGroups 나 minYear·maxYear)를 단다. 출생 비율(고대 59% · 중세 26% · 근세 9% …)대로
 //   고대·중세 카드를 많이 두고, 근세·근대·현대에도 하나씩은 닿게 한다.
 // 시대 갈래 (CONTENT-SOURCES-local-sa.md): 기원전 1200년 무렵 전 씨족·마을 → 부족과 라자 → 기원전 1000년부터 바르나 → 300년부터 바르나와 자티.
@@ -11,6 +11,7 @@ const Z = ['southasia'];
 export const LOCAL_CARDS_SA = [
   // ── 남아시아 마을 (farm) ───────────────────────────────────────
   // 첫 머리 깎기(문단·추다카라나): 정수리에 한 줌(시카)을 남긴다. 힌두 풍습이라 인도 평원·히말라야만
+  //   (집안의 종교는 맥락에 없어 1200년 뒤 이슬람 집안 생도 받을 수 있다. 땅의 다수 풍습이라 그대로 둔다: 검토 Minor 9)
   { id: 'loc.sa.village.shave', stage: 'baby', when: { zones: Z, setting: 'village', areas: ['india', 'himalaya'], minYear: -800 },
     title: { ko: '첫 머리 깎는 날', en: 'The first haircut' },
     text: { ko: '날을 받아 처음으로 머리를 깎는대요. 정수리에 한 줌만 남기고 다 민대요. 온 식구가 둘러앉았어요.', en: 'An auspicious day has been chosen for your first haircut. Everything goes except one tuft at the crown, and the whole family has gathered round.' },
@@ -20,8 +21,8 @@ export const LOCAL_CARDS_SA = [
       { text: { ko: '버둥대며 운다', en: 'Wriggle and howl' }, effects: { happy: 3, family: -2 },
         result: { ko: '머리가 삐뚤빼뚤해졌어요. 그 머리로 한 해를 다녔고, 아무도 잊지 않았어요.', en: 'Your head came out lopsided. You wore it that way for a year, and nobody ever forgot.' } },
     ] },
-  // 소똥 땔감: 신석기부터 소를 친 땅이면 어느 시대에나
-  { id: 'loc.sa.village.dung', stage: 'child', tokens: true, when: { zones: Z, setting: 'village', minYear: -5000 },
+  // 소똥 땔감: 신석기부터 소를 친 땅이면 어느 시대에나. 나무가 흔한 스리랑카 젖은 땅은 빼고 평원·히말라야로 (검토 Minor 9)
+  { id: 'loc.sa.village.dung', stage: 'child', tokens: true, when: { zones: Z, setting: 'village', areas: ['india', 'bengal', 'indus', 'himalaya'], minYear: -5000 },
     title: { ko: '소똥 땔감', en: 'Dung for the fire' },
     text: { ko: '어머니가 소똥에 짚을 섞어 둥글넓적하게 빚어요. {home} 벽에 척척 붙여 말리면 몇 달 땔감이래요. 이제 당신 차례예요.', en: 'Your mother mixes cow dung with straw and pats it into flat rounds. Slapped onto the wall of the {home} to dry, they will feed the fire for months. Now it is your turn.' },
     choices: [
@@ -42,7 +43,8 @@ export const LOCAL_CARDS_SA = [
       { text: { ko: '스님을 따라가 본다', en: 'Follow the monk' }, effects: { know: 4, family: -3 },
         result: { ko: '절까지 따라가 스님들 외는 소리를 들었어요. 뜻은 몰라도 가락이 귀에 붙었어요.', en: 'You followed him all the way to the monastery and listened to the chanting. You missed the meaning but caught the tune.' } },
     ] },
-  // 우물가 차별: 불가촉으로 몰린 집은 마을 우물에 손대지 못했다. 1950년 헌법 17조가 불가촉을 없앴다. 아이의 눈으로, 담담하게
+  // 우물가 차별: 불가촉으로 몰린 집은 마을 우물에 손대지 못했다. 아이의 눈으로, 담담하게
+  //   1950년 헌법 17조가 불가촉을 법으로 금했지만 우물 차별은 그 뒤로도 이어졌다. 1950년부터는 「법은 금했지만」 판(well_law)이 받는다
   { id: 'loc.sa.village.well', stage: 'child', when: { zones: Z, setting: 'village', areas: ['india', 'bengal', 'himalaya'], minYear: 300, maxYear: 1949 },
     title: { ko: '우물가에서 기다리는 아이', en: 'The girl waiting at the well' },
     text: { ko: '마을 끝에 사는 아이가 빈 항아리를 들고 우물가에 서 있어요. 그 집 사람은 우물에 손대면 안 된대요. 누가 길어 주길 기다려요.', en: 'A girl from the far edge of the village stands by the well with an empty pot. Her family may not touch the well, they say. She is waiting for someone to draw water for her.' },
@@ -53,6 +55,20 @@ export const LOCAL_CARDS_SA = [
         result: { ko: '그냥 지나쳤어요. 저녁 내내 그 빈 항아리가 눈에 밟혔어요.', en: 'You walked on by. All evening you kept seeing that empty pot.' } },
       { text: { ko: '어른에게 까닭을 묻는다', en: 'Ask a grown-up why' }, effects: { know: 3 },
         result: { ko: '원래 그렇다는 대답만 들었어요. 그 대답이 이상하다는 건 한참 뒤에야 알았어요.', en: 'The only answer was that this is how things are. It was years before you saw how strange that answer was.' } },
+    ] },
+  // 법은 금했지만: 1950년 헌법 17조·1955년 법이 불가촉을 금했어도 시골 우물 차별은 오래 남았다 (1999 인권 보고서 등). 인도 공화국 땅만
+  { id: 'loc.sa.village.well_law', stage: 'child', when: { zones: Z, setting: 'village', areas: ['india'], minYear: 1950, maxYear: 2005 },
+    title: { ko: '법은 금했지만', en: 'The law says otherwise' },
+    text: { ko: '누구나 같은 우물을 써도 된다고 나라 법이 정했대요. 그런데 마을 끝 집 아이는 오늘도 빈 항아리를 들고 누가 길어 주길 기다려요.', en: 'The law of the land says everyone may use the same well. Yet the girl from the far edge of the village still waits beside it with her empty pot for someone to draw water.' },
+    choices: [
+      { text: { ko: '물을 길어 준다', en: 'Draw water for her' }, effects: { happy: 4, family: -3, charm: 2 },
+        result: { ko: '항아리를 채워 줬어요. 할머니는 혀를 찼지만, 그 아이는 다음 날 먼저 인사했어요.', en: 'You filled her pot. Your grandmother clicked her tongue, but the next day the girl greeted you first.' } },
+      { text: { ko: '직접 길어 보라고 한다', en: 'Tell her to draw it herself' },
+        chance: { p: 0.5,
+          win: { effects: { happy: 5, charm: 2 }, result: { ko: '아이가 처음으로 두레박 줄을 잡았어요. 지나가던 어른 몇은 못 본 척했어요.', en: 'For the first time, she took hold of the well rope herself. A few passing grown-ups pretended not to see.' } },
+          lose: { effects: { family: -5, happy: -3 }, result: { ko: '어른들이 달려와 소리쳤어요. 법은 멀고 우물은 가까웠어요.', en: 'Grown-ups came running and shouting. The law was far away; the well was right here.' } } } },
+      { text: { ko: '못 본 척 지나간다', en: 'Pretend not to see' }, effects: { family: 2, happy: -3 },
+        result: { ko: '그냥 지나쳤어요. 법 이야기가 저녁 내내 귀에 맴돌았어요.', en: 'You walked on by. All evening, what the law said kept going round in your head.' } },
     ] },
   // 리그베다 시대: 소가 곧 재산이고, 싸움을 뜻하는 옛말(가비슈티)이 「소를 찾아 나서기」다. 부족과 라자의 때라 자리 글 없이
   { id: 'loc.sa.village.raid', stage: 'teen', when: { zones: Z, setting: 'village', areas: ['india', 'indus'], minYear: -1500, maxYear: -600 },
@@ -67,8 +83,8 @@ export const LOCAL_CARDS_SA = [
           win: { effects: { wealth: 8, happy: 5 }, result: { ko: '소를 되찾고 덤으로 몇 마리 더 몰고 왔어요. 그날 밤 노래에 당신 이름도 들어갔어요.', en: 'You got the herd back, plus a few extra. That night your name made it into the song.' } },
           lose: { effects: { health: -10 }, result: { ko: '화살이 팔을 스쳤어요. 소는 못 찾았고, 흉터는 오래 남았어요.', en: 'An arrow grazed your arm. The cows stayed lost; the scar stayed for good.' } } } },
     ] },
-  // 혼례와 혼수: 시대·땅마다 이름과 꼴은 달라도 딸을 보내는 집의 짐은 무거웠다 (넓은 표현). 한 지붕 아래 사는 대가족이라 사촌의 혼수도 다 같이 마련한다
-  { id: 'loc.sa.village.dowry', stage: ['teen', 'adult'], when: { zones: Z, setting: 'village', minYear: -500 },
+  // 혼례와 혼수 (집안 살림을 정하는 일이라 어른 단계만: 검토 Minor 8): 시대·땅마다 이름과 꼴은 달라도 딸을 보내는 집의 짐은 무거웠다 (넓은 표현). 한 지붕 아래 사는 대가족이라 사촌의 혼수도 다 같이 마련한다
+  { id: 'loc.sa.village.dowry', stage: ['adult', 'middle'], when: { zones: Z, setting: 'village', minYear: -500 },
     title: { ko: '사촌의 혼례', en: 'A cousin’s wedding' },
     text: { ko: '한 지붕 아래 사는 사촌의 혼처가 정해졌어요. 신랑 집에 보낼 혼수 목록이 길어요. 큰아버지가 밤마다 손가락으로 셈을 해요.', en: 'A match has been made for the cousin who shares your roof. The list of gifts for the groom’s family is long. Every night your uncle counts on his fingers.' },
     choices: [
@@ -79,14 +95,14 @@ export const LOCAL_CARDS_SA = [
       { text: { ko: '노래로 잔치를 채운다', en: 'Fill the feast with songs' }, skill: 'music', effects: { happy: 4, charm: 3 },
         result: { ko: '밤새 노래를 불렀어요. 다들 혼수 이야기는 잊고 당신 노래만 기억했어요.', en: 'You sang all night. Everyone forgot about the gifts and remembered only your songs.' } },
     ] },
-  // 뱀에 물림: 몬순 철 시골의 오랜 위험 (1886년 영국령 인도 집계 2만 2천여 명)
+  // 뱀에 물림: 몬순 철 시골의 오랜 위험 (1886년 영국령 인도 집계 2만 2천여 명). {healer}가 옛 치료사에서 의사까지 바뀌므로 치료 글은 「약을 쓴」으로 넓게 (칼로 째기는 오늘날 권하지 않는다)
   { id: 'loc.sa.village.snake', stage: ['adult', 'middle'], ill: true, tokens: true, when: { zones: Z, setting: 'village', minYear: -5000 },
     title: { ko: '발목을 문 뱀', en: 'Snakebite' },
     text: { ko: '몬순 비가 그친 저녁, 풀숲을 밟다가 발목이 따끔했어요. 뱀이 미끄러져 사라져요. 발목이 벌써 부어올라요.', en: 'On an evening after the monsoon rain, you step into the long grass and feel a sting at your ankle. A snake slides away. The ankle is already swelling.' },
     choices: [
       { text: { ko: '{healer}에게 달려간다', en: 'Run to the {healer}' },
         chance: { p: 0.65,
-          win: { effects: { health: 3 }, result: { ko: '상처를 째고 약을 붙인 뒤 밤새 지켜봤어요. 아침에 부기가 빠졌어요.', en: 'The wound was cut, dressed and watched all night. By morning the swelling had gone down.' } },
+          win: { effects: { health: 3 }, result: { ko: '상처를 살피고 약을 쓴 뒤 밤새 지켜봤어요. 아침에 부기가 빠졌어요.', en: 'The bite was cleaned, treated and watched all night. By morning the swelling had gone down.' } },
           lose: { effects: { health: -12 }, result: { ko: '열이 사흘 갔어요. 살았지만 그 다리는 한동안 남의 다리 같았어요.', en: 'The fever lasted three days. You lived, but for a long time that leg felt like someone else’s.' } } } },
       { text: { ko: '꽉 묶고 누워 있는다', en: 'Bind it tight and lie still' },
         chance: { p: 0.5,
@@ -181,7 +197,7 @@ export const LOCAL_CARDS_SA = [
           win: { effects: { wealth: 8, happy: 3 }, result: { ko: '{ruler:이} 고개를 끄덕였어요. 이듬해 세금 걷는 마을이 하나 늘었어요.', en: 'The {ruler} nodded. The next year one more village paid its dues to you.' } },
           lose: { effects: { happy: -4 }, result: { ko: '옆 사람 선물이 더 컸어요. 아무도 당신 선물을 기억하지 못했어요.', en: 'The man beside you brought a bigger gift. Nobody remembered yours.' } } } },
       { text: { ko: '시를 지어 바친다', en: 'Offer a poem of your own' }, when: { minKnow: 25 }, skill: 'letters', effects: { happy: 5, charm: 4 },
-        result: { ko: '궁정이 조용해졌다가 웃음이 터졌어요. 좋은 뜻의 웃음이었어요, 아마도.', en: 'The court fell silent, then burst out laughing. The good kind of laughter, probably.' } },
+        result: { ko: '궁정이 조용해졌다가 웃음이 터졌어요. 좋은 뜻의 웃음이었어요. 아마 그랬을 거예요.', en: 'The court fell silent, then burst out laughing. The good kind of laughter, probably.' } },
       { text: { ko: '줄 맨 뒤에 선다', en: 'Hang back at the end of the line' }, effects: { happy: 1 },
         result: { ko: '해 질 때까지 기다리다 그냥 돌아왔어요. 선물은 그대로 남았어요.', en: 'You waited until sundown and went home. At least you still had the gift.' } },
     ] },
@@ -225,8 +241,8 @@ export const LOCAL_CARDS_SA = [
           win: { effects: { happy: 4 }, result: { ko: '마감 사흘 전, 묵은 빚을 갚겠다는 사람이 나타났어요. 숨을 크게 쉬었어요.', en: 'Three days before the deadline, an old debtor turned up to pay. You breathed out at last.' } },
           lose: { effects: { wealth: -15, status: -1 }, result: { ko: '해가 졌어요. 이튿날 영지 이름 옆에 낯선 사람 이름이 적혔어요.', en: 'The sun went down. The next day a stranger’s name was written beside the estate’s.' } } } },
     ] },
-  // 앞마당 (하라파): 집안 도장 새기기. 외뿔 짐승이 가장 흔한 그림이고 코뿔소·코끼리·황소도 있다
-  { id: 'loc.sa.estate.seal', stage: ['teen', 'adult'], when: { zones: Z, setting: 'estate', tags: ['elite'], areas: ['indus', 'india'], minYear: -2600, maxYear: -1900 },
+  // 앞마당 (하라파): 집안 도장 새기기 (집안 일을 정하는 자리라 어른 단계만: 검토 Minor 8). 외뿔 짐승이 가장 흔한 그림이고 코뿔소·코끼리·황소도 있다
+  { id: 'loc.sa.estate.seal', stage: ['adult', 'middle'], when: { zones: Z, setting: 'estate', tags: ['elite'], areas: ['indus', 'india'], minYear: -2600, maxYear: -1900 },
     title: { ko: '집안 도장', en: 'The family seal' },
     text: { ko: '짐 꾸러미를 봉할 도장을 새로 새겨요. 장인이 무슨 짐승을 새길지 물어요. 도장은 먼 도시까지 집안 이름 대신 가요.', en: 'A new seal is being carved to mark the family’s bundles of goods. The carver asks which animal to put on it. The seal will travel to distant cities in place of your name.' },
     choices: [
@@ -251,8 +267,8 @@ export const LOCAL_CARDS_SA = [
       { text: { ko: '조개 구슬부터 한다', en: 'Start with shell beads' }, effects: { skill: 2, happy: 2 },
         result: { ko: '조개 구슬을 한 바구니 꿰었어요. 홍옥수는 내년에 하기로 했어요.', en: 'You strung a whole basket of shell beads. Carnelian could wait until next year.' } },
     ] },
-  // 같은 일을 하는 집들의 조합 (슈레니): 서로 돕고, 남이 맡긴 돈도 굴렸다 (2세기 나시크 비문). 글을 알면 장부를 맡는다
-  { id: 'loc.sa.street.guild', stage: ['teen', 'adult'], when: { zones: Z, setting: 'street', minYear: -600, maxYear: 1800 },
+  // 같은 일을 하는 집들의 조합 (슈레니): 서로 돕고, 남이 맡긴 돈도 굴렸다 (2세기 나시크 비문). 글을 알면 장부를 맡는다. 회비·가입은 어른 단계만 (검토 Minor 8)
+  { id: 'loc.sa.street.guild', stage: ['adult', 'middle'], when: { zones: Z, setting: 'street', minYear: -600, maxYear: 1800 },
     title: { ko: '조합에 들까', en: 'Join the guild?' },
     text: { ko: '같은 일을 하는 집들의 조합이 당신을 받아 주겠대요. 회비를 내야 하지만, 흉년엔 서로 돕고 남이 맡긴 돈도 굴려 준대요.', en: 'The guild of families in your trade has offered to take you in. There are dues, but members help each other in lean years, and the guild even invests money others leave with it.' },
     choices: [
@@ -289,7 +305,8 @@ export const LOCAL_CARDS_SA = [
       { text: { ko: '베틀을 접는다', en: 'Fold up the loom' }, effects: { wealth: 2, happy: -6 },
         result: { ko: '베틀을 처마 밑에 세워 뒀어요. 그 앞을 지날 때면 발이 느려졌어요.', en: 'You stood the loom under the eaves. Whenever you passed it, your feet slowed down.' } },
     ] },
-  // 현대 도시의 도시락통 (뭄바이 도시락 배달은 1890년부터, 틀리는 일이 드물기로 이름났다)
+  // 현대 도시의 도시락통 (뭄바이 도시락 배달은 1890년부터, 틀리는 일이 드물기로 이름났다).
+  //   땅 갈래가 'india' 하나라 뭄바이만 고를 수 없다. 글에 도시 이름을 쓰지 않고 「배달 도시락」으로 넓게 둔다 (검토 Minor 9)
   { id: 'loc.sa.street.tiffin', stage: ['adult', 'middle'], when: { zones: Z, setting: 'street', areas: ['india'], minYear: 1950 },
     title: { ko: '바뀐 도시락', en: 'The wrong tiffin' },
     text: { ko: '절대 안 바뀐다던 배달 도시락통을 열었더니 남의 집 반찬이에요. 맨 아래 칸에 쪽지가 있어요. 「오늘은 일찍 와요.」', en: 'You open the delivered lunch tin, the kind that famously never goes astray, and find someone else’s food. In the bottom tier is a note: “Come home early today.”' },
@@ -336,6 +353,7 @@ export const LOCAL_CARDS_SA = [
         result: { ko: '나뭇잎으로 버텼어요. 떼는 야위었지만 다 무사했어요.', en: 'You got by on leaves. The herd grew thin, but every one survived.' } },
     ] },
   // 데칸 신석기 잿더미 (기원전 3000~1200 무렵): 쌓인 소똥 더미를 태운 자리. 무엇을 위한 불이었는지는 넓은 표현으로
+  //   실제로는 데칸 남부(카르나타카·안드라)에 몰려 있지만 땅 갈래가 'india' 하나라 넓게 받는다. 글에 땅 이름은 쓰지 않는다 (검토 Minor 9)
   { id: 'loc.sa.camp.ashmound', stage: ['adult', 'middle'], when: { zones: Z, setting: 'camp', eraGroups: ['ancient'], tags: ['herd'], areas: ['india'], minYear: -3000, maxYear: -1200 },
     title: { ko: '잿더미 언덕', en: 'The ash mound' },
     text: { ko: '여러 해 쌓인 소똥 더미에 불을 놓는 날이에요. 불길이 밤하늘까지 치솟고, 다들 소 떼를 몰고 불 곁으로 나와요.', en: 'Today the dung heap of many years is set alight. The flames leap into the night sky, and everyone drives the cattle out to the fire.' },

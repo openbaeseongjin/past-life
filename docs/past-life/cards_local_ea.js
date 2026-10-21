@@ -77,8 +77,9 @@ export const LOCAL_CARDS_EA = [
           win: { effects: { status: 1, happy: 10 }, result: { ko: '어찌 된 일인지 붙었어요. 문중 어른들이 서로 얼굴만 쳐다봤어요.', en: 'Somehow, you passed. The clan elders just stared at one another.' } },
           lose: { effects: { happy: -4 }, result: { ko: '답안지 절반이 비었어요. 그래도 시험장 구경은 잘했어요.', en: 'Half your answer sheet was blank. You did get a good look at the exam hall.' } } } },
     ] },
-  // 전족 (송 무렵 ~ 1912 금지, 시골에서는 1930년대까지). 딸의 발을 천으로 싸매 작게 만드는 풍습
-  { id: 'loc.ea.village.footbinding', stage: 'child', ill: true, when: V(['china'], 1100, 1930, { sex: 'f' }),
+  // 전족 (송 무렵 상류층에서 시작 ~ 1912 금지, 시골에서는 1930년대까지). 딸의 발을 천으로 싸매 작게 만드는 풍습
+  //   시골 농가 딸까지 퍼진 것은 명 무렵 뒤라 마을 판은 1450년부터 (검토 Minor 4)
+  { id: 'loc.ea.village.footbinding', stage: 'child', ill: true, when: V(['china'], 1450, 1930, { sex: 'f' }),
     title: { ko: '발을 싸매는 날', en: 'The day of the bindings' },
     text: { ko: '어머니가 긴 천을 꺼냈어요. 발이 작아야 좋은 집에 시집간다며 당신 발을 싸매기 시작해요.', en: 'Your mother has brought out the long strips of cloth. Small feet will mean a good marriage, she says, and she begins to bind yours.' },
     choices: [
@@ -127,7 +128,7 @@ export const LOCAL_CARDS_EA = [
       { text: { ko: '동생에게 가르쳐 준다', en: 'Teach your little sibling' }, when: { minKnow: 30 }, effects: { charm: 3, family: 4 },
         result: { ko: '동생이 「하늘 천」을 따라 했어요. 당신도 조금 훈장이 된 기분이었어요.', en: 'Your sibling repeated “heaven” after you. You felt a little like a teacher yourself.' } },
     ] },
-  // 조선 보릿고개: 묵은 곡식이 떨어지고 보리가 아직 안 익은 봄. 관아 환곡은 봄에 빌려주고 가을에 이자를 붙여 받는다
+  // 조선 보릿고개(맥령): 묵은 곡식이 떨어지고 보리가 아직 안 익은 봄. 관아 환곡은 봄에 빌려주고 가을에 이자를 붙여 받는다 (환곡은 1894년까지). 그 뒤는 barley_loan
   { id: 'loc.ea.village.barley_hill', stage: ['adult', 'middle', 'old'], when: V(['korea'], 1392, 1894),
     title: { ko: '보릿고개', en: 'The barley hump' },
     text: { ko: '묵은 곡식은 떨어졌고 보리는 아직 파래요. 관아에서 봄에 곡식을 빌려주고 가을에 이자를 붙여 받는대요.', en: 'Last year’s grain is gone and the barley is still green. The county office lends grain in spring, to be repaid with interest at harvest.' },
@@ -141,8 +142,25 @@ export const LOCAL_CARDS_EA = [
       { text: { ko: '이웃과 나눠 먹는다', en: 'Share with the neighbors' }, effects: { family: 6, health: -2, charm: 2 },
         result: { ko: '두 집이 한 솥을 끓였어요. 배는 고팠어도 덜 외로웠어요.', en: 'Two households shared one pot. Still hungry, but less alone.' } },
     ] },
-  // 조선 마마(천연두): 「손님」·「마마」로 높여 불렀다. 종두가 퍼지기 전 (1880년대)
-  { id: 'loc.ea.village.smallpox', stage: ['baby', 'child'], ill: true, when: V(['korea'], 1400, 1885),
+  // 20세기 보릿고개 (1895~1969): 환곡이 사라진 뒤 봄 양식은 장리쌀(봄에 꾸고 가을에 반을 더 얹어 갚는 빚)과 초근목피로 버텼다. 1960년대까지 가장 크게 기억된다 (검토 Minor 3)
+  { id: 'loc.ea.village.barley_loan', stage: ['adult', 'middle', 'old'], when: V(['korea'], 1895, 1969),
+    title: { ko: '장리쌀', en: 'Rice at half again' },
+    text: { ko: '보리는 아직 파랗고 쌀독은 바닥이 보여요. 부잣집에서 장리쌀을 꿔 준대요. 봄에 한 말을 꾸면 가을에 한 말 반을 갚는 셈이에요.', en: 'The barley is still green and you can see the bottom of the rice jar. A rich household will lend rice: borrow one measure in spring, repay one and a half at harvest.' },
+    choices: [
+      { text: { ko: '장리쌀을 꾼다', en: 'Borrow the rice' }, effects: { health: 3, wealth: -7 },
+        result: { ko: '보리 벨 때까지 버텼어요. 가을 타작 마당에서 반 말이 더 나갔어요.', en: 'You held out until the barley was cut. At threshing time, half as much again went out the gate.' } },
+      { text: { ko: '쑥과 송기로 버틴다', en: 'Live on mugwort and pine bark' }, skill: 'farm',
+        chance: { p: 0.6,
+          win: { effects: { health: -3, wealth: 2 }, result: { ko: '쑥버무리와 송기떡으로 봄을 났어요. 빚 없이 여름을 맞았어요.', en: 'You got through spring on mugwort cakes and pine-bark rice cakes, and reached summer owing nothing.' } },
+          lose: { effects: { health: -10 }, result: { ko: '얼굴이 누렇게 부었어요. 보리 베는 날에야 겨우 기운을 차렸어요.', en: 'Your face swelled and yellowed. Only on the day the barley was cut did your strength come back.' } } } },
+      { text: { ko: '품을 팔러 나간다', en: 'Hire yourself out' },
+        chance: { p: 0.5,
+          win: { effects: { wealth: 4, family: -2 }, result: { ko: '읍내 공사판에서 품을 팔아 보리쌀 한 자루를 사 왔어요.', en: 'You hired out on a building site in town and came home with a sack of barley.' } },
+          lose: { effects: { health: -5, happy: -3 }, result: { ko: '일거리는 없고 발만 부르텄어요. 빈 자루로 돌아왔어요.', en: 'There was no work, only blisters. You came home with an empty sack.' } } } },
+    ] },
+  // 조선 마마(천연두): 「손님」·「마마」로 높여 불렀다. 종두는 1880년 무렵 들어와 1895년 종두 규칙 뒤 차츰 퍼졌지만 시골까지는 오래 걸렸다
+  //   그래서 마을 판은 1910년까지 (그 뒤로도 1950년대까지 유행이 있었다: 검토 Minor 12)
+  { id: 'loc.ea.village.smallpox', stage: ['baby', 'child'], ill: true, when: V(['korea'], 1400, 1910),
     title: { ko: '손님이 오셨대요', en: 'The guest has come' },
     text: { ko: '열이 오르고 몸에 붉은 점이 돋았어요. 어른들은 마마를 「손님」이라 높여 부르며 잘 모셔 보내야 한대요.', en: 'A fever rises and red spots break out on your skin. The grown-ups call smallpox “the honored guest” and say it must be served politely and sent on its way.' },
     choices: [
@@ -215,8 +233,9 @@ export const LOCAL_CARDS_EA = [
       { text: { ko: '거푸집을 한 번 더 데운다', en: 'Warm the mold once more' }, effects: { skill: 2, wealth: 2 },
         result: { ko: '시간은 더 걸렸지만 실패는 없었어요. 느린 사람이 오래 남는 공방이었어요.', en: 'It took longer, but nothing failed. In that workshop, the slow ones lasted.' } },
     ] },
-  // 한 무제의 소금·쇠 전매 (기원전 117 ~ 후한 초 폐지): 관영 철 작업장이 농기구를 만들었고, 비싸고 무디다는 원성이 있었다 (염철론)
-  { id: 'loc.ea.street.iron_office', stage: ['teen', 'adult', 'middle'], when: S(['china'], -117, 88),
+  // 한의 소금·쇠 전매 (기원전 117 ~ 신나라 끝 23년; 후한 초부터 군현에 맡겨 느슨해졌고 88년에 정식으로 풀었다): 관영 철 작업장이 농기구를 만들었고,
+  //   비싸고 무디다는 원성이 있었다 (염철론). 「나라가 도맡은」 때만 받는다 (검토 Minor 1)
+  { id: 'loc.ea.street.iron_office', stage: ['teen', 'adult', 'middle'], when: S(['china'], -117, 23),
     title: { ko: '나라의 쇠', en: 'The state’s iron' },
     text: { ko: '나라가 소금과 쇠를 도맡은 뒤로 대장간 불도 관청 허락을 받아야 해요. 관영 철 작업장에서 사람을 뽑는대요.', en: 'Since the state took over salt and iron, even a smithy’s fire needs official leave. The government ironworks is taking on hands.' },
     choices: [
@@ -227,8 +246,8 @@ export const LOCAL_CARDS_EA = [
           win: { effects: { wealth: 7 }, result: { ko: '이웃 농부들이 몰래 사 갔어요. 당신 호미가 더 잘 든대요.', en: 'Neighboring farmers bought them on the quiet. Your hoes cut better, they said.' } },
           lose: { effects: { wealth: -8, happy: -4 }, result: { ko: '관리에게 들켜 풀무를 빼앗겼어요.', en: 'An official caught you and took away your bellows.' } } } },
     ] },
-  // 당 장안 서시: 소그드 등 서쪽 상인(호상)의 가게·술집이 모였고 서쪽 향료·물건이 들어왔다
-  { id: 'loc.ea.street.west_market', stage: ['teen', 'adult', 'middle'], when: S(['china'], 618, 907),
+  // 당 장안 서시: 소그드 등 서쪽 상인(호상)의 가게·술집이 모였고 서쪽 향료·물건이 들어왔다. 장사를 정하는 일이라 어른 단계만 (검토 Minor 8)
+  { id: 'loc.ea.street.west_market', stage: ['adult', 'middle'], when: S(['china'], 618, 907),
     title: { ko: '서시의 먼 나라 상인', en: 'The Western Market traders' },
     text: { ko: '서시 장터에 서쪽 먼 나라 상인이 향료 자루를 풀었어요. 비단과 바꾸재요. 냄새만으로도 머리가 핑 돌아요.', en: 'At the Western Market, a trader from the far west has opened his sacks of spices. He wants silk in exchange. The smell alone makes your head spin.' },
     choices: [
@@ -333,7 +352,7 @@ export const LOCAL_CARDS_EA = [
     choices: [
       { text: { ko: '번호를 끝까지 듣는다', en: 'Listen to every number' },
         chance: { p: 0.3,
-          win: { effects: { wealth: 12, happy: 8 }, result: { ko: '당신 번호가 불렸어요. 연탄 갈 일 없는 집이었어요.', en: 'Your number was called. A home where nobody had to change the coal briquettes.' } },
+          win: { effects: { wealth: 12, happy: 8 }, result: { ko: '당신 번호가 불렸어요. 이제 전세 걱정 없는 내 집이었어요.', en: 'Your number was called. A home of your own, and no more worrying about the lease.' } },
           lose: { effects: { happy: -4 }, result: { ko: '옆 사람이 환호했어요. 당신은 다음 분양 공고를 오려 두었어요.', en: 'The person beside you cheered. You clipped the next sales notice from the paper.' } } } },
       { text: { ko: '전세로 더 버틴다', en: 'Stay on a lease a while longer' }, effects: { wealth: 3, family: -2 },
         result: { ko: '이삿짐을 또 쌌어요. 짐 싸는 솜씨만 늘었어요.', en: 'You packed up to move yet again. Only your packing got better.' } },
@@ -392,8 +411,8 @@ export const LOCAL_CARDS_EA = [
           win: { effects: { charm: 3, happy: 5 }, result: { ko: '벗이 뜻밖에 중간 품을 받았어요. 집안 어른들은 혀를 찼어요.', en: 'Your friend unexpectedly got a middle grade. The family elders clicked their tongues.' } },
           lose: { effects: { family: -3 }, result: { ko: '「한미한 집안」이라며 낮은 품이 나왔어요. 벗은 웃어넘겼어요.', en: '“A humble family,” they said, and gave a low grade. Your friend laughed it off.' } } } },
     ] },
-  // 당·송: 높은 관리의 아들은 과거 없이 낮은 벼슬을 받을 수 있었다 (음보·은음). 과거 급제자를 더 알아주는 바람
-  { id: 'loc.ea.estate.yin', stage: ['teen', 'adult'], when: E(['china'], 618, 1367, { tags: ['elite'], sex: 'm' }),
+  // 당·송: 높은 관리의 아들은 과거 없이 낮은 벼슬을 받을 수 있었다 (음보·은음). 과거 급제자를 더 알아주는 바람. 벼슬을 받는 일이라 어른 단계만 (검토 Minor 8)
+  { id: 'loc.ea.estate.yin', stage: ['adult'], when: E(['china'], 618, 1367, { tags: ['elite'], sex: 'm' }),
     title: { ko: '아버지 덕의 벼슬', en: 'A post by father’s grace' },
     text: { ko: '아버지 벼슬 덕에 시험 없이 작은 관직을 받을 수 있대요. 그래도 사람들은 과거 급제를 더 알아준대요.', en: 'Thanks to your father’s rank, you can receive a minor post without sitting the exams. Still, people think more of those who passed.' },
     choices: [
@@ -417,7 +436,8 @@ export const LOCAL_CARDS_EA = [
         result: { ko: '고을 일은 향신들이 다 알았어요. 도장 찍는 자리부터 먼저 익혔어요.', en: 'The local gentry knew everything about the county. First of all, you learned where to put the seal.' } },
     ] },
   // 신라 골품제: 육두품은 아찬(17관등의 여섯째)까지만 오를 수 있었다. 당나라 유학이 길이 되기도 했다
-  { id: 'loc.ea.estate.headrank', stage: ['teen', 'adult'], when: E(['korea'], 600, 935, { tags: ['elite'] }),
+  //   땅 갈래가 한반도 전체라 신라가 한반도를 아우른 668년부터, 글의 「당나라 배」에 맞춰 당이 망한 907년까지 (검토 Minor 2)
+  { id: 'loc.ea.estate.headrank', stage: ['teen', 'adult'], when: E(['korea'], 668, 907, { tags: ['elite'] }),
     title: { ko: '육두품의 천장', en: 'The head-rank ceiling' },
     text: { ko: '집안이 육두품이라 아무리 공부해도 아찬 위로는 못 오른대요. 당나라로 공부하러 가는 배가 곧 떠나요.', en: 'Your family is of head-rank six, so however hard you study, you can rise no higher than the sixth grade. A ship carrying students to Tang leaves soon.' },
     choices: [
@@ -429,6 +449,21 @@ export const LOCAL_CARDS_EA = [
         result: { ko: '제자들이 늘었어요. 진골 집 아이들도 몰래 배우러 왔어요.', en: 'Your students grew in number. Even true-bone children slipped in to learn.' } },
       { text: { ko: '절에 들어간다', en: 'Enter a temple' }, effects: { happy: 5, wealth: -3 },
         result: { ko: '산문 안에서는 골품을 묻지 않았어요. 적어도 겉으로는요.', en: 'Inside the temple gate, no one asked about bone rank. Not openly, at least.' } },
+    ] },
+  // 조선 전기 분재기: 어버이 삼년상 뒤 남매가 모여 재산 나눔 문서(화회문기)를 썼다. 경국대전은 아들딸 고루 나누고 제사 받드는 몫을 더 얹게 했다.
+  //   17세기 후반부터 맏아들 몫이 커지고 딸 몫이 줄었다. 한반도 귀족 쪽 936~1700 빈자리를 채운다 (검토 Minor 11)
+  { id: 'loc.ea.estate.inheritance', stage: ['adult', 'middle'], when: E(['korea'], 1450, 1680, { tags: ['elite'] }),
+    title: { ko: '남매의 분재기', en: 'Dividing the estate' },
+    text: { ko: '어버이 삼년상을 마치고 남매가 모여 재산 나눌 문서를 써요. 논밭은 아들딸 고루 나누는 게 법도래요. 제사 몫은 따로 떼어요.', en: 'Mourning over, the siblings gather to write up the division of the estate. By law, sons and daughters share the fields equally, with a portion set aside for the rites.' },
+    choices: [
+      { text: { ko: '법도대로 고루 나눈다', en: 'Divide it equally, by law' }, effects: { family: 4, wealth: 2 },
+        result: { ko: '논 한 뙈기까지 셈해 고루 나눴어요. 시집간 딸들도 제 몫 문서를 받아 갔어요.', en: 'Down to the last paddy, it was split evenly. Even the married daughters went home with their shares in writing.' } },
+      { text: { ko: '제사 몫을 더 얹자고 한다', en: 'Ask more for the rites' },
+        chance: { p: 0.5,
+          win: { effects: { wealth: 5, family: -2 }, result: { ko: '제사 모실 몫이라며 논 한 자리를 더 받았어요. 다들 고개는 끄덕였어요.', en: 'For the sake of the rites, one more field came your way. Everyone nodded, more or less.' } },
+          lose: { effects: { family: -5 }, result: { ko: '「법도대로」라는 말이 세 번 나왔어요. 몫은 그대로였고 술상만 식었어요.', en: '“By the law” came up three times. The shares stayed as they were; only the wine went cold.' } } } },
+      { text: { ko: '문서를 직접 쓴다', en: 'Write the document yourself' }, when: { minKnow: 25 }, effects: { know: 2, charm: 2 },
+        result: { ko: '붓을 들어 한 자 한 자 적었어요. 남매가 돌아가며 이름 밑에 수결을 두었어요.', en: 'You took up the brush and wrote it out stroke by stroke. One by one, the siblings signed beneath their names.' } },
     ] },
   // 조선 노비 속량: 곡식이나 베를 바치고 노비 문서에서 이름을 빼던 일 (세습 노비제 폐지 1886 전). 하인 쪽
   { id: 'loc.ea.estate.nobi_freedom', stage: ['adult', 'middle', 'old'], when: E(['korea'], 1500, 1885, { tags: ['serve'], bound: true }),

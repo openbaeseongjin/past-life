@@ -43,7 +43,8 @@ const okBirth = (b) => isObj(b) && typeof b.seed === 'string' && Number.isIntege
 const okDeath = (d) => isObj(d) && Number.isInteger(d.age) && d.age >= 0 && Number.isInteger(d.year) && Number.isInteger(d.line)
   && (d.present === true ? d.cause === null : own(CAUSES, d.cause));   // present: 지금(2026)까지 살아 멈춘 생은 사인이 없다
 const okLife = (l) => isObj(l) && okBirth(l.birth) && okDeath(l.death) && Array.isArray(l.gained) && l.gained.every(okTrace) && (l.note == null || typeof l.note === 'string')
-  && (l.beads == null || (typeof l.beads === 'string' && l.beads.length <= 121 && BEADS_RE.test(l.beads)));
+  && (l.beads == null || (typeof l.beads === 'string' && l.beads.length <= 121 && BEADS_RE.test(l.beads)))
+  && (l.lines == null || (Array.isArray(l.lines) && l.lines.length <= 200 && l.lines.every((x) => typeof x === 'string')));   // 그 생에 나온 작은 일 줄 (다음 생이 덜 고른다)
 export function validSoul(s) {
   return isObj(s) && typeof s.id === 'string' && s.id.length > 0 && Array.isArray(s.lives) && s.lives.every(okLife)
     && Array.isArray(s.traces) && s.traces.every(okTrace) && typeof s.ended === 'boolean'

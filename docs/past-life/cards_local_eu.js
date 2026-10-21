@@ -46,7 +46,7 @@ export const LOCAL_CARDS_EU = [
     text: { ko: '마을 옆으로 돌을 깐 곧은 길이 났어요. 군인과 상인과 나랏일 수레가 날마다 지나가요.', en: 'A straight stone-paved road now runs past the village. Soldiers, traders and official carts go by every day.' },
     choices: [
       { text: { ko: '길가에서 {staple:을} 판다', en: 'Sell {staple} by the road' }, effects: { wealth: 6, charm: 2 },
-        result: { ko: '지나가는 사람마다 값을 깎았어요. 그래도 저녁마다 {coin:이} 몇 닢씩 남았어요.', en: 'Every traveller haggled. Still, a few {coin} were left over each evening.' } },
+        result: { ko: '지나가는 사람마다 값을 깎았어요. 그래도 저녁마다 {coin:이} 몇 닢씩 남았어요.', en: 'Every traveler haggled. Still, a few {coin} were left over each evening.' } },
       { text: { ko: '{market}까지 가 본다', en: 'Follow it to the {market}' }, effects: { happy: 5 },
         result: { ko: '반나절 만에 닿았어요. 길이 곧으니 생각도 조금 곧아지는 것 같았어요.', en: 'You got there in half a day. On a road that straight, even your thoughts seemed to straighten out.' } },
       { text: { ko: '군인들을 피한다', en: 'Keep clear of the soldiers' }, effects: { family: 3 },
@@ -55,16 +55,16 @@ export const LOCAL_CARDS_EU = [
   // 열린 밭: 길쭉한 띠로 나눈 밭, 이웃 고랑 넘보기는 장원 법정의 단골 사건
   { id: 'loc.eu.village.strips', stage: ['adult', 'middle'], when: { zones: EU, setting: 'village', areas: ['britain', 'france', 'germany', 'east_europe', 'nordic'], minYear: 900, maxYear: 1700 },
     title: { ko: '한 고랑', en: 'One furrow over' },
-    text: { ko: '마을 밭은 길쭉한 띠로 나뉘어 있어요. 올봄 옆 띠 주인이 당신 띠로 한 고랑을 넘겨 갈았어요.', en: 'The village fields are split into long strips. This spring, your neighbour ploughed one furrow over into your strip.' },
+    text: { ko: '마을 밭은 길쭉한 띠로 나뉘어 있어요. 올봄 옆 띠 주인이 당신 띠로 한 고랑을 넘겨 갈았어요.', en: 'The village fields are split into long strips. This spring, your neighbor plowed one furrow over into your strip.' },
     choices: [
-      { text: { ko: '장원 법정에 알린다', en: 'Take it to the manor court' },
+      { text: { ko: '영주 법정에 알린다', en: 'Take it to the lord’s court' },
         chance: { p: 0.6,
-          win: { effects: { wealth: 4, happy: 3 }, result: { ko: '배심원들이 경계 말뚝을 다시 박았어요. 이웃은 벌금을 냈고, 당신 고랑은 돌아왔어요.', en: 'The jurors re-set the boundary stakes. Your neighbour paid a fine, and your furrow came back.' } },
-          lose: { effects: { family: -5 }, result: { ko: '배심원 절반이 그 이웃의 사촌이었어요. 고랑도 이웃도 둘 다 잃은 기분이었어요.', en: 'Half the jury were his cousins. It felt like losing the furrow and the neighbour both.' } } } },
-      { text: { ko: '밤에 도로 갈아 놓는다', en: 'Plough it back at night' }, effects: { wealth: 2, family: -3 },
-        result: { ko: '이튿날 아침 고랑은 원래 자리에 있었어요. 이웃은 하늘만 쳐다봤어요.', en: 'Next morning the furrow was back where it belonged. The neighbour just looked at the sky.' } },
-      { text: { ko: '한 고랑쯤이야', en: 'What is one furrow?' }, effects: { family: 5, wealth: -2 },
-        result: { ko: '그냥 뒀어요. 가을에 그 이웃이 에일 한 단지를 들고 왔어요.', en: 'You let it go. That autumn, the neighbour turned up with a jug of ale.' } },
+          win: { effects: { wealth: 4, happy: 3 }, result: { ko: '마을 어른들이 경계 말뚝을 다시 박았어요. 이웃은 벌금을 냈고, 당신 고랑은 돌아왔어요.', en: 'The village elders re-set the boundary stakes. Your neighbor paid a fine, and your furrow came back.' } },
+          lose: { effects: { family: -5 }, result: { ko: '판정하러 나온 어른 절반이 그 이웃의 사촌이었어요. 고랑도 이웃도 둘 다 잃은 기분이었어요.', en: 'Half the elders who judged it were his cousins. It felt like losing the furrow and the neighbor both.' } } } },
+      { text: { ko: '밤에 도로 갈아 놓는다', en: 'Plow it back at night' }, effects: { wealth: 2, family: -3 },
+        result: { ko: '이튿날 아침 고랑은 원래 자리에 있었어요. 이웃은 하늘만 쳐다봤어요.', en: 'Next morning the furrow was back where it belonged. The neighbor just looked at the sky.' } },
+      { text: { ko: '한 고랑쯤 눈감아 준다', en: 'Let one furrow go' }, effects: { family: 5, wealth: -2 },
+        result: { ko: '그냥 뒀어요. 가을에 그 이웃이 집에서 빚은 술 한 단지를 들고 왔어요.', en: 'You let it go. That autumn, the neighbor turned up with a jug of home brew.' } },
     ] },
   // 십일조: 밭에 세운 곡식 단 열에 하나를 교회가 가져간다
   { id: 'loc.eu.village.tithe', stage: ['adult', 'middle'], tokens: true, when: { zones: EU, setting: 'village', areas: ['britain', 'france', 'germany', 'italy'], minYear: 1100, maxYear: 1789 },
@@ -81,17 +81,17 @@ export const LOCAL_CARDS_EU = [
   // 흑사병 뒤 일손이 귀해져 품삯이 오르고, 법은 옛 삯을 지키라 했다 (흑사병 자체는 사건 카드가 맡는다)
   { id: 'loc.eu.village.wages', stage: ['adult', 'middle'], when: { zones: EU, setting: 'village', areas: ['britain', 'france', 'germany', 'italy', 'iberia', 'nordic'], minYear: 1351, maxYear: 1450 },
     title: { ko: '귀해진 일손', en: 'Hands are scarce' },
-    text: { ko: '큰 역병이 지나간 뒤로 일손이 귀해요. 옆 고을 지주는 품삯을 두 배로 준대요. 법은 옛 삯만 받으라지만요.', en: 'Since the great plague passed, workers are scarce. A landholder in the next parish offers double wages, though the law says to take only the old rate.' },
+    text: { ko: '큰 역병이 지나간 뒤로 일손이 귀해요. 옆 고을 지주는 품삯을 두 배로 준대요. 법은 옛 삯만 받으라지만요.', en: 'Since the great plague passed, workers are scarce. A landholder in the next district offers double wages, though the law says to take only the old rate.' },
     choices: [
       { text: { ko: '옆 고을로 간다', en: 'Go and work there' },
         chance: { p: 0.65,
           win: { effects: { wealth: 10, happy: 3 }, result: { ko: '두 배 삯으로 한 철을 일했어요. 아무도 옛 삯 이야기를 꺼내지 않았어요.', en: 'You worked a season at double pay. Nobody mentioned the old rate.' } },
-          lose: { effects: { wealth: -6, happy: -3 }, result: { ko: '판사들이 돌며 삯을 더 받은 사람 이름을 적었어요. 번 돈 절반이 벌금으로 나갔어요.', en: 'The justices came round and wrote down everyone paid too much. Half your earnings went in fines.' } } } },
+          lose: { effects: { wealth: -6, happy: -3 }, result: { ko: '나라 관리들이 돌며 삯을 더 받은 사람 이름을 적었어요. 번 돈 절반이 벌금으로 나갔어요.', en: 'Officials came around and wrote down everyone paid too much. Half your earnings went in fines.' } } } },
       { text: { ko: '남아서 조건을 따진다', en: 'Stay and bargain' }, effects: { wealth: 5, family: 2 },
         result: { ko: '영주의 관리인은 얼굴을 찡그리더니, 결국 빵 한 덩이와 삯 몇 푼을 더 얹었어요.', en: 'The lord’s steward scowled, then added a loaf and a few more pennies.' } },
     ] },
   // 맥각 중독 (「거룩한 불」, 성인의 이름을 딴 병명은 실재 인물 이름이라 쓰지 않는다): 젖은 해의 호밀빵. 수도회 병원은 깨끗한 빵을 먹였다
-  { id: 'loc.eu.village.fire', stage: ['adult', 'middle', 'old'], ill: true, tokens: true, when: { zones: EU, setting: 'village', areas: ['france', 'germany', 'east_europe', 'nordic'], minYear: 900, maxYear: 1750 },
+  { id: 'loc.eu.village.fire', stage: ['adult', 'middle', 'old'], ill: true, tokens: true, when: { zones: EU, setting: 'village', areas: ['france', 'germany'], minYear: 900, maxYear: 1750 },   // 수도회 병원이 있던 프랑스·독일 땅만 (검토 m9)
     title: { ko: '거룩한 불', en: 'The holy fire' },
     text: { ko: '비 많던 해의 호밀빵을 먹은 뒤로 손발이 불에 덴 듯 화끈거려요. 사람들은 「거룩한 불」이라 불러요.', en: 'Since eating bread from the wet year’s rye, your hands and feet burn as if scorched. People call it the holy fire.' },
     choices: [
@@ -104,12 +104,12 @@ export const LOCAL_CARDS_EU = [
     ] },
   // 인클로저: 공유지에 산울타리 (잉글랜드·덴마크·스웨덴·독일 땅)
   { id: 'loc.eu.village.hedge', stage: ['adult', 'middle'], when: { zones: EU, setting: 'village', areas: ['britain', 'germany', 'nordic'], minYear: 1600, maxYear: 1870 },
-    title: { ko: '공유지에 울타리', en: 'Hedges round the common' },
+    title: { ko: '공유지에 울타리', en: 'Hedges around the common' },
     text: { ko: '마을 공유지에 산울타리와 말뚝이 둘러졌어요. 거기서 풀을 뜯던 우리 소는 이제 갈 데가 없어요.', en: 'Hedges and stakes now ring the village common. The cow that grazed there has nowhere to go.' },
     choices: [
       { text: { ko: '밤에 말뚝을 뽑는다', en: 'Pull up the stakes by night' },
         chance: { p: 0.4,
-          win: { effects: { happy: 6, family: 5 }, result: { ko: '이웃들과 함께 말뚝을 뽑았어요. 한동안 소들이 다시 거기서 풀을 뜯었어요.', en: 'You and the neighbours pulled up the stakes. For a while the cows grazed there again.' } },
+          win: { effects: { happy: 6, family: 5 }, result: { ko: '이웃들과 함께 말뚝을 뽑았어요. 한동안 소들이 다시 거기서 풀을 뜯었어요.', en: 'You and the neighbors pulled up the stakes. For a while the cows grazed there again.' } },
           lose: { effects: { wealth: -8, happy: -4 }, result: { ko: '지주의 사람들이 기다리고 있었어요. 벌금을 물었고, 이튿날 울타리는 더 높아졌어요.', en: 'The landlord’s men were waiting. You paid a fine, and the next day the hedge was higher.' } } } },
       { text: { ko: '소 팔고 품을 판다', en: 'Sell the cow, hire out' }, effects: { wealth: 4, happy: -5 },
         result: { ko: '소 판 돈은 금방 바닥났어요. 대신 남의 밭에서 날품을 팔았어요.', en: 'The money from the cow ran out fast. You took day work in other people’s fields instead.' } },
@@ -145,7 +145,7 @@ export const LOCAL_CARDS_EU = [
   // 중세 도시: 길드와 시의 검사관이 무게와 솜씨를 살핀다 (빵·에일 법정 가격과 같은 무렵)
   { id: 'loc.eu.street.assize', stage: ['adult', 'middle'], when: { zones: EU, setting: 'street', areas: ['britain', 'france', 'germany', 'italy', 'iberia', 'nordic', 'east_europe'], minYear: 1150, maxYear: 1600 },
     title: { ko: '길드 검사', en: 'The guild inspection' },
-    text: { ko: '내일 길드 검사관이 가게마다 돌며 무게와 솜씨를 살핀대요. 이번에 만든 것들은 조금씩 모자라요.', en: 'Tomorrow the guild inspectors go round every shop checking weights and workmanship. Your latest batch is a little short.' },
+    text: { ko: '내일 길드 검사관이 가게마다 돌며 무게와 솜씨를 살핀대요. 이번에 만든 것들은 조금씩 모자라요.', en: 'Tomorrow the guild inspectors go around every shop checking weights and workmanship. Your latest batch is a little short.' },
     choices: [
       { text: { ko: '밤새 다시 만든다', en: 'Remake it overnight' }, effects: { health: -4, wealth: -3, skill: 2 },
         result: { ko: '밤새 다시 만들었어요. 검사관은 고개를 끄덕이고 다음 가게로 갔어요.', en: 'You redid it all night. The inspector nodded and moved on to the next shop.' } },
@@ -183,7 +183,7 @@ export const LOCAL_CARDS_EU = [
         result: { ko: '이름을 불러 주고 외상도 받아 줬어요. 백화점은 그 손님들 이름을 몰랐어요.', en: 'You greeted them by name and let them buy on credit. The store never knew their names.' } },
       { text: { ko: '백화점 점원이 된다', en: 'Take a job at the store' }, effects: { wealth: 5, happy: -4 },
         result: { ko: '하루 종일 서서 웃었어요. 월급은 꼬박꼬박 나왔고, 다리도 꼬박꼬박 부었어요.', en: 'You stood and smiled all day. The wages came regularly, and so did the swollen feet.' } },
-      { text: { ko: '한 가지만 판다', en: 'Specialise in one thing' },
+      { text: { ko: '한 가지만 판다', en: 'Specialize in one thing' },
         chance: { p: 0.5,
           win: { effects: { wealth: 8 }, result: { ko: '한 가지 물건만 파고들었어요. 그것만큼은 백화점보다 잘 알았고, 손님이 다시 왔어요.', en: 'You put everything into one line of goods. You knew it better than the store did, and customers came back.' } },
           lose: { effects: { wealth: -6 }, result: { ko: '하필 그 물건이 유행에서 밀려났어요.', en: 'Of course, that one thing went out of fashion.' } } } },
@@ -195,10 +195,10 @@ export const LOCAL_CARDS_EU = [
     choices: [
       { text: { ko: '명단에 올리고 기다린다', en: 'Sign up and wait' },
         chance: { p: 0.6,
-          win: { effects: { happy: 6, family: 4 }, result: { ko: '몇 해 만에 열쇠를 받았어요. 더운물이 처음 나온 날, 식구 모두 수도꼭지 앞에 모였어요.', en: 'After years, the keys came. The day the hot water first ran, the whole family gathered round the tap.' } },
+          win: { effects: { happy: 6, family: 4 }, result: { ko: '몇 해 만에 열쇠를 받았어요. 더운물이 처음 나온 날, 식구 모두 수도꼭지 앞에 모였어요.', en: 'After years, the keys came. The day the hot water first ran, the whole family gathered around the tap.' } },
           lose: { effects: { happy: -5 }, result: { ko: '명단은 도무지 줄지 않았어요. 앞사람이 어째서인지 자꾸 늘었어요.', en: 'The list never seemed to shrink. Somehow the people ahead of you kept multiplying.' } } } },
       { text: { ko: '셋방에 산다', en: 'Rent a cramped room' }, effects: { wealth: -4, family: -2 },
-        result: { ko: '부엌 하나를 세 집이 같이 썼어요. 냄새만 맡아도 이웃 저녁상을 다 알았어요.', en: 'Three families shared one kitchen. You knew every neighbour’s supper by the smell.' } },
+        result: { ko: '부엌 하나를 세 집이 같이 썼어요. 냄새만 맡아도 이웃 저녁상을 다 알았어요.', en: 'Three families shared one kitchen. You knew every neighbor’s supper by the smell.' } },
     ] },
   // 동유럽 계획 경제의 줄 서기와 아는 사람 통하기
   { id: 'loc.eu.street.queue', stage: ['adult', 'middle'], when: { zones: EU, setting: 'street', areas: ['east_europe'], minYear: 1955, maxYear: 1991 },
@@ -209,7 +209,7 @@ export const LOCAL_CARDS_EU = [
         result: { ko: '세 시간 만에 차례가 왔어요. 남은 건 치수가 안 맞는 구두 한 켤레였어요. 일단 샀어요.', en: 'Your turn came after three hours. All that was left was one pair of shoes in the wrong size. You bought them anyway.' } },
       { text: { ko: '아는 사람을 통한다', en: 'Go through someone you know' },
         chance: { p: 0.6,
-          win: { effects: { wealth: 5, charm: 1 }, result: { ko: '친구의 처남의 이웃이 뒷문을 열어 줬어요. 값은 초콜릿 한 상자였어요.', en: 'A friend’s brother-in-law’s neighbour opened the back door. It cost a box of chocolates.' } },
+          win: { effects: { wealth: 5, charm: 1 }, result: { ko: '친구의 처남의 이웃이 뒷문을 열어 줬어요. 값은 초콜릿 한 상자였어요.', en: 'A friend’s brother-in-law’s neighbor opened the back door. It cost a box of chocolates.' } },
           lose: { effects: { family: -4 }, result: { ko: '그 아는 사람은 생각만큼 당신을 알지 않았어요.', en: 'That someone turned out to know you less well than you had thought.' } } } },
     ] },
 
@@ -234,7 +234,7 @@ export const LOCAL_CARDS_EU = [
     text: { ko: '잔치 날, 집안을 따르는 전사들에게 선물을 나눠 줘야 해요. 금붙이를 후하게 줄수록 따르는 사람이 는대요.', en: 'On feast day, the household hands out gifts to the warriors who follow it. The more generous the gold, the more followers, people say.' },
     choices: [
       { text: { ko: '금붙이를 후하게 준다', en: 'Give the gold generously' }, effects: { wealth: -10, family: 6, charm: 2 },
-        result: { ko: '금 목걸이가 전사들 목에 걸렸어요. 그해 겨울, 당신 집 화덕 곁엔 빈자리가 없었어요.', en: 'Gold rings went round the warriors’ necks. That winter there was no empty seat by your hearth.' } },
+        result: { ko: '금 목걸이가 전사들 목에 걸렸어요. 그해 겨울, 당신 집 화덕 곁엔 빈자리가 없었어요.', en: 'Gold rings went around the warriors’ necks. That winter there was no empty seat by your hearth.' } },
       { text: { ko: '아껴서 나눈다', en: 'Give sparingly' }, effects: { wealth: 4, family: -5 },
         result: { ko: '곳간은 지켰어요. 봄이 오자 전사 몇이 옆 골짜기 족장 집으로 옮겨 갔어요.', en: 'You kept the storehouse full. In spring a few warriors moved to the chieftain in the next valley.' } },
     ] },
@@ -251,12 +251,12 @@ export const LOCAL_CARDS_EU = [
         result: { ko: '용서해 줬어요. 관리인은 장부에 한숨을 적었고, 마을엔 당신 이야기가 돌았어요.', en: 'You let it go. The steward wrote a sigh into the ledger, and the village talked about you for weeks.' } },
     ] },
   // 하인 쪽 · 중세 농노: 주에 며칠은 영주 직영지 부역. 읍내로 달아나 한 해 하고 하루를 버티면 자유라는 말
-  { id: 'loc.eu.estate.weekwork', stage: ['teen', 'adult'], when: { zones: EU, setting: 'estate', tags: ['serve'], minYear: 800, maxYear: 1500 },
+  { id: 'loc.eu.estate.weekwork', stage: ['teen', 'adult'], when: { zones: EU, setting: 'estate', tags: ['serve'], areas: ['britain', 'france', 'germany'], minYear: 800, maxYear: 1500 },   // 주 단위 부역이 무거웠던 서유럽 장원 땅만 (검토 m9)
     title: { ko: '주에 사흘', en: 'Three days a week' },
-    text: { ko: '주에 사흘은 영주 밭을 갈아요. 내 밭은 남은 날과 해 질 녘 몫이에요. 읍내에서 한 해 하고 하루를 버티면 자유라는 말이 돌아요.', en: 'Three days a week you plough the lord’s land; your own strip gets what is left, and the dusk. In town, they say, a year and a day makes you free.' },
+    text: { ko: '주에 사흘은 영주 밭을 갈아요. 내 밭은 남은 날과 해 질 녘 몫이에요. 읍내에서 한 해 하고 하루를 버티면 자유라는 말이 돌아요.', en: 'Three days a week you plow the lord’s land; your own strip gets what is left, and the dusk. In town, they say, a year and a day makes you free.' },
     choices: [
       { text: { ko: '해 질 녘까지 버틴다', en: 'Work on till dusk' }, effects: { health: -5, wealth: 3, family: 3 },
-        result: { ko: '영주 밭을 갈고 내 밭까지 갈았어요. 별을 보며 집에 왔어요.', en: 'You ploughed the lord’s land, then your own. You walked home under the stars.' } },
+        result: { ko: '영주 밭을 갈고 내 밭까지 갈았어요. 별을 보며 집에 왔어요.', en: 'You plowed the lord’s land, then your own. You walked home under the stars.' } },
       { text: { ko: '읍내로 달아난다', en: 'Run away to the town' }, when: { bound: true },
         chance: { p: 0.4,
           win: { effects: { status: 1, happy: 6, family: -6 }, result: { ko: '읍내 공방 뒷방에서 한 해 하고 하루를 숨어 살았어요. 그 뒤로 아무도 당신을 데리러 오지 않았어요.', en: 'You lived a year and a day in the back room of a town workshop. After that, nobody came for you.' } },
@@ -274,8 +274,8 @@ export const LOCAL_CARDS_EU = [
     ] },
 
   // ── 서아시아·북아프리카 마을 (mudbrick · village) ─────────────────
-  // 신석기 아나톨리아·레반트: 지붕 구멍으로 드나드는 집, 해마다 다시 바르는 흰 회벽 (차탈회위크)
-  { id: 'loc.eu.wvillage.roof', stage: 'child', when: { zones: MB, setting: 'village', areas: ['anatolia', 'mesopotamia'], minYear: -7400, maxYear: -5500 },
+  // 신석기 아나톨리아: 지붕 구멍으로 드나드는 집, 해마다 다시 바르는 흰 회벽 (차탈회위크)
+  { id: 'loc.eu.wvillage.roof', stage: 'child', when: { zones: MB, setting: 'village', areas: ['anatolia'], minYear: -7100, maxYear: -5700 },   // 차탈회위크 연대 (검토 m6)
     title: { ko: '지붕으로 드나드는 집', en: 'In through the roof' },
     text: { ko: '집들이 다닥다닥 붙어 있어서 문 대신 지붕 구멍으로 사다리를 타고 드나들어요. 오늘은 벽에 흰 회칠을 새로 하는 날이에요.', en: 'The houses are packed wall to wall, so everyone comes and goes by ladder through a hole in the roof. Today the walls get a fresh coat of white plaster.' },
     choices: [
@@ -349,7 +349,7 @@ export const LOCAL_CARDS_EU = [
         result: { ko: '눈을 비비며 일했어요. 한동안 세상이 뿌옇게 보였어요.', en: 'You worked on, rubbing your eyes. For a while the world looked hazy.' } },
     ] },
   // 와크프(기부 재산)가 선생 삯을 대는 글방
-  { id: 'loc.eu.wvillage.kuttab', stage: 'child', tokens: true, when: { zones: MB, setting: 'village', areas: ISLAMIC, minYear: 750, maxYear: 1920 },
+  { id: 'loc.eu.wvillage.kuttab', stage: 'child', tokens: true, when: { zones: MB, setting: 'village', areas: ISLAMIC, minYear: 900, maxYear: 1920 },   // 마을 다수가 무슬림이 된 9~10세기부터 (검토 m8)
     title: { ko: '기부로 연 글방', en: 'The endowed school' },
     text: { ko: '어느 부자가 남긴 와크프(기부 재산) 덕에 {school} 선생 삯이 공짜래요. 아침마다 아이들이 모여 글을 외워요.', en: 'Thanks to a waqf, an endowment left by a rich man, the {school} teacher costs nothing. Every morning the children gather to recite.' },
     choices: [
@@ -359,19 +359,19 @@ export const LOCAL_CARDS_EU = [
         result: { ko: '들판에서 양을 쳤어요. 글은 몰라도 양 한 마리 한 마리 얼굴은 다 알았어요.', en: 'You herded sheep in the fields. You could not read, but you knew every sheep by its face.' } },
     ] },
   // 메카 순례 대상에 끼어 떠나는 마을 어른
-  { id: 'loc.eu.wvillage.hajj', stage: ['adult', 'middle', 'old'], when: { zones: MB, setting: 'village', areas: ISLAMIC, minYear: 700, maxYear: 1900 },
+  { id: 'loc.eu.wvillage.hajj', stage: ['adult', 'middle', 'old'], when: { zones: MB, setting: 'village', areas: ISLAMIC, minYear: 900, maxYear: 1900 },   // 같은 까닭 (검토 m8)
     title: { ko: '순례 행렬', en: 'The pilgrim caravan' },
     text: { ko: '마을 어른 한 분이 메카로 가는 순례 행렬에 낀대요. 몇 달 걸리는 길이고 돈도 많이 들어요. 같이 가자고 하세요.', en: 'One of the village elders is joining the caravan to Mecca. The journey takes months and costs a great deal. He asks if you will come.' },
     choices: [
       { text: { ko: '함께 떠난다', en: 'Go with him' }, fulfill: 'travel', effects: { wealth: -12, happy: 10, health: -3 },
-        result: { ko: '몇 달 만에 닿아 수많은 사람과 함께 기도했어요. 돌아오자 이웃들이 당신을 「하지」라고 불렀어요.', en: 'You arrived after months and prayed among countless others. Back home, the neighbours called you “Hajji.”' } },
+        result: { ko: '몇 달 만에 닿아 수많은 사람과 함께 기도했어요. 돌아오자 이웃들이 당신을 「하지」라고 불렀어요.', en: 'You arrived after months and prayed among countless others. Back home, the neighbors called you “Hajji.”' } },
       { text: { ko: '여비를 보탠다', en: 'Help with his travel money' }, effects: { wealth: -3, family: 4 },
         result: { ko: '여비에 보태시라고 동전 몇 닢을 쥐여 드렸어요. 어른은 당신 이름도 함께 빌겠다고 했어요.', en: 'You pressed a few coins into his hand for the road. He promised to remember your name in his prayers.' } },
     ] },
   // 오스만의 티마르: 마을 세는 기병(시파히) 몫, 법전에 정한 몫이 있고 카디 법정에 호소할 수 있었다
   { id: 'loc.eu.wvillage.timar', stage: ['adult', 'middle'], when: { zones: MB, setting: 'village', areas: ['anatolia'], minYear: 1370, maxYear: 1700 },
     title: { ko: '시파히의 몫', en: 'The sipahi’s share' },
-    text: { ko: '이 마을 세는 티마르를 받은 기병(시파히) 몫이에요. 전쟁 땐 그가 말 타고 나가고요. 올해 그 관리인이 정한 것보다 더 달래요.', en: 'This village’s dues go to a sipahi, a cavalryman granted the timar; when war comes, he rides out. This year his agent wants more than the set amount.' },
+    text: { ko: '이 마을 세금은 티마르를 받은 기병(시파히)에게 가요. 전쟁이 나면 그가 말 타고 나가고요. 올해 세금을 걷는 그의 관리인이 정해진 것보다 더 달래요.', en: 'This village’s dues go to a sipahi, a cavalryman granted the timar; when war comes, he rides out. This year his agent wants more than the set amount.' },
     choices: [
       { text: { ko: '달라는 대로 낸다', en: 'Pay what he asks' }, effects: { wealth: -7 },
         result: { ko: '곡식 자루를 더 내줬어요. 관리인은 고맙다는 말 대신 장부를 덮었어요.', en: 'You handed over the extra sacks. Instead of thanks, the agent closed his ledger.' } },
@@ -403,14 +403,14 @@ export const LOCAL_CARDS_EU = [
         result: { ko: '그 아이가 답례로 반짝이는 돌 조각을 줬어요. 두 무리가 만날 때마다 둘은 꼭 붙어 다녔어요.', en: 'In return the child gave you a shiny flake of stone. Whenever the two bands met, you two were inseparable.' } },
     ] },
   // 수렵 무리 · 비 오는 시절이 오면 사하라·아라비아의 마른 땅에 호수와 풀밭이 생겼다
-  { id: 'loc.eu.wcamp.lake', stage: ['adult', 'middle'], when: { zones: MB, setting: 'camp', eraGroups: ['forager'], areas: ['maghreb', 'nile', 'arabia'] },
+  { id: 'loc.eu.wcamp.lake', stage: ['adult', 'middle'], when: { zones: MB, setting: 'camp', eraGroups: ['forager'], areas: ['maghreb', 'nile', 'arabia'], minYear: -13000 },   // 아프리카 습윤기 (검토 m11)
     title: { ko: '사막에 생긴 호수', en: 'A lake in the desert' },
     text: { ko: '비 오는 해가 길게 이어지더니, 남쪽 마른 땅에 호수가 생기고 풀이 돋았대요. 가젤 떼도 그쪽으로 갔대요.', en: 'The rainy years have gone on and on, and word is a lake has appeared in the dry lands to the south, ringed with grass. The gazelles went that way.' },
     choices: [
       { text: { ko: '무리를 이끌고 간다', en: 'Lead the band there' },
         chance: { p: 0.6,
           win: { effects: { wealth: 8, happy: 5 }, result: { ko: '호숫가엔 물고기와 새가 가득했어요. 하마가 물 밖으로 고개를 내밀자 다들 소리를 질렀어요.', en: 'The shore teemed with fish and birds. When a hippo poked its head out of the water, everyone shrieked.' } },
-          lose: { effects: { health: -6, wealth: -4 }, result: { ko: '호수는 소문보다 작았고, 길은 멀었어요. 지친 채로 옛 샘으로 돌아왔어요.', en: 'The lake was smaller than the rumour, and the way was long. You came back to the old spring, worn out.' } } } },
+          lose: { effects: { health: -6, wealth: -4 }, result: { ko: '호수는 소문보다 작았고, 길은 멀었어요. 지친 채로 옛 샘으로 돌아왔어요.', en: 'The lake was smaller than the rumor, and the way was long. You came back to the old spring, worn out.' } } } },
       { text: { ko: '아는 샘을 지킨다', en: 'Stay by the spring you know' }, effects: { family: 4 },
         result: { ko: '남았어요. 익숙한 샘물 맛이 그렇게 좋은 줄 처음 알았어요.', en: 'You stayed. You had never noticed how good the old spring tasted.' } },
     ] },
