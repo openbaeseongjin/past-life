@@ -151,25 +151,27 @@ test('동아시아 나무: 종 이름이 겹치지 않고, 섞기 무게의 종�
 // 잉글랜드·남아시아 마을 + 사람 계획 고정: 작업 2-2 전에 잰 해시 (layout+dressing / 사람 16명)
 const fnv = (s) => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(16).padStart(8, '0'); };
 const strip = (k, v) => (typeof v === 'function' ? undefined : v);
+// 마을·사람 계획은 소수점 끝자리가 V8 판(Node 22 ↔ 24)마다 달라, 0.0001 로 반올림해 잰다 (2026-10-21 클라우드 세션, Node 22·24 에서 같은 값).
+const r4 = (k, v) => (typeof v === 'number' ? Math.round(v * 1e4) / 1e4 : v);
 test('잉글랜드·남아시아 마을과 사람 계획이 작업 2-2 전과 같다 (시드 18개)', () => {
-  const EN = { 1329: 'ad711b09/69df4a84', 7932: 'e003aead/45890b4c', 15851: 'd18ef368/419c64ff', 542790959: 'd35d808c/21256d61', 11: '3c487946/9231d20f', 222: 'c34b2fbe/adfa585a' };
+  const EN = { 1329: '3991ea0b/37c2ffaf', 7932: 'c0cdcaee/9b36683c', 15851: 'bd21ba7a/a99a65d4', 542790959: 'a319a1ac/2279b867', 11: '4676b2bc/e5cceeba', 222: '644a71e9/07cd6333' };
   for (const [seed, want] of Object.entries(EN)) {
     const { layout, dressing } = planAll(+seed, env, undefined, PROP_DIMS, 'england');
     const ppl = planPeople(vrng(peopleSeed(+seed)), 16, { layout, dressing, fieldAt: env.fieldAt, propDims: PROP_DIMS, kit: 'england' });
-    assert.equal(fnv(JSON.stringify({ layout, dressing })) + '/' + fnv(JSON.stringify(ppl)), want, `잉글랜드 시드 ${seed}`);
+    assert.equal(fnv(JSON.stringify({ layout, dressing }, r4)) + '/' + fnv(JSON.stringify(ppl, r4)), want, `잉글랜드 시드 ${seed}`);
   }
   const SA = {
-    '1304india': ['1307c270/5a726788', '3fe84750/39cc4b23', 'f1168685/32d2f378'],
-    '-900indus': ['4ea9aef2/f4840e8a', '935a341f/be871603', '159a67e8/344c96cf'],
-    '1500indonesia': ['162dca44/83c8ec65', 'c24e3818/0d611b39', 'd519ed29/74825fb4'],
-    '200lanka': ['3e26cfc7/cd8fa73e', '3158bcf1/c8ee4bfb', '779c55ab/9bcdb0cc'],
+    '1304india': ['eb05e4b9/1c9d4fa9', 'a9be822b/8f54ab5d', 'b1f1a043/89bd233e'],
+    '-900indus': ['42cc2d95/ef86e7fa', '7313ff97/14df630d', 'd2ab78c0/7a4c0b08'],
+    '1500indonesia': ['fbb04a53/e7257972', 'f0a113f1/f0d130d8', '3d767a8b/7f9bec38'],
+    '200lanka': ['1580bc2f/2f1c520b', '5c9e821e/ffa8e983', '0296a11e/3d560524'],
   };
   for (const [k, wants] of Object.entries(SA)) {
     const year = parseInt(k, 10), area = k.slice(String(year).length);
     [1329, 542790959, 7932].forEach((seed, i) => {
       const { layout, dressing } = planAll(seed, env, undefined, PROP_DIMS_SA, 'southasia', { year, area });
       const ppl = planPeople(vrng(peopleSeed(seed)), 16, { layout, dressing, fieldAt: env.fieldAt, propDims: PROP_DIMS_SA, kit: 'southasia', flavor: area === 'indonesia' ? 'seasia' : null });
-      assert.equal(fnv(JSON.stringify({ layout, dressing }, strip)) + '/' + fnv(JSON.stringify(ppl)), wants[i], `남아시아 ${k} 시드 ${seed}`);
+      assert.equal(fnv(JSON.stringify({ layout, dressing }, (k2, v) => r4(k2, strip(k2, v)))) + '/' + fnv(JSON.stringify(ppl, r4)), wants[i], `남아시아 ${k} 시드 ${seed}`);
     });
   }
   assert.equal(recipeFor('england', { year: 1329, area: 'britain' }), RECIPES.england);

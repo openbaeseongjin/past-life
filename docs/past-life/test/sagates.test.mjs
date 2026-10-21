@@ -74,10 +74,10 @@ test('거를 것이 없으면 요리법은 원래 객체 그대로 (중세 인�
 // 잉글랜드 마을 계획을 고정한다 (단계 B·수정 1차 전후로 같음을 확인한 값). 작업 2·3 이 잉글랜드 계획을 바꾸면 여기서 알린다.
 const fnv = (s) => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(16).padStart(8, '0'); };
 test('잉글랜드 마을 계획 고정 (시드 4개, layout + dressing 해시)', () => {
-  const want = { 1329: 'ad711b09', 7932: 'e003aead', 15851: 'd18ef368', 542790959: 'd35d808c' };
+  const want = { 1329: '3991ea0b', 7932: 'c0cdcaee', 15851: 'bd21ba7a', 542790959: 'a319a1ac' };   // 0.0001 m 반올림 (V8 판마다 끝자리가 달라서)
   for (const [seed, h] of Object.entries(want)) {
     const { layout, dressing } = planAll(+seed, env, undefined, PROP_DIMS, 'england');
-    assert.equal(fnv(JSON.stringify({ layout, dressing })), h, `시드 ${seed}`);
+    assert.equal(fnv(JSON.stringify({ layout, dressing }, (k, v) => (typeof v === 'number' ? Math.round(v * 1e4) / 1e4 : v))), h, `시드 ${seed}`);
   }
 });
 
