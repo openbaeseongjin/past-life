@@ -105,6 +105,7 @@ export function createUI({ lang, robot = false, fast = false }) {
   $('bSkip').addEventListener('click', () => h.skip && h.skip());
   $('bAuto').addEventListener('click', () => { autoOn = !autoOn; if (h.auto) h.auto(autoOn); });
   $('bMore').addEventListener('click', () => setMore(!moreOpen));
+  $('bSettings').addEventListener('click', () => { setMore(false); if (h.settings) h.settings(); });
   $('bSound').addEventListener('click', () => h.sound && h.sound());
   $('bLang').addEventListener('click', () => h.lang && h.lang());
   $('bExit').addEventListener('click', () => { setMore(false); if (h.exit) h.exit(); });
@@ -151,6 +152,7 @@ export function createUI({ lang, robot = false, fast = false }) {
     $('bSkip').textContent = t(L, 'skipX');
     $('bAuto').innerHTML = `<span class="sw" aria-hidden="true"></span>${esc(t(L, 'autoX'))}`;
     $('bMore').innerHTML = icon('i-dots'); $('bMore').setAttribute('aria-label', t(L, 'more')); $('bMore').title = t(L, 'more');
+    $('bSettings').textContent = t(L, 'settings');
     $('bLang').textContent = t(L, 'lang'); $('bExit').textContent = t(L, 'exit');
     // 수치 판 (sim2 설계 5.1, 시안 s9): 건강·재산·곁·마음 (숫자 · 막대 · 구체적인 한 줄) / 능력치 넷 / 신분
     $('board').setAttribute('aria-label', t(L, 'boardTitle'));
@@ -250,24 +252,26 @@ export function createUI({ lang, robot = false, fast = false }) {
   document.addEventListener('pointerdown', (e) => { if (e.target !== cv) hideTip(); }, true);
   new ResizeObserver(() => { hideTip(); strand(false); }).observe(cv);
 
-  async function title({ soul, dexCount, onLang, onSound, soundOn }) {
+  async function title({ soul, dexCount, onLang, onSound, soundOn, onSettings }) {
     app.hidden = true; modal.hidden = true; screen.className = 'night';
     let sure = false;
     for (;;) {
       const has = soul && soul.lives.length > 0, going = has && !soul.ended;
       show(screen, `<div class="sheet">
-        <p class="eyebrow">${esc(t(L, 'oneIn'))}</p><h1>${esc(t(L, 'title'))}</h1><p>${esc(t(L, 'subtitle'))}</p>
+        <p class="eyebrow">${esc(t(L, 'oneIn'))}</p><h1>${esc(t(L, 'title'))}</h1>
+        <p class="lead">${t(L, 'lead').map((x) => `<span>${esc(x)}</span>`).join('')}</p>
         <div class="btns">
           <button class="primary" data-v="start">${esc(going ? t(L, 'next', soul.lives.length + 1) : t(L, 'born'))}</button>
           ${has ? `<button data-v="lineage">${esc(t(L, 'lineage'))}</button>` : ''}
           <button data-v="dex">${esc(t(L, 'dex', dexCount))}</button>
           ${has ? `<button class="quiet" data-v="${sure ? 'newsoul' : 'ask'}">${esc(sure ? t(L, 'newSoulSure') : t(L, 'newSoul'))}</button>` : ''}
         </div>
-        <div class="btns row"><button class="quiet" data-v="lang">${esc(t(L, 'lang'))}</button><button class="quiet" data-v="sound">${esc(soundOn() ? t(L, 'soundOn') : t(L, 'soundOff'))}</button></div>
+        <div class="btns row"><button class="quiet" data-v="lang">${esc(t(L, 'lang'))}</button><button class="quiet" data-v="sound">${esc(soundOn() ? t(L, 'soundOn') : t(L, 'soundOff'))}</button>${onSettings ? `<button class="quiet" data-v="settings">${esc(t(L, 'settings'))}</button>` : ''}</div>
         <p class="credit">${esc(t(L, 'credit'))}</p></div>`);
       const v = await pick(screen);
       if (v === 'lang') { L = L === 'ko' ? 'en' : 'ko'; onLang(L); continue; }
       if (v === 'sound') { onSound(); continue; }
+      if (v === 'settings') { await onSettings(); continue; }
       if (v === 'ask') { sure = true; continue; }
       screen.hidden = true;
       return v;
@@ -769,10 +773,105 @@ export function createUI({ lang, robot = false, fast = false }) {
     }
   }
 
+  // 무대를 짓는 동안 무대 위 작은 표시 (main.js 가 village.whenReady 로 끈다)
+  function stageLoading(on) { const el = $('stageLoad'); if (el) el.hidden = !on; }
+
+  // 설정 창 (시작 화면·게임 안 「더 보기」): 화질 · 해가 흐르는 기본 빠르기 · 소리 · 말 · 처음 안내 다시 보기. 고르면 바로 적용하고 창은 그대로 (닫기로 닫는다)
+  async function settings(o) {
+    const wasHidden = modal.hidden, prevCls = modal.className, prevHtml = modal.innerHTML;
+    let coachMsg = false;
+    const paint = () => {
+      const st = o.get(), sp = t(L, 'speedName');
+      const seg = (name, list, curV) => `<div class="seg" role="group">${list.map(([v, label]) => `<button data-v="${name}:${v}" aria-pressed="${v === curV}">${esc(label)}</button>`).join('')}</div>`;
+      modal.className = 'settings';
+      modal.innerHTML = `<div class="setsheet" role="dialog" aria-modal="true" aria-labelledby="setT"><h2 id="setT">${esc(t(L, 'setTitle'))}</h2>
+        <div class="row"><b>${esc(t(L, 'setQuality'))}</b>${seg('q', [['high', t(L, 'qHigh')], ['normal', t(L, 'qNormal')]], st.quality)}<small>${esc(t(L, 'qHint'))}</small></div>
+        <div class="row"><b>${esc(t(L, 'setSpeed'))}</b>${seg('sp', ['slow', 'normal', 'fast', 'fastest'].map((k) => [k, sp[k]]), st.speed)}</div>
+        <div class="row"><b>${esc(t(L, 'setSound'))}</b>${seg('snd', [['on', t(L, 'soundOn')], ['off', t(L, 'soundOff')]], st.sound ? 'on' : 'off')}</div>
+        <div class="row"><b>${esc(t(L, 'setLang'))}</b>${seg('lang', [['ko', '한국어'], ['en', 'English']], st.lang)}</div>
+        <div class="row"><button data-v="coach">${esc(t(L, 'setCoach'))}</button>${coachMsg ? `<small role="status">${esc(t(L, 'coachAgain'))}</small>` : ''}</div>
+        <div class="btns"><button class="primary" data-v="close">${esc(t(L, 'close'))}</button></div></div>`;
+      modal.hidden = false;
+    };
+    paint();
+    const first = modal.querySelector('[data-v="close"]');
+    if (first) first.focus();
+    for (;;) {
+      const v = await new Promise((res) => {
+        const on = (e) => { const b = e.target.closest('[data-v]'); if (!b || !modal.contains(b)) { if (e.target === modal) { done(); res('close'); } return; } done(); res(b.dataset.v); };
+        const key = (e) => { if (e.key === 'Escape') { done(); res('close'); } };
+        const done = () => { modal.removeEventListener('click', on); document.removeEventListener('keydown', key); };
+        modal.addEventListener('click', on); document.addEventListener('keydown', key);
+        if (robot) setTimeout(() => { done(); res('close'); }, fast ? 20 : 350);
+      });
+      if (v === 'close') break;
+      const [k, val] = v.split(':');
+      const st = o.get();
+      if (k === 'q' && val !== st.quality) o.quality(val);
+      if (k === 'sp') o.speed(val);
+      if (k === 'snd' && (val === 'on') !== st.sound) o.sound();
+      if (k === 'lang' && val !== st.lang) o.lang();
+      if (k === 'coach') { o.coach(); coachMsg = true; }
+      paint();
+      const again = modal.querySelector(`[data-v="${v}"]`);
+      if (again) again.focus();
+    }
+    if (wasHidden) { modal.hidden = true; modal.className = ''; modal.innerHTML = ''; } else { modal.className = prevCls; modal.innerHTML = prevHtml; }
+  }
+
+  // 처음 하는 사람을 위한 3단계 안내: 수치 판 → 올해의 패 → 갈림길과 모닥불(구슬 실). 그 자리를 밝히고 옆에 말풍선. 건너뛰기·Esc 로 끝
+  function coach() {
+    if (robot) return Promise.resolve();
+    const steps = [() => $('board'), () => $('focusBox').closest('section'), () => $('strand').closest('footer')];
+    const box = document.createElement('div');
+    box.id = 'coach';
+    box.innerHTML = '<div class="hole"></div><div class="bub" role="dialog" aria-modal="true" aria-labelledby="coachT"></div>';
+    document.body.appendChild(box);
+    hudInert(true);
+    const hole = box.querySelector('.hole'), bub = box.querySelector('.bub');
+    let i = 0;
+    return new Promise((res) => {
+      const finish = () => { window.removeEventListener('resize', place); document.removeEventListener('keydown', key); box.remove(); hudInert(false); res(); };
+      function place() {
+        const el = steps[i](), r = el && el.getBoundingClientRect();
+        const W = window.innerWidth, H = window.innerHeight, pad = 8;
+        // 화면 안으로 자른 자리 (구슬 실처럼 화면 끝까지 닿는 것도 테두리가 보이게). 크기가 없으면 밝히지 않고 가운데 말풍선만
+        const box2 = r && r.width ? { l: Math.max(4, r.left - pad), t: Math.max(4, r.top - pad), r: Math.min(W - 4, r.right + pad), b: Math.min(H - 4, r.bottom + pad) } : null;
+        if (box2) Object.assign(hole.style, { left: `${box2.l}px`, top: `${box2.t}px`, width: `${box2.r - box2.l}px`, height: `${box2.b - box2.t}px`, opacity: '1' });
+        else hole.style.opacity = '0';
+        const bw = bub.offsetWidth, bh = bub.offsetHeight;
+        let x, y;
+        if (r && r.width) {   // 밝힌 자리 오른쪽 → 왼쪽 → 위 → 아래 가운데 차례로 들어갈 곳
+          if (r.right + 16 + bw < W - 8) { x = r.right + 16; y = r.top; } else if (r.left - 16 - bw > 8) { x = r.left - 16 - bw; y = r.top; } else if (r.top - 16 - bh > 8) { x = r.left; y = r.top - 16 - bh; } else { x = r.left; y = r.bottom + 16; }
+        } else { x = (W - bw) / 2; y = (H - bh) / 2; }
+        bub.style.left = `${Math.max(8, Math.min(W - bw - 8, x))}px`; bub.style.top = `${Math.max(8, Math.min(H - bh - 8, y))}px`;
+      }
+      function paint() {
+        const c = t(L, 'coach'), n = c.length, last = i === n - 1;
+        bub.innerHTML = `<h3 id="coachT">${esc(c[i].t)}</h3><p>${esc(c[i].d)}</p>
+          <div class="nav"><span class="n">${esc(t(L, 'coachStep', i + 1, n))}</span>${last ? '' : `<button class="quiet" data-v="skip">${esc(t(L, 'coachSkip'))}</button>`}<button class="primary" data-v="next">${esc(last ? t(L, 'coachDone') : t(L, 'coachNext'))}</button></div>`;
+        place();
+        const nb = bub.querySelector('[data-v="next"]');
+        if (nb) nb.focus();
+      }
+      const key = (e) => { if (e.key === 'Escape') finish(); };
+      box.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-v]');
+        if (!b) return;
+        if (b.dataset.v === 'skip') return finish();
+        if (++i >= t(L, 'coach').length) return finish();
+        paint();
+      });
+      window.addEventListener('resize', place); document.addEventListener('keydown', key);
+      paint();
+    });
+  }
+
   return {
     setHandlers: (x) => { h = x; },
     toast: say,
     setLang(l) { L = l; labels(); if (cur && !app.hidden) { shown = 0; memShown = (cur.life.memories || []).length; $('journal').innerHTML = ''; hideTip(); update(cur.life, cur.peers); } },
     title, birthIntro, birthRecord, showApp, update, decision, pause, lastYear, deathRecord, lineage, dex, share,
+    settings, coach, stageLoading,
   };
 }

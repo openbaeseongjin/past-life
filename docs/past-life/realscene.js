@@ -43,9 +43,9 @@ const EZTREE = '@dgreenheck/ez-tree';   // importmap 이름 (look-real.html·ind
 const ASSET = new URL('./assets/real/', import.meta.url).href;
 
 // 생의 시간 = 하루의 시간 (설계 3.1): 새벽(0~12) → 아침(13~29) → 한낮(30~49) → 오후(50~64) → 해질녘(65~)
-export const phaseOf = (age) => (age < 13 ? 'dawn' : age < 30 ? 'morning' : age < 50 ? 'noon' : age < 65 ? 'afternoon' : 'dusk');
-// 하루의 때 → 시각 (england PRESET 의 태양시. 밤은 해가 지평선 아래 14° 남짓)
-export const PHASE_TIME = { dawn: 5.1, morning: 7.4, noon: 12.6, afternoon: 16.6, dusk: 19.05, night: 21.7 };
+// 나이 → 하루의 때 · 하루의 때 → 시각은 phase.js (three 없이 main.js 가 먼저 쓴다)
+import { phaseOf as phaseOfAge, PHASE_TIME as PHASE_HOURS } from './phase.js';
+export const phaseOf = phaseOfAge, PHASE_TIME = PHASE_HOURS;
 
 // ───────────────────────── 시대×지역 프리셋 ─────────────────────────
 export const PRESETS = {
@@ -2492,6 +2492,12 @@ export function createStage(canvas) {
       if (v) { cam.setViewOffset(v.fullWidth, v.fullHeight, v.offsetX, v.offsetY, v.width, v.height); cam.updateProjectionMatrix(); }
       W.sc.renderFrame(0);
       return c.toDataURL('image/jpeg', 0.78);
+    },
+    // 지금 생의 무대를 다 지었는가 (건물·소품·나무·마을 사람 + 내 사람). 실패해도 끝난 것으로 본다 (main.js 「마을을 짓는 중…」 표시)
+    whenReady() {
+      const w = W;
+      if (!w) return Promise.resolve();
+      return Promise.allSettled([w.sc.ready, w.me.ready]).then(() => undefined);
     },
     setQuality(q) {
       if (q !== 'high' && q !== 'normal') return;

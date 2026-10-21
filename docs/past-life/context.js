@@ -156,6 +156,7 @@ const CACHE = new Map();
 const CACHE_MAX = 50000;
 export const clearContextCache = () => { CACHE.clear(); BASE.clear(); };
 
+const TENT_RE = /tent|ger\b|yurt|camp/i, TENT_HOME = Object.freeze({ ko: '천막', en: 'tent' });
 export function contextOf(year, area, household) {
   const y = Number.isFinite(year) ? Math.floor(year) : 1329;
   const a = AREAS[area] ? area : null;
@@ -201,9 +202,11 @@ export function contextOf(year, area, household) {
   if (y < 1796) medicine = Math.min(medicine, 2);
   if (y >= 1945) medicine = 5;
 
+  // 가축 치는 집은 천막에 산다 (작업 8: 중세 아라비아 목자가 「흙벽돌 집」에서 울던 것). 그 땅 낱말이 이미 천막(게르·유르트)이면 그대로
+  const words = household === 'herd' && !TENT_RE.test(base.words.home.en) ? { ...base.words, home: TENT_HOME } : base.words;
   const ctx = {
     zone, group, era: eraOf(y).id,
-    words: base.words,
+    words,
     status: { system: base.status.system, ranks },
     goods,
     disease: { endemic, medicine },

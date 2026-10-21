@@ -10,6 +10,8 @@ ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 read = lambda *p: open(os.path.join(HERE, *p), encoding='utf-8').read()
 
 OURS = re.compile(r"^import \{([^}]*)\} from '\./(\w+)\.js';\s*$", re.M)
+# main.js 가 뒤에서 받는 우리 모듈 (import('./realscene.js')): 묶음에서는 이미 든 모듈을 Promise 로 건넨다
+DYN = re.compile(r"import\('\./(\w+)\.js'\)")
 THREE = "import * as THREE from 'three';"
 # 우리 모듈이 아닌 정적 import (three 애드온 등): 묶음 맨 위로 올린다 (importmap 이 푼다)
 BARE = re.compile(r"^import [^;]*? from '(?!\./)[^']+';\s*$", re.M)
@@ -23,8 +25,9 @@ def order_from(entry):
             return
         assert name not in seen, '돌고 도는 import: ' + ' → '.join(path + [name])
         seen.add(name)
-        for dep in OURS.findall(read(name + '.js')):
-            visit(dep[1], path + [name])
+        src = read(name + '.js')
+        for dep in [d[1] for d in OURS.findall(src)] + DYN.findall(src):
+            visit(dep, path + [name])
         out.append(name)
     visit(entry, [])
     return out[:-1]   # main 은 맨 끝에 따로
@@ -43,12 +46,14 @@ def convert(src):
     src = BARE.sub('', src)
     assert not re.search(r"^import .* from '(?!\./)", src, re.M), 'unexpected import'
     # import { t as tr } → const { t: tr } (구조 분해에서는 as 대신 :)
+    src = DYN.sub(lambda m: f"Promise.resolve(__{m.group(1)})", src)
     return OURS.sub(lambda m: f"const {{{re.sub(r'(\w+)\s+as\s+(\w+)', r'\1: \2', m.group(1))}}} = __{m.group(2)};", src)
 
 
 for k, name in enumerate(ORDER + ['main']):
-    for dep in OURS.findall(read(name + '.js')):
-        assert dep[1] in ORDER[:k], f'{name}.js 가 쓰는 {dep[1]}.js 가 ORDER 에 없거나 뒤에 있다'
+    src = read(name + '.js')
+    for dep in [d[1] for d in OURS.findall(src)] + DYN.findall(src):
+        assert dep in ORDER[:k], f'{name}.js 가 쓰는 {dep}.js 가 ORDER 에 없거나 뒤에 있다'
 
 parts = []
 for name in ORDER:

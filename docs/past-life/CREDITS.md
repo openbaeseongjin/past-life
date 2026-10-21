@@ -7,9 +7,12 @@
 - 영아·아동 사망 기준: Volk & Atkinson (2013), "Infant and child death in the human environment of evolutionary adaptation"
 - 집안 비율, 사건 위험률, 사인 가중치: 게임용 어림 (사료 아님)
 
-## 3D
-- KayKit Medieval Hexagon Pack 1.0 · Kay Lousberg · CC0 1.0 · https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0
-- 그 밖의 건물·사람은 코드로 만들었다 (`buildings.js`, `village.js`)
+## 3D (실사 무대 `realscene.js`, 자세한 목록은 `assets/real/SOURCES.md`)
+- 텍스처: Poly Haven · CC0 1.0
+- 사람 몸·움직임: Quaternius Universal Base Characters / Universal Animation Library · CC0 1.0 (옷은 이 저장소에서 지었다)
+- 건물·소품·식생 세트: 이 저장소에서 Blender 스크립트로 지었다 (`tools/blender/`)
+- 나무: @dgreenheck/ez-tree 1.1.0 · MIT / 그리기: three.js 0.160 · MIT
+- 옛 육각 섬 무대(이제 쓰지 않음): KayKit Medieval Hexagon Pack 1.0 · Kay Lousberg · CC0 1.0
 
 ## AI 사용
 - 코드: Claude

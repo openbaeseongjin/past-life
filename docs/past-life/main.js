@@ -1,6 +1,6 @@
 // 연결 (설계 12장): 시작 → 탄생 장면 → 출생 기록 → 해가 저절로 흐르는 한 생 → 마지막 해 → 사망 기록 → 다음 생 / 족보
 // ?seed=문자열: 그 시드로 연습 한 판 (저장 안 함) · ?auto=1: 단추·결정을 저절로 · ?fast=1: 기다림 없음
-import { createStage as createVillage, phaseOf } from './realscene.js';
+import { phaseOf } from './phase.js';
 import { createUI } from './ui.js';
 import { createSound } from './sound.js';
 import { newSoul, finishLife, addDex, makeStore } from './soul.js';
@@ -22,7 +22,7 @@ const store = makeStore();
 const savedLang = store.loadLang();   // 저장된 값이 ko·en 이 아니면 (손으로 고친 값 등) 처음처럼 브라우저 말로 정한다
 const S = {
   lang: savedLang === 'ko' || savedLang === 'en' ? savedLang : ((navigator.language || '').toLowerCase().startsWith('ko') ? 'ko' : 'en'), sound: store.loadSound() !== false,
-  speed: 'normal', paused: false, skipping: false, auto: false, exit: false, n: 0,
+  speed: store.loadSpeed(), paused: false, skipping: false, auto: false, exit: false, n: 0,
 };
 // 옛 「다음부터 모닥불 건너뛰기」 저장값은 이제 쓰지 않는다 (모닥불은 짧고, 고르지 않으면 저절로 지나간다)
 store.clearLegacy();
@@ -30,22 +30,28 @@ const YEAR_MS = { slow: 16000, normal: 8000, fast: 3000, fastest: 1000 };   // �
 document.documentElement.lang = S.lang;
 const ui = createUI({ lang: S.lang, robot, fast });
 // 실사 3D 무대 (realscene.js createStage: 생마다 출생 시드로 마을을 짓는다. 옛 KayKit 육각 섬 village.js 와 메서드 이름이 같다)
-// WebGL 이 없거나 꺼져 있으면 3D 마을 없이 글로만 간다. 빈 마을은 진짜 마을과 메서드 이름이 같다 (그림은 null → 족보·나누기가 건너뛴다)
-let village, has3d = true;
-try { village = createVillage(document.getElementById('c')); } catch (e) {
+// three.js(CDN, 1 MB 남짓)를 뒤에서 받는다: 시작 화면은 바로 뜨고, 첫 생을 시작할 때 무대를 기다린다 (stageReady).
+// WebGL 이 없거나 꺼져 있거나 three 를 못 받으면 3D 마을 없이 글로만 간다. 빈 마을은 진짜 마을과 메서드 이름이 같다 (그림은 null → 족보·나누기가 건너뛴다)
+const NO_STAGE = { fast: false, setKit() {}, setLife() {}, setAge() {}, setFocus() {}, setPhase() {}, tick() {}, snapshot: () => null, setCampfire() {}, flameRise: () => Promise.resolve(), setView() {}, setQuality() {}, whenReady: () => Promise.resolve() };
+let village = NO_STAGE, has3d = false;
+const textOnly = (e) => {
   console.warn('한 영혼의 여정: 3D 마을을 만들지 못해 글로만 진행한다', e);
-  has3d = false;
   document.getElementById('c').hidden = true;
   document.getElementById('no3d').hidden = false;
-  village = { fast: false, setKit() {}, setLife() {}, setAge() {}, setFocus() {}, setPhase() {}, tick() {}, snapshot: () => null, setCampfire() {}, flameRise: () => Promise.resolve(), setView() {} };
-}
-village.fast = fast;
+};
+const stageReady = import('./realscene.js').then(({ createStage }) => {
+  try { village = createStage(document.getElementById('c')); has3d = true; } catch (e) { textOnly(e); }
+}, textOnly).then(() => {
+  village.fast = fast;
+  window.__pl.village = village; window.__pl.has3d = has3d;
+  applyView();
+});
 const sound = createSound(() => S.sound);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 // 다음 그림이 화면에 나간 뒤 (창이 가려져 그리기가 멈춰도 0.1초면 넘어간다)
 const nextPaint = () => Promise.race([new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0))), wait(100)]);
 let cur = null;   // 지금 사는 생 { life, peers }
-window.__pl = { ui, village, S, store, has3d };
+window.__pl = { ui, village, S, store, has3d, stageReady };
 // 데스크톱은 섬을 화면 위쪽으로 올려 아래 구슬 실·패에 덜 가리게 한다 (폰은 마을 칸이 따로 있어 0)
 const wideMq = matchMedia('(min-width: 901px) and (min-height: 561px)');   // ui.js·index.html 의 데스크톱 배치와 같은 조건
 const applyView = () => village.setView({ lift: wideMq.matches ? 0.18 : 0 });
@@ -61,9 +67,25 @@ ui.setHandlers({
   auto: (on) => { S.auto = on; refresh(); },
   sound: () => { S.sound = !S.sound; store.saveSound(S.sound); refresh(); },
   lang: () => { S.lang = S.lang === 'ko' ? 'en' : 'ko'; store.saveLang(S.lang); document.documentElement.lang = S.lang; ui.setLang(S.lang); refresh(); },
+  settings: () => openSettings(),
   exit: () => { S.exit = true; S.paused = false; },
   focus: (id) => { if (cur) { setFocus(cur.life, id); showFocus(cur.life); refresh(); } },
 });
+
+// 설정 (시작 화면·게임 안 「더 보기」): 화질 · 해가 흐르는 기본 빠르기 · 소리 · 말 · 처음 안내 다시 보기. 게임 안에서 열면 그동안 멈춘다
+async function openSettings() {
+  const wasPaused = S.paused;
+  S.paused = true; refresh();
+  await ui.settings({
+    get: () => ({ quality: store.loadQuality(), speed: S.speed, sound: S.sound, lang: S.lang }),
+    quality: (q) => { store.saveQuality(q); village.setQuality(q); },
+    speed: (v) => { S.speed = v; store.saveSpeed(v); },
+    sound: () => { S.sound = !S.sound; store.saveSound(S.sound); },
+    lang: () => { S.lang = S.lang === 'ko' ? 'en' : 'ko'; store.saveLang(S.lang); document.documentElement.lang = S.lang; ui.setLang(S.lang); },
+    coach: () => store.saveCoach(false),
+  });
+  S.paused = wasPaused; refresh();
+}
 
 // 한 해 기다리기: 해시계 속도·멈춤·다음 갈림길까지를 그때그때 따른다 (다음 갈림길까지는 100배)
 function yearWait() {
@@ -95,13 +117,19 @@ async function playLife(soul) {
   // 무대 짓기(동기로 1초 남짓)는 출생 기록 종이가 한 번 그려진 뒤에: 시작을 누르면 화면이 바로 바뀌고, 짓는 동안의 멈춤은 가만히 읽는 종이 뒤에 숨는다
   const record = ui.birthRecord({ birth, n, prev, peers, traces });
   await nextPaint();
+  await stageReady;   // 첫 생: three·무대 모듈이 아직 오는 중이면 출생 기록을 읽는 동안 기다린다
   village.setLife(birth); village.setAge(0, birth.year); village.setPhase('night');
+  // 마을을 다 지을 때까지 무대 위에 작은 「마을을 짓는 중…」 (사람·건물 glb 를 받는 동안)
+  ui.stageLoading(has3d);
+  village.whenReady().then(() => ui.stageLoading(false), () => ui.stageLoading(false));
   await record;
   Object.assign(S, { paused: false, skipping: false, exit: false, n });
   cur = { life, peers };
   ui.showApp(life, peers, S);
   applyView();
   village.setPhase(phaseOf(0)); showFocus(life);
+  // 처음 하는 사람: 수치 판 → 올해의 패 → 갈림길과 모닥불 (건너뛸 수 있다. 한 번 보면 다시 나오지 않는다. 설정에서 다시 켠다)
+  if (!robot && !store.loadCoach()) { S.paused = true; refresh(); await ui.coach(); store.saveCoach(true); S.paused = false; refresh(); }
   for (;;) {
     if (S.exit) { cur = null; return 'title'; }
     const ev = advance(life, DECK, { lines: LINES, yearly: true });
@@ -159,6 +187,8 @@ async function playLife(soul) {
 }
 
 async function main() {
+  const boot = document.getElementById('boot');
+  if (boot) boot.remove();   // index.html 의 「불러오는 중…」: 우리 모듈이 섰으니 거둔다
   for (;;) {
     if (practice) { await playLife(null); practice = null; history.replaceState(null, '', location.pathname); continue; }
     let soul = store.loadSoul();
@@ -166,6 +196,7 @@ async function main() {
       soul, dexCount: Object.keys(store.loadDex()).length, soundOn: () => S.sound,
       onLang: (l) => { S.lang = l; store.saveLang(l); document.documentElement.lang = l; ui.setLang(l); },
       onSound: () => { S.sound = !S.sound; store.saveSound(S.sound); },
+      onSettings: openSettings,
     });
     if (act === 'dex') { await ui.dex(store.loadDex()); continue; }
     if (act === 'lineage') { if ((await ui.lineage(soul)) === 'newsoul') store.saveSoul(newSoul()); continue; }
