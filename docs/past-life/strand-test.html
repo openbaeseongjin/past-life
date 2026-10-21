@@ -31,20 +31,13 @@ canvas{display:block;max-width:100%;outline:1px dashed rgba(246,239,226,.1)}
   <div><h2>백 가닥 · 시대 7 유럽 · 51살</h2><canvas id="hundred" style="width:400px;height:300px"></canvas><div id="hcap"></div></div>
   <div><h2>매듭 · 3알 (아기)</h2><canvas id="knotBaby" style="width:390px;height:220px"></canvas></div>
 </div>
-<div class="row">
-  <div><h2>염주 · 4생 (41·58·0·42, 58은 beads 없음)</h2><div class="wrap" id="rwrap"><canvas id="rosary" style="width:500px;height:500px"></canvas></div></div>
-  <div><h2>염주 · 이어지는 중 (ended=false)</h2><div class="wrap" id="rwrap2"><canvas id="rosary2" style="width:360px;height:360px"></canvas></div></div>
-</div>
-<h2>탄생 하늘 · t=1 (누르면 처음부터)</h2>
-<canvas id="sky" style="width:600px;height:340px"></canvas>
-<h2>탄생 하늘 · t=0.4</h2>
-<canvas id="sky2" style="width:600px;height:340px"></canvas>
+<p>염주·탄생 하늘은 옛 지도책 세계지도로 바뀌었어요: <a href="map-test.html">map-test.html</a></p>
 <h2>화면 밖 캔버스 900×360 에 drawKnot 두 번 → 그림으로 옮김 (공유 그림용)</h2>
 <div id="offInfo"></div>
 <img id="offImg" alt="" style="display:block;max-width:100%;outline:1px dashed rgba(246,239,226,.1)">
 <script type="module">
 import { encodeBeads, hundredThreads } from './beads.js';
-import { drawThread, drawKnot, drawHundred, drawRosary, drawBirthSky } from './strand.js';
+import { drawThread, drawKnot, drawHundred } from './strand.js';
 import { shapeFor } from './lifetable.js';
 const $ = (id) => document.getElementById(id);
 // 가짜 구슬: 마음은 사인 곡선 0~4, 10살마다 별, 23살에 금
@@ -78,27 +71,6 @@ const hun = hundredThreads(shapeFor(7, 'europe'), 'X', 51);
 drawHundred($('hundred'), hun);
 $('hcap').textContent = `백 명 가운데 ${hun.outlived}명보다 오래 살았어요 · 가장 긴 실 ${Math.max(...hun.lengths)}`;
 window.__out.hundred = hun;
-// 염주: 메달 자리에 둥근 자리표를 얹어 고리 바깥인지 본다
-function medals(wrap, cv, list) {
-  const R = Math.min(cv.clientWidth, cv.clientHeight) * 0.34;
-  for (const m of list) {
-    const d = document.createElement('div'); d.className = 'medal';
-    Object.assign(d.style, { left: m.x + 'px', top: m.y + 'px', width: R * 0.34 + 'px', height: R * 0.34 + 'px' });
-    d.textContent = m.i + 1; wrap.appendChild(d);
-  }
-}
-const lives = [{ years: 41, beads: encodeBeads(mk(42, 1)) }, { years: 58 }, { years: 0, beads: encodeBeads(mk(1)) }, { years: 42, beads: encodeBeads(mk(43, 2.5)) }];
-window.__out.rosary = drawRosary($('rosary'), lives, { ended: true });
-medals($('rwrap'), $('rosary'), window.__out.rosary);
-window.__out.rosary2 = drawRosary($('rosary2'), lives.slice(0, 3), { ended: false });
-medals($('rwrap2'), $('rosary2'), window.__out.rosary2);
-window.__out.sky = drawBirthSky($('sky'), 1, { seed: 'X' });
-drawBirthSky($('sky2'), 0.4, { seed: 'X' });
-$('sky').addEventListener('click', () => {
-  const t0 = performance.now();
-  const step = (now) => { const t = Math.min(1, (now - t0) / 2600); drawBirthSky($('sky'), t, { seed: 'X' }); if (t < 1) requestAnimationFrame(step); };
-  requestAnimationFrame(step);
-});
 // 화면 밖 캔버스: 크기가 그대로이고 비어 있지 않은지 (두 번 그려도 같은 크기)
 const offCv = document.createElement('canvas'); offCv.width = 900; offCv.height = 360;
 drawKnot(offCv, mk(52, 0.5));

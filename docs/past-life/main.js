@@ -113,7 +113,7 @@ async function playLife(soul) {
   const peers = makePeers(birth);
   window.__pl.life = life; window.__pl.soul = soul;
   sound.chime();
-  await ui.birthIntro({ birth, n, gap: prev ? birth.year - prev.death.year : null, traces });
+  await ui.birthIntro({ birth, n, gap: prev ? birth.year - prev.death.year : null, traces, prev });
   // 무대 짓기(동기로 1초 남짓)는 출생 기록 종이가 한 번 그려진 뒤에: 시작을 누르면 화면이 바로 바뀌고, 짓는 동안의 멈춤은 가만히 읽는 종이 뒤에 숨는다
   const record = ui.birthRecord({ birth, n, prev, peers, traces });
   await nextPaint();
@@ -128,6 +128,7 @@ async function playLife(soul) {
   ui.showApp(life, peers, S);
   applyView();
   village.setPhase(phaseOf(0)); showFocus(life);
+  await ui.mapZoom();   // 지도가 태어난 자리로 다가가며 걷히고 무대가 드러난다 (지도가 없으면 그냥 지나간다)
   // 처음 하는 사람: 수치 판 → 올해의 패 → 갈림길과 모닥불 (건너뛸 수 있다. 한 번 보면 다시 나오지 않는다. 설정에서 다시 켠다)
   if (!robot && !store.loadCoach()) { S.paused = true; refresh(); await ui.coach(); store.saveCoach(true); S.paused = false; refresh(); }
   for (;;) {

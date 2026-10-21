@@ -8,7 +8,9 @@ import { householdOf } from './households.js';
 import { lifeStats, shapeFor, survivalTo, survivalCurve, yearHazard, healthMul } from './lifetable.js';
 import { FOCI, focusStage, charmMul, focusYearEffects } from './focus.js';
 import { beadsOf } from './beads.js';
-import { drawThread, drawRosary } from './strand.js';
+import { drawThread } from './strand.js';
+import { createWorldMap, loadLand } from './worldmap.js';
+import { birthSpot } from './geo.js';
 import { memoryCandidates, latestMemory } from './memory.js';
 import { traceLevel, traceKey } from './traces.js';
 import { contextOf } from './context.js';
@@ -279,7 +281,76 @@ export function createUI({ lang, robot = false, fast = false }) {
   }
 
   // 탄생 장면: 영혼 2만 개 가운데 하나가 금실을 끌며 떨어진다
-  function birthIntro({ birth, n, gap, traces }) {
+  // ── 옛 지도책 세계지도 (설계 2장): 탄생 지도 · 다음 생 금실 · 지도에서 무대로 확대 · 영혼의 염주 ──
+  // 땅 자료(assets/geo/land.json)는 한 번만 받는다. 못 받으면 null → 탄생은 예전 별 하늘, 염주는 목록만
+  let landP = null, introMap = null, introSpot = null;
+  const getLand = () => (landP = landP || loadLand().catch((e) => { console.warn('한 영혼의 여정: 지도 땅 자료를 못 받아 별 하늘로 간다', e); return null; }));
+  // 빨리 넘기기(?fast)와 움직임 줄이기는 지도 연출을 건너뛴다 (worldmap 이 0초로)
+  const mapMotion = () => (fast || reduced() ? true : undefined);
+  const spotOf = (b, land) => birthSpot(b.seed, b.area, land);
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function atlasIntro() {
+    const land = await getLand();
+    if (!land) return null;
+    const cv = $('souls');
+    if (!introMap) { try { introMap = createWorldMap(cv, { lang: L, land, reducedMotion: mapMotion() }); } catch (e) { console.warn('한 영혼의 여정: 지도를 그리지 못했다', e); landP = Promise.resolve(null); return null; } }
+    else { introMap.setLang(L); introMap.resize(); }
+    return { map: introMap, land };
+  }
+  // 탄생: 그해 금빛 점 → 불씨가 태어난 자리에 내려앉음 (다음 생이면 앞 생 자리에서 금실) → 「이번 생의 자리」 카드. 누르거나 잠시 뒤 넘어간다
+  async function birthIntro({ birth, n, gap, traces, prev = null }) {
+    app.hidden = true; screen.hidden = true; modal.hidden = true;
+    intro.hidden = false; intro.style.opacity = '1'; intro.classList.add('atlas');
+    const at = await atlasIntro();
+    if (!at) { intro.classList.remove('atlas'); return skyIntro({ birth, n, gap, traces }); }
+    const { map, land } = at, spot = spotOf(birth, land);
+    introSpot = spot;
+    map.clear(); await map.viewTo({ u: 0.5, v: 0.5, k: 1 }, 0);
+    map.setYear(birth.year);
+    const it = $('introText');
+    it.innerHTML = `<div class="eyebrow">${esc(t(L, 'placeTitle'))}${n > 1 ? ' · ' + esc(t(L, 'nth', n)) : ''}</div>
+      <div class="big">${esc(birthLine(birth, L))}</div>
+      <div class="count">${esc(t(L, 'everBorn'))} ${TOTAL.toLocaleString(L === 'ko' ? 'ko-KR' : 'en-US')}${n > 1 && gap != null ? ' · ' + esc(t(L, 'wander', gap)) : ''}</div>
+      ${traces.length ? `<div class="chips" style="justify-content:center">${traces.map(badge).join('')}</div>` : ''}`;
+    it.style.opacity = '0';
+    let skip = false;
+    const onClick = () => { skip = true; };
+    intro.addEventListener('click', onClick);
+    if (!fast) await wait(robot ? 150 : 700);   // 금빛 점이 먼저 떠오른다
+    const from = prev && prev.birth ? spotOf(prev.birth, land) : null;
+    if (!skip) await (from ? map.thread(from, spot, { ms: robot ? 900 : 2200 }) : map.birth(spot, { ms: robot ? 900 : 2600 }));
+    else map.birth(spot, { ms: 0 });
+    it.style.opacity = '1';
+    // 카드를 읽을 시간: 누르면 바로, 아니면 잠시 뒤
+    await new Promise((res) => {
+      if (fast) return res();
+      const tm = setTimeout(res, robot ? 400 : 3200);
+      intro.addEventListener('click', () => { clearTimeout(tm); res(); }, { once: true });
+    });
+    intro.removeEventListener('click', onClick);
+    intro.style.opacity = '0';
+    await wait(fast ? 0 : reduced() ? 120 : 600);
+    intro.hidden = true;
+  }
+  // 출생 기록 뒤: 지도가 태어난 자리로 다가가며 걷히고, 뒤에 지어 둔 무대가 드러난다 (지도가 없었으면 그냥 지나간다)
+  async function mapZoom() {
+    if (!introMap || !introSpot || !intro.classList.contains('atlas')) return;
+    const it = $('introText');
+    it.style.opacity = '0';
+    intro.style.transition = 'none'; intro.style.opacity = '1'; intro.hidden = false;
+    void intro.offsetWidth; intro.style.transition = '';
+    introMap.resize();
+    const ms = fast ? 0 : robot ? 700 : 1700;
+    const z = introMap.zoomTo(introSpot, { k: 7, ms });
+    await wait(ms * 0.55);
+    intro.style.opacity = '0';   // 확대가 끝나 갈 무렵부터 무대 쪽으로 걷힌다 (#intro 의 opacity 전환 .8초)
+    await z;
+    await wait(fast ? 0 : reduced() ? 100 : 700);
+    intro.hidden = true; intro.classList.remove('atlas');
+  }
+
+  // 지도를 못 쓸 때의 예전 탄생 장면: 영혼 2만 개 가운데 하나가 금실을 끌며 떨어진다
+  function skyIntro({ birth, n, gap, traces }) {
     app.hidden = true; screen.hidden = true; modal.hidden = true;
     intro.hidden = false; intro.style.opacity = '1';
     const cv = $('souls'), w = (cv.width = window.innerWidth), hh = (cv.height = window.innerHeight), g = cv.getContext('2d');
@@ -689,21 +760,19 @@ export function createUI({ lang, robot = false, fast = false }) {
     return pick(screen).then((v) => { const box = $('toLife'); const note = box ? box.value.trim() : ''; screen.hidden = true; return { act: v, note }; });
   }
 
-  // 영혼의 염주: 생마다 실 한 가닥 (구슬 = 저장된 beads, 기억 구슬은 1.6배) + 메달 (마을 그림 또는 땅 이름)
+  // 영혼의 염주 (설계 2장): 지도 위에 태어난 차례대로 금실과 메달 (메달 = 그 생의 마을 사진, 없으면 차례 숫자) · 해 표시
   const memsOf = (x) => (Array.isArray(x.memories) ? x.memories.filter(okMem) : []);
-  function paintRosary(soul, box) {
+  const imgOf = (src) => new Promise((res) => { if (!okImg(src)) return res(null); const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+  async function rosaryMap(soul, box) {
+    const land = await getLand();
     const cv = box.querySelector('canvas');
-    if (!cv || !box.isConnected) return;
-    const lives = soul.lives.map((x) => ({ years: x.death.age, beads: typeof x.beads === 'string' ? x.beads : null, mem: memsOf(x).map((m) => ({ age: m.age, echo: !!m.echo })) }));
-    const medals = drawRosary(cv, lives, { ended: soul.ended });
-    for (const el of box.querySelectorAll('.rmedal')) el.remove();
-    for (const m of medals) {
-      const x = soul.lives[m.i], d = Math.round((m.r || 20) * 2), el = document.createElement('span');
-      el.className = 'rmedal'; el.style.cssText = `left:${m.x.toFixed(1)}px;top:${m.y.toFixed(1)}px;width:${d}px;height:${d}px`;
-      el.title = `${birthLine(x.birth, L)} · ${lifeEnd(x, L)}`;
-      el.innerHTML = okImg(x.thumb) ? `<img src="${x.thumb}" alt="">` : `<span>${esc(AREAS[x.birth.area].short[L])}</span>`;
-      box.appendChild(el);
-    }
+    if (!land || !cv || !box.isConnected) { box.hidden = true; return null; }
+    const imgs = await Promise.all(soul.lives.map((x) => imgOf(x.thumb)));
+    if (!box.isConnected) return null;
+    const map = createWorldMap(cv, { lang: L, land, title: false, reducedMotion: mapMotion() });
+    const lives = soul.lives.map((x, i) => ({ ...spotOf(x.birth, land), num: i + 1, img: imgs[i], label: `${fmtYear(x.birth.year, L)} · ${AREAS[x.birth.area].short[L]}` }));
+    map.rosary(lives);
+    return { map, lives };
   }
   // 그 생의 마지막 기억 구슬 한 줄 (족보 목록)
   function lastMemLine(x) {
@@ -719,10 +788,15 @@ export function createUI({ lang, robot = false, fast = false }) {
       ${soul.ended ? `<div class="life"><div></div><div><b>${esc(epilogueText(soul, L))}</b></div></div>` : ''}</div>
       <div class="btns"><button class="primary" data-v="title">${esc(t(L, 'toTitle'))}</button>${soul.ended ? `<button data-v="newsoul">${esc(t(L, 'newSoul'))}</button>` : ''}</div></div>`);
     const box = $('rosaryBox');
-    paintRosary(soul, box);
-    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => paintRosary(soul, box)) : null;
-    if (ro) ro.observe(box);
-    return pick(screen).then((v) => { if (ro) ro.disconnect(); screen.hidden = true; return v; });
+    let rm = null, ro = null, gone = false;
+    rosaryMap(soul, box).then((x) => {
+      if (!x || gone) { if (x) x.map.dispose(); return; }
+      rm = x;
+      let w0 = box.clientWidth;   // 처음 한 번 오는 알림에 그리기 연출이 끊기지 않게, 폭이 바뀔 때만 다시 그린다
+      ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { if (box.clientWidth === w0) return; w0 = box.clientWidth; rm.map.resize(); rm.map.rosary(rm.lives, { ms: 0 }); }) : null;
+      if (ro) ro.observe(box);
+    });
+    return pick(screen).then((v) => { gone = true; if (ro) ro.disconnect(); if (rm) rm.map.dispose(); screen.hidden = true; return v; });
   }
 
   function dex(cells) {
@@ -871,7 +945,7 @@ export function createUI({ lang, robot = false, fast = false }) {
     setHandlers: (x) => { h = x; },
     toast: say,
     setLang(l) { L = l; labels(); if (cur && !app.hidden) { shown = 0; memShown = (cur.life.memories || []).length; $('journal').innerHTML = ''; hideTip(); update(cur.life, cur.peers); } },
-    title, birthIntro, birthRecord, showApp, update, decision, pause, lastYear, deathRecord, lineage, dex, share,
+    title, birthIntro, mapZoom, birthRecord, showApp, update, decision, pause, lastYear, deathRecord, lineage, dex, share,
     settings, coach, stageLoading,
   };
 }
