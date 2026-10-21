@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>옛 지도책 세계지도 시험</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<style>
+html,body{margin:0;height:100%;background:#121329;color:#f6efe2;font:13px "IBM Plex Sans KR",system-ui,sans-serif;overflow:hidden}
+#map{position:fixed;inset:0;width:100vw;height:100vh;display:block}
+.bar{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;
+  background:rgba(18,19,41,.82);border:1px solid rgba(226,182,94,.45);border-radius:12px;padding:8px 12px;max-width:calc(100vw - 32px);box-sizing:border-box}
+.bar button{background:#1d2140;color:#f6efe2;border:1px solid #a8770a;border-radius:8px;padding:6px 11px;font:inherit;cursor:pointer}
+.bar button:hover{background:#2a2f5a}
+.bar label{display:flex;align-items:center;gap:6px}
+.bar input[type=range]{width:220px;accent-color:#e2b65e}
+#yr{min-width:92px;color:#e2b65e;font-family:"Gowun Batang",serif}
+.card{position:fixed;left:24px;top:24px;max-width:340px;background:#f6efe2;color:#1d2140;border:1px solid #a8770a;border-radius:10px;padding:12px 14px;
+  box-shadow:0 8px 30px rgba(0,0,0,.45);font-family:"Gowun Batang",serif;opacity:0;transition:opacity .4s;pointer-events:none}
+.card.on{opacity:1}
+.card h3{margin:0 0 6px;font-size:12px;color:#a8770a;letter-spacing:.08em}
+.card p{margin:0 0 4px;line-height:1.5}
+.card .en{font-style:italic;opacity:.75;font-size:12px}
+@media (max-width:600px){.bar input[type=range]{width:140px}.card{left:16px;right:16px;top:16px}}
+</style>
+</head>
+<body>
+<canvas id="map" aria-label="옛 지도책 세계지도 · old-atlas world map"></canvas>
+<div class="card" id="card"><h3 id="cardh"></h3><p id="cardko"></p><p class="en" id="carden"></p></div>
+<div class="bar">
+  <label><span>해 · Year</span><input id="year" type="range" min="-8000" max="2020" step="10" value="1500"><span id="yr"></span></label>
+  <button id="bBirth">탄생 · Birth</button>
+  <button id="bNext">다음 생 · Next life</button>
+  <button id="bRosary">염주 · Rosary</button>
+  <button id="bZoom">확대 · Zoom</button>
+  <button id="bLang">EN</button>
+</div>
+<script type="module">
+import { createWorldMap, loadLand } from './worldmap.js';
+import { birthSpot } from './geo.js';
+import { drawBirth } from './birth.js';
+import { birthLine, fmtYear } from './i18n.js';
+import { AREAS } from './places.js';
+import { newId, sub } from './rng.js';
+
+const $ = (id) => document.getElementById(id);
+const qs = new URLSearchParams(location.search);
+let lang = qs.get('lang') === 'en' ? 'en' : 'ko';
+const land = await loadLand();
+// window.__t 를 정하면 그 시각에 멈춘 장면 (화면 찍기용)
+const map = createWorldMap($('map'), { land, lang, clock: () => window.__t ?? performance.now() });
+window.__map = map;
+addEventListener('resize', () => map.resize());
+
+const yearIn = $('year');
+function showYear(y) { $('yr').textContent = fmtYear(y, lang); }
+function setYear(y) { yearIn.value = y; showYear(y); map.setYear(y); }
+yearIn.addEventListener('input', () => setYear(+yearIn.value));
+setYear(+(qs.get('year') || 1500));
+
+// 한 영혼: 씨앗 id 로 생을 차례로 뽑는다 (떠난 나이는 시드에서 단순하게)
+let soulId = qs.get('seed') || newId(Math.random);
+let lives = [];   // { birth, spot }
+const spanOf = (seed) => 3 + sub(seed, 'span').int(68);
+function lifeAt(n, after) {
+  const b = drawBirth(`${soulId}-${n}`, after);
+  return b && { birth: b, spot: birthSpot(b.seed, b.area, land) };
+}
+function card(life, n) {
+  $('cardh').textContent = lang === 'ko' ? `${n}번째 생의 자리 · Life ${n}` : `Life ${n} · ${n}번째 생`;
+  $('cardko').textContent = birthLine(life.birth, 'ko');
+  $('carden').textContent = birthLine(life.birth, 'en');
+  $('card').classList.add('on');
+}
+let busy = false;
+const run = (fn) => async () => { if (busy) return; busy = true; try { await fn(); } finally { busy = false; } };
+
+$('bBirth').onclick = run(async () => {
+  if (map.view.k > 1.01) await map.resetView(700);
+  soulId = newId(Math.random);
+  map.clear(); $('card').classList.remove('on');
+  const l = lifeAt(1);
+  lives = [l];
+  setYear(Math.max(-8000, l.birth.year));
+  await map.birth(l.spot);
+  card(l, 1);
+});
+$('bNext').onclick = run(async () => {
+  if (!lives.length) return $('bBirth').onclick();
+  if (map.view.k > 1.01) await map.resetView(700);
+  const cur = lives[lives.length - 1];
+  const l = lifeAt(lives.length + 1, cur.birth.year + spanOf(cur.birth.seed));
+  if (!l) return;
+  $('card').classList.remove('on');
+  lives.push(l);
+  setYear(Math.max(-8000, l.birth.year));
+  await map.thread(cur.spot, l.spot);
+  card(l, lives.length);
+});
+$('bRosary').onclick = run(async () => {
+  if (map.view.k > 1.01) await map.resetView(700);
+  $('card').classList.remove('on');
+  {   // 여섯 생까지 이어 뽑기 (지금까지 산 생에 잇는다)
+    if (!lives.length) { soulId = newId(Math.random); lives = [lifeAt(1)]; }
+    while (lives.length < 6) {
+      const cur = lives[lives.length - 1], l = lifeAt(lives.length + 1, cur.birth.year + spanOf(cur.birth.seed));
+      if (!l) break;
+      lives.push(l);
+    }
+  }
+  map.clear(); map.clearDots();
+  await map.rosary(lives.map((l, i) => ({ ...l.spot, num: i + 1, label: `${fmtYear(l.birth.year, lang)} · ${AREAS[l.birth.area].short[lang]}` })));
+});
+$('bZoom').onclick = run(async () => {
+  if (map.view.k > 1.01) return map.resetView(1000);
+  const s = lives.length ? lives[lives.length - 1].spot : { lat: 37, lon: 127.5 };
+  await map.zoomTo(s, { k: 6 });
+});
+$('bLang').onclick = () => {
+  lang = lang === 'ko' ? 'en' : 'ko';
+  $('bLang').textContent = lang === 'ko' ? 'EN' : '한';
+  document.documentElement.lang = lang;
+  map.setLang(lang); showYear(+yearIn.value);
+};
+window.__ready = true;
+</script>
+</body>
+</html>

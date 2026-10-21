@@ -242,6 +242,16 @@
 먼 나무는 종마다 8방향 × (색·노멀) 빌보드를 실행 때 구워 해 방향으로 다시 비춘다 (외부 자산 아님).
 게임에 넣을 때는 나무 지오메트리를 GLB 로 구워 저장하는 편이 낫다 (매번 생성 + 4 MB 를 피함).
 
+## 세계지도 땅 — Natural Earth (공개 영역)
+
+| 파일 | 자산 | 쓰는 곳 |
+|---|---|---|
+| `../geo/land.json` (약 124 KB) | [Natural Earth](https://www.naturalearthdata.com/) 1:50m Land (공개 영역, https://www.naturalearthdata.com/about/terms-of-use/). npm `world-atlas@2.0.2`(ISC, TopoJSON 으로 옮긴 판)의 `land-50m.json` 에서 받음 | 옛 지도책 세계지도 (`worldmap.js`·`geo.js`) |
+
+만드는 법: `npm install --ignore-scripts world-atlas@2.0.2` (작업 폴더 밖 임시 폴더) → `node tools/make_geo.mjs <…/world-atlas/land-50m.json>`.
+TopoJSON 을 직접 풀고, 날짜변경선을 건너는 고리는 −180°/180° 에서 나누고, 북위 75°~남위 56° 로 자르고(남극 빠짐), Douglas–Peucker 0.035° 로 줄이고, 0.004 도² 보다 작은 섬을 빼고, 1/50° 격자 정수의 차이(delta)로 적는다.
+산줄기 빗금(`geo.js` MOUNTAINS)·지형 빛깔·종이 결·나침반 장미는 자료가 아니라 코드로 그린다 (Natural Earth 땅에는 높이가 없다).
+
 ## 코드로 만든 것 (외부 자산 아님)
 
 하늘(three.js Sky, MIT), 구름 셰이더, 지형·밭 조각보·산울타리·다리(위 길은 `brown_mud_dry`)·묘지 비석·풀포기 텍스처(캔버스)·들꽃 포기 텍스처(캔버스)·연기 텍스처(캔버스).
