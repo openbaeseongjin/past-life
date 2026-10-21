@@ -2,3 +2,4 @@ node_modules/
 .omc/
 __pycache__/
 *.blend1
+_site/

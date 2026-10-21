@@ -20,9 +20,12 @@
 - 0번 선택지에는 `when`을 달지 않는다(자동 경로가 잠긴 선택지에서 끝없이 돈다).
 
 ## 실행
-- 시험: `cd docs/past-life && npm test` (Node 20+, 설치할 것 없음). 지금 284개 통과.
+- 시험: `cd docs/past-life && npm test` (Node 20+, 설치할 것 없음). 시험 수는 `docs/sdd-ledgers/cloud-session.md` 의 마지막 기록을 본다.
+- 글 훑기: `cd docs/past-life && node tools/sweep.mjs 2400 --out 보고서.md` (2,400생의 화면 글 ko/en 을 검사, 흠 0 이어야 한다).
 - 화면: `python docs/past-life/tools/serve.py 8780` → `http://localhost:8780/index.html?seed=T4-21` (`&auto=1` 저절로, `&q=normal` 보통 화질). 3D는 three.js 0.160·ez-tree를 jsDelivr에서 받는다.
 - 클라우드에는 Blender와 GPU가 없다: 새 3D 세트(Blender 빌드)·fps 측정은 사용자 PC에서 한다. 여기서는 시뮬·카드·화면·시험을 한다.
 
 ## 공개 사이트 갱신 (사용자에게 먼저 묻는다)
-`main` 가지 뿌리에 런타임 파일만 둔다: `docs/past-life/*.js`, `index.html`, `CONTENT-SOURCES*.md`, `assets/hex.glb`, `assets/real/{people,tex,SOURCES.md}`, `assets/real/kits/*.glb`·`*.json` (미리보기·시험·도구 제외), `.nojekyll`, `README.md`. 커밋 `[deploy] …` 뒤 push하면 Pages가 1~2분 안에 새로 짓는다.
+`main` 가지 뿌리에 런타임 파일만 둔다: `docs/past-life/*.js`, `index.html`, `CONTENT-SOURCES*.md`, `assets/hex.glb`, `assets/geo/*.json`, `assets/real/{people,tex,SOURCES.md}`, `assets/real/kits/*.glb`·`*.json` (미리보기·시험·도구 제외), `.nojekyll`, `README.md`(공개용, `docs/past-life/tools/pages/README.md`). 커밋 `[deploy] …` 뒤 push하면 Pages가 1~2분 안에 새로 짓는다.
+- 모으기: `cd docs/past-life && node tools/build_pages.mjs [폴더] --clean` → 기본 `_site/`(저장소 뿌리, git 에서 뺌)에 위 파일만 모은다. main.js 에서 닿는 모듈·코드에 적힌 자산이 다 있는지, 시험 화면·도구가 섞이지 않았는지 확인하고, 하나라도 어긋나면 멈춘다.
+- 올리기 (사용자가 허락한 뒤에만): main 가지를 따로 받은 폴더(예: `git worktree add ../pages main`)에 `_site/` 내용을 덮어쓰고(main 에만 있는 옛 파일은 지운다) `[deploy] …` 커밋 → push. 올리기 전 `_site` 를 `python -m http.server` 로 띄워 한 생을 돌려 본다.
