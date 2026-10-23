@@ -10,6 +10,7 @@
 - 사람 모델·동작: Quaternius Universal Base Characters / Universal Animation Library (CC0)
 - 재질: Poly Haven · ambientCG (CC0)
 - 건물·소품: Blender로 직접 만듦
+- 세계지도 해안선: Natural Earth (공개 영역)
 - 자세한 출처: `assets/real/SOURCES.md`, 역사 내용 출처: `CONTENT-SOURCES*.md`
 - 인구·출생 비율과 사건 위험률은 공개 자료를 바탕으로 한 게임용 어림입니다.
 - 코드·글·기획 그림의 일부는 AI(Claude)의 도움을 받아 만들었습니다.

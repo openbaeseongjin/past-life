@@ -2,13 +2,14 @@
 import { sub } from './rng.js';
 import { drawYear, eraOf, groupOf } from './births.js';
 import { AREAS, drawPlace } from './places.js';
-import { drawHousehold, drawSex, drawOrder, householdOf, beforeFarming } from './households.js';
+import { drawHousehold, drawSex, drawOrder, householdOf, beforeFarming, HERD_GROUPS, HERD_SHARE } from './households.js';
 
 export function birthAt(seed, year) {
   const { region, area } = drawPlace(sub(seed, 'place'), year);
   const group = groupOf(year);
   // 농사가 아직 닿지 않은 땅이면 수렵 무리 (묶음은 그해 것 그대로: 생명표·시대 이름은 해를 따른다)
-  const h = beforeFarming(area, year) ? householdOf('forager', 'band') : drawHousehold(sub(seed, 'home'), group, AREAS[area]);
+  let h = beforeFarming(area, year) ? householdOf('forager', 'band') : drawHousehold(sub(seed, 'home'), group, AREAS[area]);
+  if (h.id === 'farm' && HERD_GROUPS.includes(group) && sub(seed, 'herd').next() < (HERD_SHARE[area] || 0)) h = householdOf(group, 'herd');
   return { seed, year, era: eraOf(year).id, group, region, area, household: h.id, tags: [...h.tags], wealth: h.wealth,
            sex: drawSex(sub(seed, 'sex')), order: drawOrder(sub(seed, 'order')) };
 }

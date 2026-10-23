@@ -44,7 +44,7 @@ const STR = {
     subtitle: '지금까지 태어난 약 1,170억 명 가운데 한 명으로 태어나 한 생을 살아요. 시간은 저절로 흐르고, 중요한 순간에는 당신이 골라요. 다음 판에는 같은 영혼이 다음 시대에 다시 태어나요.',
     born: '태어나기', next: (n) => `다음 생 (영혼의 ${n}번째 생)`, lineage: '영혼 족보', dex: (n) => `전생 도감 (${n}칸)`,
     newSoul: '새 영혼', newSoulSure: '정말 새로 시작할까요? 지금 여정은 지워져요', lang: 'English', soundOn: '소리 켬', soundOff: '소리 끔',
-    credit: '자료: PRB 2022 · OWID (HYDE·UN·Riley) · Volk & Atkinson 2013 · 3D: KayKit (CC0). 집안 비율과 사건 위험률은 게임용 어림이에요.',
+    credit: '자료: PRB 2022 · OWID (HYDE·UN·Riley) · Volk & Atkinson 2013 · 3D: Poly Haven·Quaternius (CC0), three.js·ez-tree (MIT). 집안 비율과 사건 위험률은 게임용 어림이에요.',
     everBorn: '지금까지 태어난 사람', age: (a) => `${a}살`, unit: '살',
     birthDoc: '출생 기록', deathDoc: '사망 기록', start: '삶을 시작하기',
     f_era: '시대', f_year: '해', f_place: '땅', f_home: '집안', f_child: '태어난 아이', f_e0: '그때 이 땅의 기대수명', f_u5: '다섯 살 전에 떠날 확률', f_births: '그해 태어난 아기',
@@ -99,6 +99,17 @@ const STR = {
     gainedX: '얻은 흔적', noteNext: '다음 생에 보내는 쪽지', noteEnd: '쪽지 (염주에 남아요)',
     toBeads: '영혼의 염주 보기', beadsTitle: '영혼의 염주', beadsSoFar: '지금까지의 염주', journeyOn: '여정은 아직 이어지고 있어요.',
     keepLiving: '이어서 살기', settings: '설정',
+    // 처음 하는 사람을 위한 다듬기 (클라우드 2026-10-21): 첫 화면 세 줄 · 로딩 · 설정 · 3단계 안내
+    lead: ['지금까지 태어난 약 1,170억 명 가운데 한 사람으로 태어나요.', '해는 저절로 흐르고, 갈림길에서만 당신이 골라요.', '생이 끝나면 같은 영혼이 다음 시대에 다시 태어나요.'],
+    stageLoading: '마을을 짓는 중…', loadingGame: '불러오는 중…',
+    setTitle: '설정', setQuality: '화질', qHigh: '높음', qNormal: '보통', qHint: '보통은 그림자와 먼 나무를 줄여 느린 컴퓨터에서 더 부드러워요.',
+    setSpeed: '해가 흐르는 빠르기', setSound: '소리', setLang: '말', setCoach: '처음 안내 다시 보기', coachAgain: '다음 생을 시작할 때 다시 보여 드릴게요.',
+    coachSkip: '건너뛰기', coachNext: '다음', coachDone: '시작하기', coachStep: (i, n) => `${i} / ${n}`,
+    coach: [
+      { t: '수치 판', d: '건강·재산·곁·마음 네 수치와 능력치예요. 숫자가 바뀌면 잠깐 빛나요. 위의 시대 띠를 누르면 그해 세상 사정(전쟁·병·값)을 볼 수 있어요.' },
+      { t: '올해의 패', d: '여섯 살부터 한 해를 어디에 쓸지 패 한 장을 골라요. 일·배움·식구·몸·쉼. 고르지 않으면 가장 급한 쪽으로 저절로 가요.' },
+      { t: '갈림길과 모닥불', d: '정해진 나이마다 갈림길 카드가 와요. 고른 길은 생에 남아요. 다섯·열다섯·서른·쉰·일흔 살엔 모닥불 곁에서 기억 하나를 구슬로 꿰고, 앞 생의 메아리(푸른 구슬)를 꿰면 그 흔적이 짙어져요.' },
+    ],
     // 시뮬 2.0 수치 판 · 시대의 바람 · 구체적인 효과 (sim2 설계 2·3.3·5장)
     statN: { health: '건강', wealth: '재산', family: '곁', happy: '마음' },
     attrN: { charm: '친화력', luck: '행운', know: '지식', skill: '손재주' },
@@ -141,10 +152,10 @@ const STR = {
     subtitle: 'Be born as one of the roughly 117 billion people who have ever lived, and live one life. Time flows on its own; at the big moments, you choose. Next time, the same soul is born again in a later age.',
     born: 'Be born', next: (n) => `Next life (life ${n} of this soul)`, lineage: 'Soul lineage', dex: (n) => `Past-life atlas (${n} cells)`,
     newSoul: 'New soul', newSoulSure: 'Really start over? This journey will be erased', lang: '한국어', soundOn: 'Sound on', soundOff: 'Sound off',
-    credit: 'Data: PRB 2022 · OWID (HYDE, UN, Riley) · Volk & Atkinson 2013 · 3D: KayKit (CC0). Household shares and event risks are game estimates.',
+    credit: 'Data: PRB 2022 · OWID (HYDE, UN, Riley) · Volk & Atkinson 2013 · 3D: Poly Haven, Quaternius (CC0), three.js, ez-tree (MIT). Household shares and event risks are game estimates.',
     everBorn: 'people ever born', age: (a) => `age ${a}`, unit: 'yrs',
     birthDoc: 'Record of birth', deathDoc: 'Record of death', start: 'Begin this life',
-    f_era: 'Age', f_year: 'Year', f_place: 'Land', f_home: 'Household', f_child: 'Child', f_e0: 'Life expectancy here, then', f_u5: 'Chance of dying before five', f_births: 'Babies born that year',
+    f_era: 'Era', f_year: 'Year', f_place: 'Land', f_home: 'Household', f_child: 'Child', f_e0: 'Life expectancy here, then', f_u5: 'Chance of dying before five', f_births: 'Babies born that year',
     childOf: (o, sex) => `${ORD.en[o - 1]} ${sex === 'f' ? 'daughter' : 'son'}`,
     peersTitle: 'Born the same year', peersHint: 'Their lives follow the same statistics to the end.', lastWords: 'Words left by your past life',
     pause: 'Pause', resume: 'Play', skip: 'Next decision »', auto: 'Auto-decide', exit: 'Leave',
@@ -194,6 +205,17 @@ const STR = {
     gainedX: 'Traces gained', noteNext: 'A note to the next life', noteEnd: 'A note (kept on the beads)',
     toBeads: "See the soul's beads", beadsTitle: "The soul's beads", beadsSoFar: 'Beads so far', journeyOn: 'The journey goes on.',
     keepLiving: 'Keep living', settings: 'Settings',
+    // First-timer polish (cloud 2026-10-21): three-line intro · loading · settings · 3-step guide
+    lead: ['You are born as one of the roughly 117 billion people who have ever lived.', 'The years pass on their own; you choose only at the crossroads.', 'When a life ends, the same soul is born again in a later age.'],
+    stageLoading: 'Building the village…', loadingGame: 'Loading…',
+    setTitle: 'Settings', setQuality: 'Graphics', qHigh: 'High', qNormal: 'Normal', qHint: 'Normal uses lighter shadows and fewer distant trees, for smoother play on slower computers.',
+    setSpeed: 'How fast the years pass', setSound: 'Sound', setLang: 'Language', setCoach: 'Show the first-time guide again', coachAgain: 'You will see it again when your next life begins.',
+    coachSkip: 'Skip', coachNext: 'Next', coachDone: 'Begin', coachStep: (i, n) => `${i} / ${n}`,
+    coach: [
+      { t: 'Your numbers', d: 'Health, wealth, kin and heart, plus your abilities. A number glows when it changes. Tap the band of the age above to see how the world stands this year: war, sickness, prices.' },
+      { t: "This year's card", d: 'From age six, you pick one card for where the year goes: work, learning, family, body or rest. If you don’t, the most urgent need decides.' },
+      { t: 'Crossroads and the campfire', d: 'At set ages a crossroads card arrives, and the path you take stays with your life. At 5, 15, 30, 50 and 70 you sit by a campfire and string one memory as a bead. String a blue echo of a past life and its trace grows stronger.' },
+    ],
     // Sim 2.0: the numbers board · winds of the age · concrete effects
     statN: { health: 'Health', wealth: 'Wealth', family: 'Kin', happy: 'Heart' },
     attrN: { charm: 'Charm', luck: 'Luck', know: 'Knowledge', skill: 'Skill' },
@@ -212,7 +234,7 @@ const STR = {
     warLevel: ['mostly at peace', 'border skirmishes', 'at war', 'the land is a battlefield'],
     windPriceJump: 'grain prices soar', windPriceUp: 'prices are up', windPriceDown: 'prices are down', windWageUp: 'wages are up', windWageDown: 'wages are down',
     windCommon: (d) => `common sickness: ${d}`, windTech: (x) => `known here: ${x}`,
-    calm: { harvest: 'the {crop} harvest', market: 'a day at the {market}', feast: 'waiting for {feast}', beast: 'following the {beast}', school: 'off to the {school} in the morning' },
+    calm: { harvest: 'harvesting the {crop}', market: 'a day at the {market}', feast: 'waiting for {feast}', beast: 'following the {beast}', school: 'off to the {school} in the morning' },
     ctxNow: 'This year', ctxWar: 'War', ctxDisease: 'Disease & medicine', ctxTech: 'Technology', ctxEcon: 'Economy', ctxStatus: 'Social order', ctxLearn: 'Learning',
     ctxDz: (list, med) => `common: ${list} — medicine: ${med}`, ctxNoDz: 'no great sickness going round', ctxEconX: (p, w) => `prices ×${p} · wages ×${w}`, ctxEconSame: 'prices and wages as usual',
     ctxYou: (s, bound) => `you: ${s}${bound ? ' (bound)' : ''}`, ctxLit: (p) => (p < 1 ? 'almost no one can read' : `about ${p}% can read`),
@@ -292,19 +314,17 @@ export const heartWord = (v, lang) => STR[lang].heartWords[band5(v)];
 // 건강 줄의 「지금 앓는 것」 (설계 2.1 「최근 사건·카드의 병 이름」): 지난 세 해 안의 인생 기록에서 가장 최근 것.
 //   병·부상 표지가 있는 갈림길에서 건강이 3 이상 오르내렸으면(실제로 고른 길·운의 결과) 그 카드 제목을 인용한다:
 //     「지난해 「앓아누운 날들」 뒤 몸이 축남」 · 「… 뒤 기운을 되찾음」. 제목은 그 줄이 적힌 해의 맥락으로 채운다
-//   표지 (illness): 카드 ill: true · 선택지 risk 'plague' 나 skill 'heal' · 유행병 사건 카드 · 아래 ILL_CARDS
-//   표지 (hurt, 내려갈 때만): 다치는 카드 HURT_CARDS · 굶주림 사건 카드
+//   표지 (illness): 카드 ill: true · 선택지 risk 'plague' 나 skill 'heal' · 유행병 사건 카드
+//   표지 (hurt, 내려갈 때만): 다치는 카드 hurt: true · 굶주림 사건 카드
 //   표지가 없는 카드는 제목 없이, 6 이상 내려갔을 때만 「지난해 몸이 많이 축남」 (물레방아·텔레비전 같은 제목을 끌어오지 않는다)
 //   아직 이어지는 유행병 사건 → 「흑사병이 도는 중」. 아무것도 없고 몸이 허약하면(40 밑) 그 땅의 풍토병 「학질이 도는 고장」. 그 밖에는 ''
 // 카드 파일에 ill 표지가 붙기 전까지 쓰는 아이디 목록 (작업 7·8 에서 카드의 ill: true 로 옮긴다)
-const ILL_CARDS = new Set(['u.baby.fever', 'u.teen.sick', 'u.middle.ache', 'e.early.adult.pox', 'e.ind.middle.doctor', 't.fear.plague', 'e.for.middle.leg']);
-const HURT_CARDS = new Set(['h.sea.storm', 'h.hunt.first', 't.fear.fire', 't.fear.heights', 't.fear.beast']);
 const EV = new Map(EVENTS.map((e) => [e.id, e]));
 function illTag(card) {
-  if (card.ill || ILL_CARDS.has(card.id) || card.choices.some((x) => x.risk === 'plague' || x.skill === 'heal')) return 'ill';
+  if (card.ill || card.choices.some((x) => x.risk === 'plague' || x.skill === 'heal')) return 'ill';
   const e = card.event && EV.get(card.event);
   if (e && (e.kind === 'epidemic' || e.cause === 'plague')) return 'ill';
-  if (HURT_CARDS.has(card.id) || (e && e.cause === 'hunger')) return 'hurt';
+  if (card.hurt || (e && e.cause === 'hunger')) return 'hurt';
   return null;
 }
 export function ailmentLine(life, deck, lang) {

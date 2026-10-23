@@ -51,7 +51,7 @@ export const LIFE_CARDS = [
       { text: { ko: '「싫어」', en: '“No”' }, effects: { happy: 5 },
         result: { ko: '무엇을 물어도 「싫어」였어요. 어른들은 앞날이 조금 걱정됐어요.', en: 'Whatever anyone asked, the answer was “No.” The grown-ups began to worry a little about the years ahead.' } },
     ] },
-  { id: 'u.baby.fever', stage: 'baby', tokens: true,
+  { id: 'u.baby.fever', ill: true, stage: 'baby', tokens: true,
     title: { ko: '열이 끓는 밤', en: 'A night of fever' },
     text: { ko: '몸이 불덩이처럼 뜨거워요. {healer:이} 다녀간 뒤에도 어머니가 밤새 당신을 안고 있어요.', en: 'You are burning hot. The {healer} has been and gone, and still your mother holds you through the night.' },
     choices: [
@@ -134,7 +134,7 @@ export const LIFE_CARDS = [
       { text: { ko: '노래를 배운다', en: 'Learn to sing' }, skill: 'music', effects: { happy: 4 },
         result: { ko: '목청이 조금씩 트였어요. 어른들은 귀를 막다가 나중엔 따라 불렀어요.', en: 'Your voice slowly opened up. The elders covered their ears at first, then started singing along.' } },
     ] },
-  { id: 'u.teen.sick', stage: 'teen', tokens: true,
+  { id: 'u.teen.sick', ill: true, stage: 'teen', tokens: true,
     title: { ko: '앓아누운 날들', en: 'Laid low' },
     text: { ko: '크게 앓아누웠어요. {healer:은} 쉬라는데, 할 일은 쌓여 가고 몸은 말을 안 들어요.', en: 'A bad illness has knocked you flat. The {healer} says rest. The work piles up regardless, and your body won’t cooperate.' },
     choices: [
@@ -215,7 +215,7 @@ export const LIFE_CARDS = [
       { text: { ko: '바쁘다고 한다', en: 'Say you’re too busy' }, effects: { wealth: 3 },
         result: { ko: '일은 제때 끝났어요. 그 젊은이는 {market}에서 만난 다른 사람에게 배웠대요.', en: 'The work got done on time. You heard they learned it from someone they met at the {market}.' } },
     ] },
-  { id: 'u.middle.ache', stage: 'middle', tokens: true,
+  { id: 'u.middle.ache', ill: true, stage: 'middle', tokens: true,
     title: { ko: '삐걱대는 몸', en: 'Creaking joints' },
     text: { ko: '무릎이 쑤시고 허리가 뻐근해요. {healer:은} 나이 탓이래요.', en: 'Your knees ache and your back is stiff. The {healer} blames your age.' },
     choices: [
@@ -273,7 +273,7 @@ export const LIFE_CARDS = [
     ] },
 
   // ── 집안: 바다 (h.sea.catch 는 위 본보기) ────────────────────────
-  { id: 'h.sea.storm', stage: 'teen', when: { tags: ['sea'], coast: true },
+  { id: 'h.sea.storm', hurt: true, stage: 'teen', when: { tags: ['sea'], coast: true },
     title: { ko: '폭풍 오는 날', en: 'Storm coming' },
     text: { ko: '하늘이 시커먼데 아버지가 배를 띄우려 해요. 오늘 못 나가면 한 철을 망친대요.', en: 'The sky has gone black, but your father is readying the boat. Miss today, he says, and the season is ruined.' },
     choices: [
@@ -404,7 +404,7 @@ export const LIFE_CARDS = [
     ] },
 
   // ── 집안: 사냥 (사냥 무리는 구석기에만 있다) ─────────────────────
-  { id: 'h.hunt.first', stage: 'teen', when: { tags: ['hunt'] },
+  { id: 'h.hunt.first', hurt: true, stage: 'teen', when: { tags: ['hunt'] },
     title: { ko: '첫 사냥', en: 'First hunt' },
     text: { ko: '처음으로 어른들 사냥에 끼게 됐어요. 큰 짐승 발자국이 아직 새것이에요.', en: 'For the first time, you are joining the grown-ups on a hunt. The tracks of something big are still fresh.' },
     choices: [

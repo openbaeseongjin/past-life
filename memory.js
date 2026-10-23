@@ -12,7 +12,7 @@ const SAME_KIND = -2;
 export const ECHO_KIND = 'echo';
 
 // 메아리 한 줄: 흔적(kind:key) → 줄. when 은 이번 생의 맥락 조건 (하나 또는 배열, 모두 맞아야 한다. 없으면 언제나)
-//   coast·inland: 이번 생의 땅에 바닷가가 있나 · modern: 산업·현대 · settled: 채집 무리가 아니다
+//   coast·inland: 이번 생의 땅에 바닷가가 있나 · modern: 산업·현대 · premodern: 산업 전 (화덕·불씨 같은 말) · settled: 채집 무리가 아니다
 //   writing: 글이 있던 때·땅 (흔적 카드 「눈에 익은 글자」와 같은 조건) · young: 5·15살 모닥불 (「처음 …」 글은 어릴 때만)
 // 흔적마다 어느 땅·시대·나이에도 고를 줄이 셋 이상 있다 (시험). 말투는 일지와 같은 「-어요」, 끝 마침표는 두루마리에 적을 때 붙인다
 export const ECHO_LINES = {
@@ -25,9 +25,11 @@ export const ECHO_LINES = {
   ],
   'fear:fire': [
     { ko: '모닥불이 탁 튈 때마다 몸이 먼저 움찔했어요', en: 'Every time the fire popped, your body flinched before you did' },
-    { ko: '불씨를 묻을 때는 꼭 두 번씩 살폈어요', en: 'When banking the fire, you always checked it twice' },
+    { when: 'premodern', ko: '불씨를 묻을 때는 꼭 두 번씩 살폈어요', en: 'When banking the fire, you always checked it twice' },
     { ko: '연기 냄새가 나면 눈이 먼저 문 쪽을 찾았어요', en: 'At the smell of smoke, your eyes went to the door first' },
-    { ko: '화덕 앞에는 좀처럼 오래 앉지 못했어요', en: 'You could never sit long by the hearth' },
+    { when: 'premodern', ko: '화덕 앞에는 좀처럼 오래 앉지 못했어요', en: 'You could never sit long by the hearth' },
+    { when: 'modern', ko: '난로 문을 열 때마다 몸을 비스듬히 비켰어요', en: 'Opening the stove door, you always leaned away' },
+    { when: 'modern', ko: '불을 끄고 나와서도 꼭 한 번 더 돌아가 봤어요', en: 'Even after putting the fire out, you always went back to check once more' },
   ],
   'fear:war': [
     { when: 'modern', ko: '제복 입은 사람이 지나가면 괜히 길을 비켰어요', en: 'When someone in uniform walked by, you stepped aside without knowing why' },
@@ -171,6 +173,7 @@ function whenOk(when, ctx) {
   if (when === 'coast') return ctx.coast;
   if (when === 'inland') return !ctx.coast;
   if (when === 'modern') return MODERN.includes(ctx.group);
+  if (when === 'premodern') return !MODERN.includes(ctx.group);
   if (when === 'settled') return ctx.group !== 'forager';
   if (when === 'writing') return ctx.writing;
   if (when === 'young') return ctx.young;

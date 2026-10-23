@@ -13,10 +13,10 @@ export const LOCAL_LINES_EU = [
   // ── 유럽 마을 (europe · village) ─────────────────────────────────
   // 선돌 (거석 시대의 브리튼·브르타뉴·이베리아·북쪽)
   { id: 'l.loc.eu.village.stones', stage: ['child', 'teen', 'adult'], when: { zones: EU, setting: 'village', areas: ['britain', 'france', 'iberia', 'nordic', 'germany'], minYear: -3500, maxYear: -1200 },
-    text: { ko: '한겨울 아침, 선돌 사이로 해가 떠오르는 걸 다 같이 지켜봤어요.', en: 'One midwinter morning, everyone watched the sun rise between the standing stones.' } },
+    text: { ko: '동지 무렵, 선돌 사이로 해가 걸리는 걸 다 같이 지켜봤어요.', en: 'Around midwinter, everyone gathered to watch the sun line up between the standing stones.' } },
   // 청동기: 떠돌이 청동 장인이 헌 연장을 녹여 다시 부어 준다
   { id: 'l.loc.eu.village.bronze', stage: GROWN, when: { zones: EU, setting: 'village', minYear: -2200, maxYear: -800 },
-    text: { ko: '떠돌이 청동 장인이 와서 부러진 낫을 녹여 새 낫으로 부어 줬어요.', en: 'A travelling bronzesmith melted down your broken sickle and cast you a new one.' } },
+    text: { ko: '떠돌이 청동 장인이 와서 부러진 낫을 녹여 새 낫으로 부어 줬어요.', en: 'A traveling bronzesmith melted down your broken sickle and cast you a new one.' } },
   // 사람과 소가 한 지붕 아래 사는 긴 집 (북쪽 철기 시대~바이킹 시대)
   { id: 'l.loc.eu.village.byre', stage: ALL, when: { zones: EU, setting: 'village', areas: ['germany', 'nordic'], minYear: -800, maxYear: 1100 },
     text: { ko: '겨울엔 소와 한 지붕 아래서 잤어요. 소 덕에 따뜻했고, 소 덕에 냄새도 났어요.', en: 'In winter you slept under one roof with the cattle. They kept you warm, and they kept the place smelling of cow.' } },
@@ -26,14 +26,14 @@ export const LOCAL_LINES_EU = [
   // 돼지를 숲에 몰고 가 도토리를 먹이기 (가을, 판니지)
   { id: 'l.loc.eu.village.pannage', stage: ['child', 'teen', 'adult'], when: { zones: EU, setting: 'village', minYear: 600, maxYear: 1600 },
     text: { ko: '가을엔 돼지를 숲에 몰고 가 도토리를 먹였어요. 돼지가 당신보다 잘 먹었어요.', en: 'In autumn you drove the pigs into the woods for acorns. They ate better than you did.' } },
-  // 영주 밭 추수를 거드는 날 (부역 날의 빵과 에일)
+  // 영주 밭 추수를 거드는 날 (부역 날의 빵과 술. 에일은 잉글랜드 낱말이라 「집에서 빚은 술」로)
   { id: 'l.loc.eu.village.boon', stage: ['adult', 'middle'], when: { zones: EU, setting: 'village', areas: ['britain', 'france', 'germany'], minYear: 900, maxYear: 1500 },
-    text: { ko: '영주 밭 추수를 거드는 날이었어요. 영주 집에서 빵과 에일을 내왔어요.', en: 'It was a boon day, harvesting the lord’s fields. The lord’s house sent out bread and ale.' } },
+    text: { ko: '영주 밭 추수를 거드는 날이었어요. 영주 집에서 빵과 집에서 빚은 술을 내왔어요.', en: 'It was your day to help bring in the lord’s harvest. The lord’s house sent out bread and home brew.' } },
   // 영주 방앗간에서만 빻아야 했다
   { id: 'l.loc.eu.village.mill', stage: ['adult', 'middle'], when: { zones: EU, setting: 'village', areas: ['britain', 'france', 'germany', 'italy'], minYear: 900, maxYear: 1600 },
     text: { ko: '영주 방앗간에서만 빻아야 했어요. 방앗간 주인 몫은 늘 한 줌 더 많아 보였어요.', en: 'You had to grind at the lord’s mill. The miller’s share always looked a handful too big.' } },
   // 성 요한 축일 전야(하지 무렵)의 모닥불 뛰어넘기
-  { id: 'l.loc.eu.village.midsummer', stage: ['teen', 'adult'], when: { zones: EU, setting: 'village', minYear: 800, maxYear: 1900 },
+  { id: 'l.loc.eu.village.midsummer', stage: ['teen', 'adult'], when: { zones: EU, setting: 'village', minYear: 1200, maxYear: 1900 },   // 모닥불 기록은 12~13세기부터 (검토 m8)
     text: { ko: '한여름 밤 모닥불을 뛰어넘었어요. 그러면 추수 때 허리가 안 아프다고들 했어요.', en: 'On Midsummer Eve you leapt over the bonfire. It meant no backache at harvest, people said.' } },
   // 바다 건너간 친척이 뱃삯을 부쳐 온다 (대이민 시대)
   { id: 'l.loc.eu.village.ticket', stage: ['teen', 'adult'], when: { zones: EU, setting: 'village', minYear: 1840, maxYear: 1924 },
@@ -51,7 +51,7 @@ export const LOCAL_LINES_EU = [
     text: { ko: '남쪽 상인들이 포도주 항아리를 싣고 왔어요. 다들 맥주보다 비싼 걸 굳이 맛봤어요.', en: 'Traders from the south came with jars of wine. Everyone insisted on tasting the thing that cost more than beer.' } },
   // 청동기 장인의 돌 거푸집
   { id: 'l.loc.eu.street.mould', stage: ['teen', 'adult', 'middle'], when: { zones: EU, setting: 'street', minYear: -2200, maxYear: -800 },
-    text: { ko: '돌 거푸집에 청동 쇳물을 부었어요. 식을 때까지 숨도 크게 못 쉬었어요.', en: 'You poured molten bronze into the stone mould and hardly dared breathe until it cooled.' } },
+    text: { ko: '돌 거푸집에 청동 쇳물을 부었어요. 식을 때까지 숨도 크게 못 쉬었어요.', en: 'You poured molten bronze into the stone mold and hardly dared breathe until it cooled.' } },
   // 로마 도시의 공중목욕탕
   { id: 'l.loc.eu.street.baths', stage: ['teen', 'adult', 'middle', 'old'], when: { zones: EU, setting: 'street', areas: ROMAN, minYear: -100, maxYear: 450 },
     text: { ko: '목욕탕에서 반나절을 보냈어요. 몸보다 귀가 더 바빴어요.', en: 'You spent half the day at the baths. Your ears worked harder than your scrub brush.' } },
@@ -59,7 +59,7 @@ export const LOCAL_LINES_EU = [
   { id: 'l.loc.eu.street.curfew', stage: ALL, when: { zones: EU, setting: 'street', minYear: 1000, maxYear: 1600 },
     text: { ko: '저녁 종이 울리자 성문이 닫히고 불씨를 덮었어요. 늦은 사람은 성 밖에서 잤어요.', en: 'When the evening bell rang, the gates shut and the fires were banked. Latecomers slept outside the walls.' } },
   // 길드 수호성인 축일 행렬
-  { id: 'l.loc.eu.street.patron', stage: ['teen', 'adult', 'middle'], when: { zones: EU, setting: 'street', areas: ['france', 'italy', 'iberia', 'germany'], minYear: 1200, maxYear: 1800 },
+  { id: 'l.loc.eu.street.patron', stage: ['teen', 'adult', 'middle'], when: { zones: EU, setting: 'street', areas: ['france', 'italy', 'iberia'], minYear: 1200, maxYear: 1800 },   // 개신교로 바뀐 독일 땅은 빼 둔다 (검토 m9)
     text: { ko: '길드 수호성인 축일에 깃발을 들고 행렬을 따라 걸었어요.', en: 'On the guild’s patron saint’s day you walked in the procession carrying the banner.' } },
   // 거리의 가스등
   { id: 'l.loc.eu.street.gaslight', stage: ALL, when: { zones: EU, setting: 'street', minYear: 1820, maxYear: 1920 },
@@ -106,10 +106,10 @@ export const LOCAL_LINES_EU = [
     text: { ko: '아침마다 갈판에 곡식을 갈았어요. 팔보다 무릎이 먼저 아팠어요.', en: 'Every morning you ground grain on the saddle quern. Your knees gave out before your arms did.' } },
   // 수메르: 큰 단지의 보리 맥주를 갈대 빨대로
   { id: 'l.loc.eu.wvillage.straws', stage: GROWN, when: { zones: MB, setting: 'village', areas: ['mesopotamia'], minYear: -3000, maxYear: -500 },
-    text: { ko: '큰 단지에 둘러앉아 갈대 빨대로 보리 맥주를 나눠 마셨어요.', en: 'Everyone sat round a big jar, sipping barley beer through reed straws.' } },
+    text: { ko: '큰 단지에 둘러앉아 갈대 빨대로 보리 맥주를 나눠 마셨어요.', en: 'Everyone sat around a big jar, sipping barley beer through reed straws.' } },
   // 나일: 물 빠진 뒤의 둑 부역
   { id: 'l.loc.eu.wvillage.dykes', stage: ['adult', 'middle'], when: { zones: MB, setting: 'village', areas: ['nile'], minYear: -3000, maxYear: 1880 },
-    text: { ko: '물이 빠지자 둑과 물길을 고치는 부역에 나갔어요. 진흙이 무릎까지 찼어요.', en: 'When the flood went down, you were called out to mend the dykes and channels. The mud came up to your knees.' } },
+    text: { ko: '물이 빠지자 둑과 물길을 고치는 부역에 나갔어요. 진흙이 무릎까지 찼어요.', en: 'When the flood went down, you were called out to mend the dikes and channels. The mud came up to your knees.' } },
   // 나일: 씨를 뿌리고 가축 떼로 밟게 한다
   { id: 'l.loc.eu.wvillage.sowing', stage: ['child', 'teen', 'adult'], when: { zones: MB, setting: 'village', areas: ['nile'], minYear: -3000, maxYear: 600 },
     text: { ko: '물 빠진 진흙에 씨를 뿌리고, 가축 떼를 몰아 밟게 했어요.', en: 'You scattered seed on the wet mud and drove the herd over it to tread it in.' } },
@@ -123,13 +123,13 @@ export const LOCAL_LINES_EU = [
   { id: 'l.loc.eu.wvillage.incense', stage: ['teen', 'adult', 'middle'], when: { zones: MB, setting: 'village', areas: ['arabia'], minYear: -1000, maxYear: 600 },
     text: { ko: '유향나무 껍질에 칼집을 내고, 하얀 진이 굳기를 몇 주씩 기다렸어요.', en: 'You notched the frankincense bark and waited weeks for the white resin to harden.' } },
   // 새벽 아잔
-  { id: 'l.loc.eu.wvillage.azan', stage: ALL, tokens: true, when: { zones: MB, setting: 'village', areas: ISLAMIC, minYear: 700 },
+  { id: 'l.loc.eu.wvillage.azan', stage: ALL, tokens: true, when: { zones: MB, setting: 'village', areas: ISLAMIC, minYear: 900 },   // 마을 다수가 무슬림이 된 9~10세기부터 (검토 m8)
     text: { ko: '{holy}에서 새벽 아잔이 울리면 다들 일어나 하루를 시작했어요.', en: 'When the dawn call to prayer rang out from the {holy}, everyone rose and began the day.' } },
   // 읍내 하맘
   { id: 'l.loc.eu.wvillage.hammam', stage: ['teen', 'adult', 'middle', 'old'], when: { zones: MB, setting: 'village', areas: ISLAMIC, minYear: 800, maxYear: 1950 },
     text: { ko: '장날 읍내 하맘에서 때를 밀었어요. 돌아오는 길에 다시 먼지투성이가 됐어요.', en: 'On market day you scrubbed clean at the town hammam. By the walk home you were dusty again.' } },
   // 이란: 노루즈 상의 새싹
-  { id: 'l.loc.eu.wvillage.nowruz', stage: ALL, tokens: true, when: { zones: MB, setting: 'village', areas: ['iran'], minYear: -500 },
+  { id: 'l.loc.eu.wvillage.nowruz', stage: ALL, tokens: true, when: { zones: MB, setting: 'village', areas: ['iran'], minYear: 224 },   // 사산 시대부터 (검토 m5)
     text: { ko: '{feast} 상에 올리려고 접시에 보리 싹을 길렀어요.', en: 'You grew barley sprouts in a dish to set out for {feast}.' } },
   // 나일: 목화 따는 철 (1820년대부터)
   { id: 'l.loc.eu.wvillage.cotton', stage: ['child', 'teen', 'adult'], when: { zones: MB, setting: 'village', areas: ['nile'], minYear: 1822, maxYear: 1950 },

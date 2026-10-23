@@ -43,7 +43,8 @@ const okBirth = (b) => isObj(b) && typeof b.seed === 'string' && Number.isIntege
 const okDeath = (d) => isObj(d) && Number.isInteger(d.age) && d.age >= 0 && Number.isInteger(d.year) && Number.isInteger(d.line)
   && (d.present === true ? d.cause === null : own(CAUSES, d.cause));   // present: 지금(2026)까지 살아 멈춘 생은 사인이 없다
 const okLife = (l) => isObj(l) && okBirth(l.birth) && okDeath(l.death) && Array.isArray(l.gained) && l.gained.every(okTrace) && (l.note == null || typeof l.note === 'string')
-  && (l.beads == null || (typeof l.beads === 'string' && l.beads.length <= 121 && BEADS_RE.test(l.beads)));
+  && (l.beads == null || (typeof l.beads === 'string' && l.beads.length <= 121 && BEADS_RE.test(l.beads)))
+  && (l.lines == null || (Array.isArray(l.lines) && l.lines.length <= 200 && l.lines.every((x) => typeof x === 'string')));   // 그 생에 나온 작은 일 줄 (다음 생이 덜 고른다)
 export function validSoul(s) {
   return isObj(s) && typeof s.id === 'string' && s.id.length > 0 && Array.isArray(s.lives) && s.lives.every(okLife)
     && Array.isArray(s.traces) && s.traces.every(okTrace) && typeof s.ended === 'boolean'
@@ -87,6 +88,10 @@ export function makeStore(ls) {
     loadDex, saveDex: (d) => set('pl.dex.v1', d),
     loadLang: () => get('pl.lang', null), saveLang: (l) => set('pl.lang', l),
     loadSound: () => get('pl.sound', true), saveSound: (on) => set('pl.sound', on),
+    // 설정 (처음 하는 사람을 위한 다듬기): 해가 흐르는 기본 빠르기 · 화질(realscene.js 와 같은 열쇠 pl.quality) · 처음 안내를 봤는가
+    loadSpeed: () => { const v = get('pl.speed', 'normal'); return ['slow', 'normal', 'fast', 'fastest'].includes(v) ? v : 'normal'; }, saveSpeed: (v) => set('pl.speed', v),
+    loadQuality: () => { const v = get('pl.quality', 'high'); return v === 'normal' ? 'normal' : 'high'; }, saveQuality: (v) => set('pl.quality', v),
+    loadCoach: () => get('pl.coach', false) === true, saveCoach: (done) => set('pl.coach', !!done),
     // 이제 쓰지 않는 옛 저장값을 지운다: pl.pauses (옛 「다음부터 모닥불 건너뛰기」). 저장소가 막혀도 조용히
     clearLegacy: () => { try { if (ls) ls.removeItem('pl.pauses'); } catch { /* 막힌 저장소 */ } },
   };

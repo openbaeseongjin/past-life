@@ -272,7 +272,7 @@ export const EVENTS = [
     { kind: 'institution' }),
   E('rinderpest', 1889, 1897, { areas: ['east_africa', 'south_africa'] }, 0.012, 'hunger', '우역과 대기근', 'The rinderpest famine', ['소들이 병으로 하나둘 쓰러지기 시작했어요. 들소도 마찬가지래요.', 'The cattle have started dropping from disease one by one. The buffalo too, they say.'],
     { kind: 'famine', econ: { price: 2, wage: 0.8 } }),
-  E('congo_rubber', 1891, 1908, { areas: ['congo'] }, 0.008, 'war', '콩고 자유국의 고무', 'Rubber in the Congo Free State', ['국왕의 회사가 마을마다 고무 할당량을 정했대요.', "The king's company has set a rubber quota for every village."],
+  E('congo_rubber', 1891, 1908, { areas: ['congo'] }, 0.008, 'forced', '콩고 자유국의 고무', 'Rubber in the Congo Free State', ['국왕의 회사가 마을마다 고무 할당량을 정했대요.', "The king's company has set a rubber quota for every village."],
     { kind: 'institution', disease: ['sleeping'], econ: { wage: 0.7 } }),
   E('plague1896', 1896, 1918, { areas: ['india', 'indus', 'bengal'] }, 0.002, 'plague', '봄베이 페스트', 'The plague of 1896', ['봄베이 항구에서 쥐가 떼로 죽더니 흑사병이 돌기 시작했대요.', 'Rats died in droves at the port of Bombay, and then the plague began.'],
     { kind: 'epidemic', disease: ['plague'] }),

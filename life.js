@@ -6,7 +6,7 @@ import { eraOf, groupOf } from './births.js';
 import { shapeFor, yearHazard, healthMul } from './lifetable.js';
 import { activeEvents } from './events.js';
 import { drawCause } from './deaths.js';
-import { pickCard, stageOf, slotAges, choiceOpen } from './cards.js';
+import { pickCard, stageOf, slotAges, choiceOpen, condOk } from './cards.js';
 import { AREAS } from './places.js';
 import { chanceBonus, riskPenalty, startMods, echoEffects, echoCardKey, traceWeight, skillGain, talentYear, attrMods } from './traces.js';
 import { autoFocus, focusStage, FOCUS_EFFECT, workSkill, ATTRS, ATTR_START, KNOW_SCHOOL, FOCUS_ATTR, clampAttr, KNOW_READ, attrShift, CRAFT_SKILLS, charmMul, focusYearEffects } from './focus.js';
@@ -17,6 +17,10 @@ import { settingOf } from './lands.js';
 export const PAUSES = [5, 15, 30, 50, 70];
 // 「지금」: 이 해를 살아서 넘기려는 생은 죽지 않고 여기서 멈춘다 (death.present). 결정성 때문에 오늘 날짜가 아닌 고정값
 export const PRESENT = 2026;
+// 짙어진 재능이 맞는 해에 더하는 마음 덤의 한 생 합계 상한 (traces.js talentYear)
+export const TALENT_HAPPY_MAX = 8;
+// 작은 일 줄이 나올 확률 (해마다): 어른·중년은 조금 드물게
+export const LINE_P = 0.55, LINE_P_ADULT = 0.4;
 const STATS = ['health', 'wealth', 'family', 'happy'];
 const clamp = (x) => Math.max(0, Math.min(100, x));
 const jot = (life, kind, text, extra = {}) => life.journal.push({ age: life.age, year: life.year, kind, text, ...extra });
@@ -43,7 +47,8 @@ function startAttrs(birth, traces, ctx) {
   return out;
 }
 
-export function createLife({ birth, traces = [], noDeath = false, quiet = false }) {
+// avoid: 바로 앞 생에 나온 작은 일 줄 id (영혼 기록 soul.lives[].lines). 이 생에서는 그 줄의 가중치를 AVOID_MUL 로 낮춘다 (생마다 같은 줄이 이어지지 않게)
+export function createLife({ birth, traces = [], noDeath = false, quiet = false, avoid = [] }) {
   const r = sub(birth.seed, 'start');
   const stats = {
     health: Math.round(50 + r.range(-8, 8)),
@@ -58,6 +63,7 @@ export function createLife({ birth, traces = [], noDeath = false, quiet = false 
     log: [], journal: [], history: [{ age: 0, ...stats }], pending: null, death: null,
     // 모닥불 (memory.js): 꿴 기억 구슬, 메아리로 짙어진 흔적 (traceKey → 횟수), 멈춤마다 그때의 일지 길이, 이 생에 이미 보인 메아리 줄
     memories: [], traceBoost: {}, pauseMarks: [], echoSeen: [],
+    avoid: Array.isArray(avoid) ? avoid.filter((x) => typeof x === 'string') : [],
   };
   attachCtx(life);
   // 능력치·신분 (sim2 설계 2.2·2.3). 생명표·죽음 굴림에는 들어가지 않는다
@@ -130,6 +136,19 @@ function kinYear(life) {
   }
 }
 
+// 앞 생에 나온 줄을 덜 나오게 한 줄 덱 (한 생에 한 번 만들어 둔다. 앞 생 줄이 없으면 그대로)
+export const AVOID_MUL = 0.25;
+function avoidDeck(life, lines) {
+  if (!life.avoid || !life.avoid.length) return lines;
+  const memo = avoidMemo.get(life);
+  if (memo && memo.lines === lines) return memo.deck;
+  const set = new Set(life.avoid);
+  const deck = lines.map((l) => (set.has(l.id) ? { ...l, weight: (l.weight ?? 1) * AVOID_MUL } : l));
+  avoidMemo.set(life, { lines, deck });
+  return deck;
+}
+const avoidMemo = new WeakMap();
+
 // 해 마무리. 죽으면 true
 function endYear(life, lines) {
   const a = life.age, seed = life.birth.seed, s = life.stats;
@@ -145,16 +164,20 @@ function endYear(life, lines) {
     const sk = f === 'learn' ? 'letters' : f === 'work' && st !== 'child' ? workSkill(life.birth.tags) : null;
     if (sk) life.skills[sk] = (life.skills[sk] || 0) + 0.25;
     // 모닥불 메아리로 짙어진 재능이 맞는 한 해면 마음이 조금 더 (일 = 집안 재주, 배우기 = 글, 쉬기 = 노래). 몸에는 닿지 않는다
+    // 한 생에 모두 TALENT_HAPPY_MAX 까지만 (「작은 덤」: 짙어진 재능이 평생 마음을 끌어올리지 않게)
     const tk = sk || (f === 'rest' ? 'music' : null);
-    if (tk) s.happy = clamp(s.happy + talentYear(tk, life.traces, life.traceBoost));
+    if (tk) {
+      const add = Math.min(talentYear(tk, life.traces, life.traceBoost), TALENT_HAPPY_MAX - (life.talentHappy || 0));
+      if (add > 0) { s.happy = clamp(s.happy + add); life.talentHappy = (life.talentHappy || 0) + add; }
+    }
   }
   // 되돌림: 해마다 6%씩 기준값 쪽으로 (한 번의 선택이 평생 가지 않게). 재산의 기준은 태어난 집안
   for (const k of STATS) { const target = k === 'wealth' ? life.base.wealth : 50; s[k] = clamp(s[k] + (target - s[k]) * 0.06); }
   kinYear(life);
-  // 작은 일 한 줄 (해마다 0.55)
+  // 작은 일 한 줄 (해마다 0.55, 스무 살부터 쉰아홉까지는 0.4: 어른 시기는 길고 고를 줄이 적어 같은 줄이 생마다 되풀이되던 것, 작업 8)
   const rl = sub(seed, a, 'line');
-  if (lines.length && rl.chance(0.55)) {
-    const line = pickCard(lines, ctxOf(life, life.linesSeen), rl);
+  if (lines.length && rl.chance(a >= 20 && a < 60 ? LINE_P_ADULT : LINE_P)) {
+    const line = pickCard(avoidDeck(life, lines), ctxOf(life, life.linesSeen), rl);
     if (line) { life.linesSeen.push(line.id); jot(life, 'line', line.text); }
   }
   // 죽음 굴림: 그해 달력 연도의 시대·지역 생명표 × 건강 배율 + 사건 위험률
@@ -198,6 +221,7 @@ export function advance(life, deck, { lines = [], yearly = false } = {}) {
         if (life.eventsSeen.includes(e.id)) continue;
         const card = deck.find((c) => c.event === e.id);
         if (!card || a < ((card.when && card.when.minAge) ?? 5)) continue;   // 아직 어리면 아껴 둔다 (사건이 이어지면 다섯 살부터 나온다)
+        if (card.when && !condOk(card.when, ctxOf(life, life.seen))) continue;   // 나머지 조건(성별·최대 나이·집안 …)도 다른 카드처럼 본다 (작업 8)
         if (!r.chance(e.p ?? 0.6)) continue;
         life.eventsSeen.push(e.id);
         life.pending = { card, kind: 'event' };
@@ -236,8 +260,14 @@ function addEffects(a, b) {
 }
 
 // 지식이 KNOW_READ(60) 에 닿으면 글을 읽는다 (설계 2.2): 카드의 「글을 배운다」 선택과 같은 깃발. 한 번 세우면 내리지 않는다
+// 글을 배우는 꿈(dream:letters)을 품고 있었으면 그 꿈도 이룬다: 글자 카드는 글을 아는 사람에게 나오지 않아 꿈이 막히지 않게 (작업 8)
 function readCheck(life) {
-  if (life.attrs && life.attrs.know >= KNOW_READ) life.flags.literate = true;
+  if (!life.attrs || life.attrs.know < KNOW_READ || life.flags.literate) return;
+  life.flags.literate = true;
+  if (life.dream === 'letters' && !life.fulfilled.includes('letters')) {
+    life.fulfilled.push('letters'); life.dream = null;
+    jot(life, 'stat', { ko: '어느 날 보니 글이 술술 읽혔어요. 오래 품은 꿈 하나가 조용히 이뤄졌어요.', en: 'One day you found the words simply reading themselves. A long-held dream had quietly come true.' });
+  }
 }
 
 // 운에 맡기는 선택의 성공 확률 (sim2 설계 2.2): p + (행운 − 50)/250 + 재능 흔적 덤 [+ 장인 재주 선택이면 (손재주 − 50)/250], 0.05~0.95.

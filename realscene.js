@@ -34,7 +34,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { KIT_DIMS, PROP_DIMS, KIT_SETS, TREES_SA, BUSHES_SA, TREE_GLB_SA, TREES_EA, BUSHES_EA, TREE_GLB_EA } from './kitdata.js';
 import { lerp, smooth, rng, hash2, fbm, obb, obbLocal, obbHas, VC, WATER_Y, RIVER_HW, RIVER, BRIDGE, CHURCH, CHURCHYARD, SMITHY, MILL, WELL, GREEN, LANES, VIEW_CLEAR, inRect, smoothLine, polyCum, polyAt, makeEnv, planVillage, planDressing, recipeFor, flavorOf, dressSeed } from './villageplan.js';
-import { planPeople, peopleSeed, PEOPLE_DEFAULT, paletteOf, campVariant } from './peopleplan.js';
+import { planPeople, peopleSeed, PEOPLE_DEFAULT, paletteOf, dressVariant } from './peopleplan.js';
 import { createPeople, touchPeople, sweepPeople, peopleCacheSize } from './realpeople.js';
 import { stageOf, stageSeed, builtKit, sceneKitOf, LAND_LOOK } from './lands.js';
 import { t as tr } from './i18n.js';
@@ -43,9 +43,9 @@ const EZTREE = '@dgreenheck/ez-tree';   // importmap 이름 (look-real.html·ind
 const ASSET = new URL('./assets/real/', import.meta.url).href;
 
 // 생의 시간 = 하루의 시간 (설계 3.1): 새벽(0~12) → 아침(13~29) → 한낮(30~49) → 오후(50~64) → 해질녘(65~)
-export const phaseOf = (age) => (age < 13 ? 'dawn' : age < 30 ? 'morning' : age < 50 ? 'noon' : age < 65 ? 'afternoon' : 'dusk');
-// 하루의 때 → 시각 (england PRESET 의 태양시. 밤은 해가 지평선 아래 14° 남짓)
-export const PHASE_TIME = { dawn: 5.1, morning: 7.4, noon: 12.6, afternoon: 16.6, dusk: 19.05, night: 21.7 };
+// 나이 → 하루의 때 · 하루의 때 → 시각은 phase.js (three 없이 main.js 가 먼저 쓴다)
+import { phaseOf as phaseOfAge, PHASE_TIME as PHASE_HOURS } from './phase.js';
+export const phaseOf = phaseOfAge, PHASE_TIME = PHASE_HOURS;
 
 // ───────────────────────── 시대×지역 프리셋 ─────────────────────────
 export const PRESETS = {
@@ -1518,7 +1518,7 @@ export function createRealScene(canvas, opts = {}) {
   const peopleInfo = peopleSys.info;
   // 시드 난수로 사람 count 명(10~20)을 고르고 세운다. 다시 부르면 앞 사람들을 치우고 새로 세운다. 돌려주는 것: 계획(planPeople 결과)
   function spawnPeople(rand, count = opts.people ?? PEOPLE_DEFAULT) {
-    const plan = planPeople(rand, count, { layout, dressing, fieldAt, propDims: PD, kit: KIT, flavor: FL, camp: !!RC.camp });
+    const plan = planPeople(rand, count, { layout, dressing, fieldAt, propDims: PD, kit: KIT, flavor: FL, camp: !!RC.camp, year: opts.era });
     peopleSys.spawn(plan, groundAt);
     return plan;
   }
@@ -2031,7 +2031,9 @@ export function createStage(canvas) {
   }
 
   // ── 내 사람이 지금 하는 일: 나이·올해의 패·집안 → 자리·동작·곁 사람 ──
-  const meVariant = (b, age) => (W && W.sc && W.sc.recipe.camp ? campVariant(meVariant0(b, age), W.sc.flavor) : meVariant0(b, age));   // 농사 전 야영: 수수한 옷 (peopleplan.js CAMP_SWAP)
+  // 농사 전 야영: 수수한 옷 (CAMP_SWAP) · 그 밖에는 시대 옷 (ERA_SWAP: 조선 전 갓·두루마기 없음, 에도 전 넓은 오비·하오리 없음). peopleplan.js dressVariant
+  const dress = (v, b) => (W && W.sc ? dressVariant(v, { flavor: W.sc.flavor, year: b.year, camp: !!W.sc.recipe.camp }) : v);
+  const meVariant = (b, age) => dress(meVariant0(b, age), b);
   const meVariant0 = (b, age) => {
     const m = b.sex !== 'f', h = b.household;
     if (age < 13) return 'child';
@@ -2097,7 +2099,7 @@ export function createStage(canvas) {
       const x = at ? at.x : sp.x + Math.sin(ang) * rad, z = at ? at.z : sp.z + Math.cos(ang) * rad;
       gx += x; gz += z;
       const pl = mePalette(W.seed, i + 1); if (v === 'elder') pl.hair = [0.7, 0.68, 0.65];
-      plan.push({ id: i + 1, variant: v, action: ac, place: 'mate', x, z, face: at ? at.face : Math.atan2(sp.x - x, sp.z - z), speed: 0, phase: 0.2 + i * 0.27, scale: v === 'child' ? (a < 13 ? 0.62 : 0.58) : 1, palette: pl });
+      plan.push({ id: i + 1, variant: dress(v, b), action: ac, place: 'mate', x, z, face: at ? at.face : Math.atan2(sp.x - x, sp.z - z), speed: 0, phase: 0.2 + i * 0.27, scale: v === 'child' ? (a < 13 ? 0.62 : 0.58) : 1, palette: pl });
     });
     act.group = act.mates ? [gx / plan.length, gz / plan.length] : null;
     // 곁 사람도 가림 검사에 넣는다 (카메라가 돌아가도 가족이 나를 가리지 않게)
@@ -2492,6 +2494,12 @@ export function createStage(canvas) {
       if (v) { cam.setViewOffset(v.fullWidth, v.fullHeight, v.offsetX, v.offsetY, v.width, v.height); cam.updateProjectionMatrix(); }
       W.sc.renderFrame(0);
       return c.toDataURL('image/jpeg', 0.78);
+    },
+    // 지금 생의 무대를 다 지었는가 (건물·소품·나무·마을 사람 + 내 사람). 실패해도 끝난 것으로 본다 (main.js 「마을을 짓는 중…」 표시)
+    whenReady() {
+      const w = W;
+      if (!w) return Promise.resolve();
+      return Promise.allSettled([w.sc.ready, w.me.ready]).then(() => undefined);
     },
     setQuality(q) {
       if (q !== 'high' && q !== 'normal') return;

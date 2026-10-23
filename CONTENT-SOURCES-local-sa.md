@@ -8,12 +8,13 @@ CONTENT-SOURCES.md와 같은 형식이다(`- [칸] 사실 — 출처`). 칸은 �
 
 ## 남아시아 마을 (farm)
 - [loc.sa.village.shave] 힌두의 첫 머리 깎기(추다카라나·문단)는 한 살에서 세 살 무렵에 하고, 정수리에 한 줌(시카)을 남긴다. 이슬람의 아키카 머리 깎기는 태어나 이레째라 2~4살 카드에는 넣지 않고 인도 평원·히말라야로 묶었다 — 'Chudakarana', 'First haircut', 'Aqiqah'
-- [loc.sa.village.dung] 소똥에 짚을 섞어 빚은 땔감(우플레·고바르)을 벽에 붙여 말리는 풍습 (넓은 표현, 시대 하나로 못 박지 않음) — 'Cow dung', 'Dung cake'
+- [loc.sa.village.dung] 소똥에 짚을 섞어 빚은 땔감(우플레·고바르)을 벽에 붙여 말리는 풍습 (넓은 표현, 시대 하나로 못 박지 않음). 나무 땔감이 흔한 스리랑카 젖은 땅에는 덜 어울려 그 땅은 뺐다 — 'Cow dung', 'Dung cake'
 - [loc.sa.village.alms] 스님이 발우를 들고 집집을 도는 탁발(핀다파타)은 붓다 때부터의 관습이다. 인도 불교가 12세기 무렵 기울어 그 뒤는 뺐다 — Khantipalo, 'The Blessings of Pindapata' (Access to Insight), 'Decline of Buddhism in the Indian subcontinent'
-- [loc.sa.village.well] 불가촉으로 몰린 집은 마을 우물을 쓰지 못하는 일이 많았다. 1950년 헌법 17조가 불가촉을 없애고, 1955년 법이 처벌을 정했다. 아이의 눈으로, 일반적인 말로 썼다 (넓은 표현) — 'Untouchability', 'Article 17 of the Constitution of India' (constitutionofindia.net), 'Protection of Civil Rights Act, 1955'
+- [loc.sa.village.well] 불가촉으로 몰린 집은 마을 우물을 쓰지 못하는 일이 많았다. 1950년 헌법 17조가 불가촉을 법으로 금하고, 1955년 법이 처벌을 정했다. 이 카드는 법이 금하기 전(1949년까지)만 받고, 그 뒤는 well_law가 받는다. 아이의 눈으로, 일반적인 말로 썼다 (넓은 표현) — 'Untouchability', 'Article 17 of the Constitution of India' (constitutionofindia.net), 'Protection of Civil Rights Act, 1955'
+- [loc.sa.village.well_law] 법이 불가촉을 금한 뒤에도 시골에서 낮은 신분 집이 마을 우물·물터를 못 쓰게 막는 일이 이어졌다. 1999년 인권 보고서가 이를 적었고, 2000년대 초 11개 주 565개 마을 조사에서도 절반 가까운 마을에서 물터 차별이 나왔다. 인도 공화국 땅(india)만, 1950~2005 (넓은 표현) — Human Rights Watch 「Broken People: Caste Violence Against India's "Untouchables"」(1999), Shah·Mander·Thorat 외 『Untouchability in Rural India』(SAGE 2006), 'Article 17 of the Constitution of India'
 - [loc.sa.village.raid] 리그베다 시대에 소는 가장 큰 재산이었고, 싸움을 뜻하는 옛말 가비슈티는 본래 「소를 찾아 나서기」다 — 'Rigveda', 'Gavishti' (Sri Aurobindo Vedic dictionary), 'Cattle raiding'
 - [loc.sa.village.dowry] 딸을 혼인시키는 집이 신랑 집에 혼수를 보내는 짐 (시대·종교마다 꼴이 달라 넓은 표현). 여러 세대가 한 지붕 아래 사는 대가족 — 'Dowry system in India', 'Hindu joint family'
-- [loc.sa.village.snake] 1886년 영국령 인도에서 뱀에 물려 숨진 이는 2만 2천여 명으로 집계됐다. 오늘날에도 시골에서 몬순 철(6~9월)에 가장 잦다 — 'Snakes: Deaths in India in 1886, from Serpents and Wild Animals' (PMC9236502), 'Snakebite Mortality in India: A Nationally Representative Mortality Survey' (PMC3075236)
+- [loc.sa.village.snake] 1886년 영국령 인도에서 뱀에 물려 숨진 이는 2만 2천여 명으로 집계됐다. 오늘날에도 시골에서 몬순 철(6~9월)에 가장 잦다 — 'Snakes: Deaths in India in 1886, from Serpents and Wild Animals' (PMC9236502), 'Snakebite Mortality in India: A Nationally Representative Mortality Survey' (PMC3075236). 치료사가 옛 약초꾼에서 의사까지 바뀌므로 결과 글은 「약을 쓴」으로 넓게 썼다. 상처를 째거나 빨아내는 것은 오늘날 권하지 않는 응급 처치다 — WHO 'Snakebite envenoming' (fact sheet)
 - [loc.sa.village.lender] 마을 대금업자(마하잔·사후카르)가 곡식으로 이자를 받는 빚. 옛 법전도 이자율을 정했다 (넓은 표현) — 'Moneylender', 'Debt bondage in India', 'Shreni'(나시크 비문의 연 9~12% 이자)
 - [loc.sa.village.revenue] 옛 법전(마누·아르타샤스트라)은 왕의 몫을 소출의 6분의 1(바가)로 적었고, 그 뒤 술탄국·무굴·동인도회사·영국령 인도도 땅의 몫을 매겼다 — 'Land revenue in India', 'Arthashastra', 'Manusmriti', 'Zabt'
 - [loc.sa.village.pilgrim] 이름난 성지(티르타·절·성자의 무덤)로 가는 걸어서 하는 순례 (넓은 표현) — 'Tirtha (Hinduism)', 'Ziyarat', 'Buddhist pilgrimage sites'
@@ -31,7 +32,7 @@ CONTENT-SOURCES.md와 같은 형식이다(`- [칸] 사실 — 출처`). 칸은 �
 - [l.loc.sa.v.tank] 스리랑카 마른 땅의 마을 저수지(웨와)는 아누라다푸라 시대부터 마을 사람이 함께 지키고 고쳤다 — Freie Universität Berlin 'Tanks in the dry zone of Sri Lanka', 'Kala Wewa'
 - [l.loc.sa.v.relief] 1880년 기근 위원회와 1883년 기근 규정: 일할 수 있는 사람은 구호 공사(돌 깨기·흙일)에서 시세보다 낮은 품삯을 받았다 — 'Indian Famine Codes', 'Indian famine of 1896–1897'
 - [l.loc.sa.v.pump] 인디아 마크 II 손 펌프는 1970년대 중반(1974년 조사 뒤) 개발돼 시골에 퍼졌다 — 'India Mark II', UNICEF India 'A history of UNICEF work on water, sanitation and hygiene in India'
-- [l.loc.sa.v.cricket] 인도 라디오의 힌디어 크리켓 중계는 1961년부터 — 'Ravi Chaturvedi'
+- [l.loc.sa.v.cricket] 인도 라디오(올 인디아 라디오)의 크리켓 중계를 라디오 있는 집 앞에 모여 듣던 일 (넓은 표현). 독립 뒤 중계가 지역 말로도 늘어 시골까지 닿았다. 줄의 시작 해 1961은 힌디어 중계가 자리 잡은 무렵으로 넓게 잡았다 — 'All India Radio', 'Cricket in India'
 - [l.loc.sa.v.share] 대대로 일해 주는 집(대장장이·도공·이발사)이 추수 때 곡식 몫을 받는 마을 주고받기 (자즈마니라는 이름은 1936년 학자가 붙였으므로 이름 없이 넓은 표현으로) — 'Jajmani system'
 - [l.loc.sa.v.boat] 벵골 강가의 배 길과 하트(장) (넓은 표현) — 'Haat', 'Bengal delta'
 
@@ -54,7 +55,7 @@ CONTENT-SOURCES.md와 같은 형식이다(`- [칸] 사실 — 출처`). 칸은 �
 - [loc.sa.street.guild] 같은 일을 하는 집들의 조합(슈레니)은 서로 돕고, 남이 맡긴 돈을 굴려 그 이자로 기부를 이었다(2세기 나시크 동굴 비문: 베 짜는 조합 두 곳에 맡긴 3,000 카르샤파나). 근세까지 같은 일 하는 집들의 모임으로 넓게 썼다 — 'Shreni', 'Nasik Caves'
 - [loc.sa.street.road] 웃타라파타는 갠지스 어귀(탐랄립타)에서 탁실라를 지나 서북쪽으로 가는 옛 큰길이고, 16세기에 다시 닦여 그랜드 트렁크 로드가 됐다. 둘이 같은 길인지는 다툼이 있어 「큰길」로 썼다 — 'Grand Trunk Road', 'Uttarapatha'
 - [loc.sa.street.millcloth] 1813년 뒤 영국 공장 천이 낮은 관세로 들어왔고, 1853년부터 철길이 그 천을 시골 장까지 날라 손베틀 집들이 어려워졌다(원인은 학자마다 무게가 다르다) — 'Railways in British India', 'Deindustrialisation of India', 'Muslin'
-- [loc.sa.street.tiffin] 뭄바이 도시락 배달(다바왈라)은 1890년에 시작했고, 틀리는 일이 드물기로 이름났다 — 'Dabbawala'
+- [loc.sa.street.tiffin] 뭄바이 도시락 배달(다바왈라)은 1890년에 시작했고, 틀리는 일이 드물기로 이름났다. 땅 갈래가 인도 전체라 글에는 도시 이름 없이 「배달 도시락」으로 썼다 — 'Dabbawala'
 - [l.loc.sa.s.cloth] 벵골 모슬린 (context_data.js {cloth}) — 'Muslin', 'Jamdani'
 - [l.loc.sa.s.telegraph] 상업 전신은 1854년 무렵 캘커타~아그라를 잇고 1855년까지 봄베이·마드라스·페샤와르로 넓어졌다. 글자 수로 값을 받았다 — 'Telegraphy in India', 'Railways in British India'
 - [l.loc.sa.s.rail] 첫 철길은 1853년 4월 16일 봄베이~타네 34km — 'Railways in British India'

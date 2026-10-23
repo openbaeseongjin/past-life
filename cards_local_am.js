@@ -153,7 +153,7 @@ export const LOCAL_CARDS_AM = [
           lose: { effects: { wealth: -5, happy: -3 }, result: { ko: '나무가 병들었어요. 그해엔 {staple:을} 사 먹어야 했어요.', en: 'The trees sickened. That year you had to buy your {staple}.' } } } },
     ] },
   // 신붓값 셈: 가축과 천 (사하라 이남 어디나, 현대 전)
-  { id: 'loc.am.afvil.bridewealth', stage: 'adult', tokens: true, when: AFV({ eraGroups: ['ancient', 'medieval', 'early', 'industrial'], notFlags: ['married'], maxAge: 40 }),
+  { id: 'loc.am.afvil.bridewealth', stage: 'adult', tokens: true, when: AFV({ eraGroups: ['ancient', 'medieval', 'early', 'industrial'], notFlags: ['married'] }),
     title: { ko: '신붓값 셈', en: 'Counting the bridewealth' },
     text: { ko: '혼인 이야기가 오가요. 두 집안 어른들이 가축 몇 마리와 {cloth} 몇 필을 치를지 밤늦도록 셈을 해요.', en: 'There is talk of a marriage. Late into the night, the elders of both families bargain over how many animals and how much {cloth} will change hands.' },
     choices: [
@@ -180,8 +180,8 @@ export const LOCAL_CARDS_AM = [
       { text: { ko: '어른을 부르러 간다', en: 'Run and fetch a grown-up' }, effects: { family: 4 },
         result: { ko: '어른이 휘파람으로 새에게 답했어요. 새와 사람이 서로 말을 하는 것 같았어요.', en: 'The grown-up whistled back at the bird. It was as if bird and person were talking.' } },
     ] },
-  // 타조 알껍데기 구슬: 먼 무리와 주고받는 선물 (−60000 뒤, 타조가 사는 땅)
-  { id: 'loc.am.afcamp.beads', stage: 'teen', when: AFC({ eraGroups: ['forager'], minYear: -60000, areas: ['east_africa', 'south_africa', 'west_africa'] }),
+  // 타조 알껍데기 구슬: 먼 무리와 주고받는 선물 (−50000 뒤, 구슬이 나온 동·남아프리카, 검토 m12)
+  { id: 'loc.am.afcamp.beads', stage: 'teen', when: AFC({ eraGroups: ['forager'], minYear: -50000, areas: ['east_africa', 'south_africa'] }),
     title: { ko: '알껍데기 구슬', en: 'Eggshell beads' },
     text: { ko: '타조 알껍데기 조각에 구멍을 뚫고 갈아 구슬을 만들어요. 한 줄을 꿰는 데 여러 날이 걸려요.', en: 'You drill and grind scraps of ostrich eggshell into beads. A single string takes many days.' },
     choices: [
@@ -240,8 +240,8 @@ export const LOCAL_CARDS_AM = [
           win: { effects: { wealth: 2, happy: 2 }, result: { ko: '다음 해 소출로 다 갚았어요. 비가 제때 와 준 덕이었어요.', en: 'You paid it all back from next year’s harvest, thanks to rains that came on time.' } },
           lose: { effects: { wealth: -4, status: -1 }, result: { ko: '빚을 못 갚아 그 집 빚종이 됐어요. 다 갚을 때까지라고 했어요.', en: 'You couldn’t repay, and became a bondsman in that household until the debt was cleared.' } } } },
     ] },
-  // 향신료 상인과 새 신앙 (1300~1620, 섬들의 바닷가). 1번 선택지는 지식 40 넘어야
-  { id: 'loc.am.seavil.spice', stage: ['adult', 'middle'], when: SEV({ areas: ['indonesia', 'malay', 'philippines'], minYear: 1300, maxYear: 1620 }),
+  // 향신료 상인과 새 신앙 (1300~1620, 향신료가 나고 모이던 섬들의 바닷가. 필리핀은 산지가 아니라 뺀다, 검토 m12). 1번 선택지는 지식 25 넘어야
+  { id: 'loc.am.seavil.spice', stage: ['adult', 'middle'], when: SEV({ areas: ['indonesia', 'malay'], minYear: 1300, maxYear: 1620 }),
     title: { ko: '향신료 상인', en: 'The spice traders' },
     text: { ko: '바다 건너 상인들이 향신료를 사러 와 인도 무명으로 값을 쳐요. 몇은 하루 다섯 번 기도하며 항구에 기도처를 지어요.', en: 'Traders from across the sea have come for spices, paying in Indian cotton. Some pray five times a day, and they are building a prayer house by the harbor.' },
     choices: [

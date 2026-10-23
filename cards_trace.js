@@ -12,7 +12,7 @@ export const TRACE_CARDS = [
         result: { ko: '배가 작아지는 걸 끝까지 봤어요. 이유는 몰라도 그게 편했어요.', en: 'You watched the boat shrink away. You could not say why, but it felt right.' } },
     ] },
   // 불은 어느 시대에나 있다: 움막이든 기와집이든 지붕이 있고, 끄는 손이 있다
-  { id: 't.fear.fire', stage: ['teen', 'adult', 'middle'], tokens: true, when: { trace: 'fear:fire' },
+  { id: 't.fear.fire', hurt: true, stage: ['teen', 'adult', 'middle'], tokens: true, when: { trace: 'fear:fire' },
     title: { ko: '번지는 불', en: 'Fire on the wind' },
     text: { ko: '바람 부는 밤, 이웃 {home}에서 불길이 치솟았어요. 불빛만 봐도 무릎이 굳어요.', en: 'On a windy night, flames shoot up from the neighbors’ {home}. Just the glow of it locks your knees.' },
     choices: [
@@ -35,7 +35,7 @@ export const TRACE_CARDS = [
       { text: { ko: '몸을 숨긴다', en: 'Keep out of sight' }, effects: { happy: -2 },
         result: { ko: '그들이 떠날 때까지 밖에 나가지 않았어요. 떠난 뒤에도 한동안 그랬어요.', en: 'You stayed out of sight until they left, and for a while after.' } },
     ] },
-  { id: 't.fear.plague', stage: ['teen', 'adult', 'middle'], tokens: true, when: { trace: 'fear:plague' },
+  { id: 't.fear.plague', ill: true, stage: ['teen', 'adult', 'middle'], tokens: true, when: { trace: 'fear:plague' },
     title: { ko: '앓는 이웃', en: 'A sick neighbor' },
     text: { ko: '이웃이 앓아누웠는데 {healer}도 오지 않는대요. 그 집 앞만 지나도 숨을 참게 돼요.', en: 'A neighbor has fallen ill, and not even the {healer} will come. Even walking past, you hold your breath.' },
     choices: [
@@ -57,7 +57,7 @@ export const TRACE_CARDS = [
         result: { ko: '곳곳에 먹을 것을 숨겨 뒀어요. 든든했지만, 밤마다 숨긴 자리를 세어 봤어요.', en: 'You hid food all over the place. It felt safe, yet every night you counted the hiding spots.' } },
     ] },
   // 올라가서 고칠 지붕과 품삯이 있는 때만 (수렵채집 무리는 뺀다)
-  { id: 't.fear.heights', stage: ['teen', 'adult', 'middle'], when: { trace: 'fear:heights', eraGroups: ['ancient', 'medieval', 'early', 'industrial', 'modern'] },
+  { id: 't.fear.heights', hurt: true, stage: ['teen', 'adult', 'middle'], when: { trace: 'fear:heights', eraGroups: ['ancient', 'medieval', 'early', 'industrial', 'modern'] },
     title: { ko: '새는 지붕', en: 'A leaking roof' },
     text: { ko: '지붕이 새서 누군가 올라가 고쳐야 해요. 올려다보기만 해도 속이 울렁거려요.', en: 'The roof leaks, and someone has to climb up and fix it. Just looking up makes your stomach turn.' },
     choices: [
@@ -68,7 +68,7 @@ export const TRACE_CARDS = [
       { text: { ko: '사람을 부른다', en: 'Pay someone to do it' }, effects: { wealth: -4 },
         result: { ko: '이웃이 올라가 금방 고쳤어요. 품삯이 하나도 아깝지 않았어요.', en: 'A neighbor went up and fixed it in no time. The wage was money well spent.' } },
     ] },
-  { id: 't.fear.beast', stage: ['teen', 'adult', 'middle'], when: { trace: 'fear:beast' },
+  { id: 't.fear.beast', hurt: true, stage: ['teen', 'adult', 'middle'], when: { trace: 'fear:beast' },
     title: { ko: '밤길의 울음소리', en: 'A cry in the dark' },
     text: { ko: '어두운 길을 걷는데 가까운 데서 짐승 울음이 들려요. 등골이 서늘해요.', en: 'You are walking a dark path when an animal cries out close by. A chill runs down your spine.' },
     choices: [
