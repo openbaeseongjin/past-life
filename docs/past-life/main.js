@@ -163,7 +163,7 @@ async function playLife(soul) {
   ui.stageLoading(has3d);
   village.whenReady().then(() => ui.stageLoading(false), () => ui.stageLoading(false));
   await record;
-  await Promise.race([village.whenReady(), wait(800)]);
+  await Promise.race([village.whenReady(), wait(2000)]);
   Object.assign(S, { paused: false, skipping: false, exit: false, n });
   cur = { life, peers };
   ui.showApp(life, peers, S);

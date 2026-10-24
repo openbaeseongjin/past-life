@@ -554,8 +554,8 @@ export function createRealScene(canvas, opts = {}) {
   const KIT_URL_S = opts.kitUrl || ASSET + 'kits/' + ((FLV && FLV.kit) || KS.kit) + '.glb', PROPS_URL_S = opts.propsUrl || ASSET + 'kits/' + KS.props + '.glb';
   const TREE_KEY = (opts.land || 'temperate') + '|' + KIT;
   const P = landPreset(PRESETS[presetKey(opts.era, opts.region, KIT)], opts.land), LD = P.land;
-  const QL = QUALITY[opts.quality] || QUALITY.high;
-  const state = { time: opts.timeOfDay ?? 7, post: opts.post ?? true, ao: opts.ao ?? QL.ao, bloom: opts.bloom ?? true, orbit: false, disposed: false, view: opts.view || 'overview', quality: QUALITY[opts.quality] ? opts.quality : 'high' };
+  const QL = QUALITY[opts.quality] || QUALITY.normal;
+  const state = { time: opts.timeOfDay ?? 7, post: opts.post ?? true, ao: opts.ao ?? QL.ao, bloom: opts.bloom ?? true, orbit: false, disposed: false, view: opts.view || 'overview', quality: QUALITY[opts.quality] ? opts.quality : 'normal' };
   const quality = state.quality;
 
   const ownRenderer = !opts.renderer;
@@ -567,7 +567,7 @@ export function createRealScene(canvas, opts = {}) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.shadowMap.autoUpdate = false;           // 그림자는 몇 프레임에 한 번 (정적 장면 + 작은 사람들)
-  const SHADOW_EVERY = opts.shadowEvery ?? 3;
+  const SHADOW_EVERY = opts.shadowEvery ?? (quality === 'normal' ? 6 : 3);
   let frameNo = 0;
 
   const scene = new THREE.Scene();
@@ -1686,13 +1686,19 @@ export function createRealScene(canvas, opts = {}) {
   //   (게임 무대가 시각을 넘길 때: 처음에 skyColorsAt(목표 시각)으로 두 끝 색을 한 번만 읽고, 사이는 섞은 색을 준다)
   let fogC = new THREE.Color(0xbfd0e0), sunSideC = new THREE.Color(0xffffff);
   const sunDirAt = (h, out) => { const { el, az } = sunAt(h), e = THREE.MathUtils.degToRad(el), a = THREE.MathUtils.degToRad(az); return out.set(Math.sin(a) * Math.cos(e), Math.sin(e), -Math.cos(a) * Math.cos(e)).normalize(); };
+  const skyCache = new Map();
   function skyColorsAt(h) {
+    const key = Math.round(((h % 24) + 24) % 24 * 10);
+    let cached = skyCache.get(key);
+    if (cached) return { fogC: cached.fogC.clone(), sunSide: cached.sunSide.clone() };
     const { el, az } = sunAt(h), azR = THREE.MathUtils.degToRad(az), u = sky2.material.uniforms.sunPosition.value, keep = u.clone();
     sunDirAt(h, u);
     const f = sampleSky(azR + Math.PI / 2, THREE.MathUtils.degToRad(1.5)).lerp(sampleSky(azR - Math.PI / 2, THREE.MathUtils.degToRad(1.5)), 0.5);
     const side = sampleSky(azR, THREE.MathUtils.degToRad(Math.max(1.5, Math.min(el, 6))));
     u.copy(keep);
-    return { fogC: f, sunSide: side };
+    cached = { fogC: f, sunSide: side };
+    skyCache.set(key, cached);
+    return { fogC: f.clone(), sunSide: side.clone() };
   }
   function setTime(h, o = {}) {
     state.time = h;
@@ -1711,9 +1717,9 @@ export function createRealScene(canvas, opts = {}) {
     }
     if (o.colors) { fogC = o.colors.fogC.clone(); sunSideC = o.colors.sunSide.clone(); }
     else if (!o.light) {
-      // 안개 색 = 해와 직각 방향 지평선 하늘색, 해 쪽 색은 해 방향 지평선
-      fogC = sampleSky(azR + Math.PI / 2, THREE.MathUtils.degToRad(1.5)).lerp(sampleSky(azR - Math.PI / 2, THREE.MathUtils.degToRad(1.5)), 0.5);
-      sunSideC = sampleSky(azR, THREE.MathUtils.degToRad(Math.max(1.5, Math.min(el, 6))));
+      // 안개 색 = 캐시된 하늘색 표본 (GPU 파이프라인 동기 락 방지)
+      const col = skyColorsAt(h);
+      fogC = col.fogC; sunSideC = col.sunSide;
     }
     scene.fog.color.copy(fogC);
     FOGU.uFogSunCol.value.copy(sunSideC).lerp(fogC, 0.25); FOGU.uFogSunDir.value.copy(sunDir);
@@ -1817,6 +1823,7 @@ export function createRealScene(canvas, opts = {}) {
     applyEnvI();
     // 모든 셰이더를 미리 컴파일
     renderer.compile(scene, camera);
+    for (const t of [5.1, 7.4, 12.6, 16.6, 19.05, 21.7]) skyColorsAt(t);
     return api;
   })();
   if (opts.autoStart !== false) frame();
@@ -1918,8 +1925,8 @@ export function createStage(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
   const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   // 화질: 주소의 ?q=high|normal 은 이번 판에만 (저장하지 않는다. 공유 링크가 받은 사람의 설정을 바꾸지 않게). 없으면 저장된 값(setQuality), 그것도 없으면 높음
-  let quality = 'high';
-  try { const s = JSON.parse(localStorage.getItem(QUALITY_KEY)); if (s === 'high' || s === 'normal') quality = s; } catch (e) { /* 저장소가 없으면 높음 */ }
+  let quality = 'normal';
+  try { const s = JSON.parse(localStorage.getItem(QUALITY_KEY)); if (s === 'high' || s === 'normal') quality = s; } catch (e) { /* 저장소가 없으면 보통 */ }
   try { const q = new URLSearchParams(location.search).get('q'); if (q === 'high' || q === 'normal') quality = q; } catch (e) { /* 주소를 못 읽으면 그대로 */ }
 
   const st = {
