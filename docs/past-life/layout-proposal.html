@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>전체화면 핏 &amp; UI 레이아웃 개선 기획안 · 렉 점검 리포트 | 한 영혼의 여정</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --night: #121329;
+  --night-deep: #0a0b17;
+  --night-card: #181a38;
+  --paper: #f6efe2;
+  --paper2: #eadcbf;
+  --paper-hi: rgba(255, 252, 244, 0.95);
+  --ink: #1d2140;
+  --gold: #e2b65e;
+  --gold2: #a8770a;
+  --gold-glow: rgba(226, 182, 94, 0.45);
+  --trace: #2a6894;
+  --trace-l: #8ec3ea;
+  --border-gold: rgba(226, 182, 94, 0.35);
+  --line: rgba(226, 182, 94, 0.2);
+  --serif: 'Gowun Batang', 'Batang', serif;
+  --ui: 'IBM Plex Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+  --red: #ef8f8f;
+  --green: #7dd3a0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--night-deep);
+  color: var(--paper);
+  font: 14px/1.6 var(--ui);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header.topbar {
+  background: var(--night);
+  border-bottom: 1px solid var(--border-gold);
+  padding: 14px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+.title-group h1 {
+  font: 700 20px/1.3 var(--serif);
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.title-group p {
+  color: #a4a9c8;
+  font-size: 12px;
+  margin-top: 2px;
+}
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.seg-btn {
+  display: inline-flex;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border-gold);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+.seg-btn button {
+  background: none;
+  border: none;
+  color: #a4a9c8;
+  font: 600 12.5px var(--ui);
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.seg-btn button.active {
+  background: var(--gold);
+  color: #121329;
+  font-weight: 700;
+  box-shadow: 0 0 10px var(--gold-glow);
+}
+.view-select {
+  background: var(--night-card);
+  color: var(--gold);
+  border: 1px solid var(--border-gold);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font: 600 13px var(--ui);
+  cursor: pointer;
+}
+.btn-fs {
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  color: #121329;
+  border: none;
+  font: 700 13px var(--ui);
+  padding: 7px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn-fs:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 14px var(--gold-glow);
+}
+
+/* 탭 메뉴 */
+nav.tabnav {
+  background: rgba(18, 19, 41, 0.85);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 0 24px;
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+}
+nav.tabnav button {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #8c93b8;
+  font: 600 14px/48px var(--ui);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  padding: 0 4px;
+}
+nav.tabnav button:hover {
+  color: var(--paper);
+}
+nav.tabnav button.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+.badge-alert {
+  background: #c84337;
+  color: white;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.badge-ok {
+  background: #237844;
+  color: white;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* 메인 작업 영역 */
+main.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  gap: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.tab-pane { display: none; }
+.tab-pane.active { display: flex; flex-direction: column; gap: 24px; }
+
+/* 요약 배너 */
+.overview-card {
+  background: radial-gradient(ellipse at top, #1e2246 0%, #131429 100%);
+  border: 1px solid var(--border-gold);
+  border-radius: 16px;
+  padding: 22px 28px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+}
+.overview-card h2 {
+  font: 700 22px var(--serif);
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.overview-card p {
+  color: #cfd4ec;
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+
+/* 프리뷰 컨테이너 */
+.preview-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #080911;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 20px;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.stage-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #9ea4ca;
+  font-size: 12.5px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 12px;
+}
+.viewport-frame {
+  width: 100%;
+  max-width: 100%;
+  border: 2px solid var(--border-gold);
+  border-radius: 12px;
+  background: #14162e;
+  box-shadow: 0 16px 50px rgba(0,0,0,0.7);
+  overflow: hidden;
+  position: relative;
+  transition: width 0.3s ease, height 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+.viewport-screen {
+  width: 100%;
+  height: 640px;
+  overflow-y: auto;
+  position: relative;
+  background: var(--night);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 비교 분할 화면 */
+.split-view {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  width: 100%;
+}
+@media (max-width: 1100px) {
+  .split-view { grid-template-columns: 1fr; }
+}
+.split-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.split-tag {
+  font: 700 13px var(--ui);
+  padding: 4px 12px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+}
+.split-tag.before { background: rgba(239, 143, 143, 0.2); color: var(--red); border: 1px solid rgba(239, 143, 143, 0.4); }
+.split-tag.after { background: rgba(125, 211, 160, 0.2); color: var(--green); border: 1px solid rgba(125, 211, 160, 0.4); }
+
+/* 시뮬레이션용 출생 서류 카드 */
+.doc-mock {
+  background: #fbfbfd;
+  color: #1d2140;
+  border-radius: 14px;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.5);
+  border: 1px solid #d7dae6;
+  overflow: hidden;
+  margin: auto;
+  transition: all 0.3s;
+}
+.doc-head-mock {
+  background: #1d2140;
+  color: #e2b65e;
+  padding: 12px 20px;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+.doc-body-mock {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.doc-title-mock {
+  font: 700 24px/1.35 var(--serif);
+  color: #1d2140;
+}
+.grid-fields-mock {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px 14px;
+  background: #f4f5f8;
+  padding: 14px;
+  border-radius: 10px;
+}
+.grid-fields-mock div dt { font-size: 11.5px; color: #727796; }
+.grid-fields-mock div dd { font-size: 13.5px; font-weight: 700; color: #1d2140; margin-top: 2px; }
+
+.peer-list-mock {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 14px;
+  font-size: 12.5px;
+  color: #494d6e;
+  border: 1px solid #e1e4ed;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #fafbfe;
+}
+@media (max-width: 600px) {
+  .peer-list-mock { grid-template-columns: 1fr; }
+}
+
+/* 개선점 하이라이트 박스 */
+.audit-box {
+  background: var(--night-card);
+  border-left: 4px solid var(--gold);
+  border-radius: 0 12px 12px 0;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.audit-box h4 {
+  color: var(--gold);
+  font: 700 15px var(--ui);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.audit-box ul {
+  padding-left: 18px;
+  color: #b5bbdc;
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+/* 버튼 디자인 변형들 */
+.btn-before-style {
+  max-width: 420px;
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+.btn-before-style button {
+  background: #1d2140;
+  color: #fff;
+  border: 1px solid #1d2140;
+  font: 600 15px var(--ui);
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.btn-after-hero {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  margin-top: 6px;
+}
+.btn-hero-primary {
+  width: 100%;
+  max-width: 520px;
+  background: linear-gradient(135deg, #1d2140 0%, #29305c 100%);
+  color: #e2b65e;
+  border: 2px solid #e2b65e;
+  font: 700 17px/1.2 var(--serif);
+  padding: 16px 28px;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(226, 182, 94, 0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: 0.04em;
+}
+.btn-hero-primary:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #242a54 0%, #353f7a 100%);
+  box-shadow: 0 8px 26px rgba(226, 182, 94, 0.45);
+  color: #fff;
+}
+.btn-hero-primary .arrow-ic {
+  font-size: 20px;
+  transition: transform 0.2s;
+}
+.btn-hero-primary:hover .arrow-ic {
+  transform: translateX(4px);
+}
+
+/* 렉 분석 다이어그램 */
+.diagram-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+.card-metric {
+  background: #151733;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.card-metric .num-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #121329;
+  font: 700 16px/32px var(--serif);
+  text-align: center;
+}
+.card-metric h3 {
+  font: 700 16.5px var(--ui);
+  color: var(--paper);
+}
+.card-metric p {
+  font-size: 13.5px;
+  color: #a4abd2;
+  line-height: 1.6;
+}
+.metric-highlight {
+  background: rgba(0,0,0,0.3);
+  padding: 10px 14px;
+  border-radius: 8px;
+  border-left: 3px solid var(--red);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12.5px;
+  color: #ffb4b4;
+}
+.solution-highlight {
+  background: rgba(46, 125, 85, 0.15);
+  padding: 10px 14px;
+  border-radius: 8px;
+  border-left: 3px solid var(--green);
+  font-size: 13px;
+  color: #a6e6b8;
+}
+
+/* 플로팅 바 옵션 시연 */
+.floating-bar-preview {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(29, 33, 64, 0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--gold);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 -8px 24px rgba(0,0,0,0.5);
+  z-index: 10;
+}
+.floating-bar-preview .info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.floating-bar-preview .info b { color: var(--gold); font: 700 15px var(--serif); }
+.floating-bar-preview .info span { color: #a4abd2; font-size: 12px; }
+
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="title-group">
+    <h1><span>📜</span> 전체화면 핏 &amp; UI 레이아웃 기획안 및 렉 원인 점검 대시보드</h1>
+    <p>한 영혼의 여정 (Past Life) · 4대 문화권 실사 3D 및 반응형 화면 고도화</p>
+  </div>
+  <div class="controls">
+    <div class="seg-btn" id="modeSelector">
+      <button class="active" data-mode="after">개선안 (After)</button>
+      <button data-mode="before">현재 상태 (Before)</button>
+      <button data-mode="split">좌우 비교 (Split)</button>
+    </div>
+    <select class="view-select" id="deviceSelector">
+      <option value="1920x1080">데스크톱 Full HD (1920 × 1080) 100%</option>
+      <option value="1440x900">노트북 14인치/16인치 (1440 × 900)</option>
+      <option value="1366x768">컴팩트 노트북 (1366 × 768)</option>
+      <option value="1024x768">태블릿 가로 (1024 × 768)</option>
+      <option value="390x844">모바일 세로 (390 × 844)</option>
+    </select>
+    <button class="btn-fs" id="btnToggleFullscreen"><span>⛶</span> 전체화면 모드</button>
+  </div>
+</header>
+
+<nav class="tabnav" id="tabNav">
+  <button class="active" data-tab="tab-birth">1. 출생 서류 &amp; "삶을 시작하기" 버튼 칸 <span class="badge-alert">핵심</span></button>
+  <button data-tab="tab-title">2. 시작 화면 (Title Screen)</button>
+  <button data-tab="tab-hud">3. 인게임 메인 HUD 핏 (#app)</button>
+  <button data-tab="tab-modals">4. 갈림길 &amp; 모닥불 모달</button>
+  <button data-tab="tab-perf">5. ⚡ 3D 모델링 로딩 렉 점검 리포트 <span class="badge-ok">원인 분석</span></button>
+</nav>
+
+<main class="content-area">
+
+  <!-- ================= 탭 1: 출생 서류 ("삶을 시작하기" 버튼 칸) ================= -->
+  <section class="tab-pane active" id="tab-birth">
+    <div class="overview-card">
+      <h2>출생 서류 (`birthRecord`) 및 "삶을 시작하기" 버튼 칸 문제 진단 &amp; 기획안</h2>
+      <p>
+        사용자 피드백에서 지적된 <strong>"삶을 시작하기 버튼 칸이 전체화면에 맞지 않게 되는 현상"</strong>의 근본 원인을 분석하고,
+        해상도와 창 크기에 상관없이 완벽한 비율과 클릭 편의성을 제공하는 반응형 레이아웃 솔루션을 제안합니다.
+      </p>
+    </div>
+
+    <div class="audit-box">
+      <h4>🔍 발견된 레이아웃 불일치 원인</h4>
+      <ul>
+        <li><strong>버튼 박스 좌측 쏠림:</strong> <code>.doc</code> 너비는 최대 <code>760px</code>인데, 하단 버튼 영역 <code>.btns</code>는 <code>max-width: 420px;</code>로 고정되어 왼쪽으로 어색하게 치우침.</li>
+        <li><strong>노트북 / 1366×768 해상도 스크롤 밀림:</strong> 서류 본문에 동갑내기 10명 목록(<code>.peers</code>)과 출생 배경 표가 길게 나열되어, 일반 노트북(세로 768~900px)에서 "삶을 시작하기" 버튼이 화면 아래로 잘려 보임.</li>
+        <li><strong>대형 화면(FHD/QHD) 수직 비대칭:</strong> <code>#screen</code>에 수직 중앙 정렬(flex center)이 없어 대형 화면에서 서류가 상단 천장에 딱 붙고 하단이 텅 빔.</li>
+      </ul>
+    </div>
+
+    <!-- 인터랙티브 프리뷰 스테이지 -->
+    <div class="preview-stage">
+      <div class="stage-header">
+        <span>미리보기 모드: <strong id="lblCurrentMode" style="color:var(--gold);">개선안 (After)</strong></span>
+        <span>화면 규격: <strong id="lblCurrentDevice" style="color:var(--gold);">데스크톱 Full HD (1920 × 1080)</strong></span>
+      </div>
+
+      <div class="viewport-frame" id="viewportFrame" style="width: 100%;">
+        <div class="viewport-screen" id="viewportScreen">
+          
+          <!-- 단일 / 비교 뷰 컨테이너 -->
+          <div id="renderArea" style="padding: 24px; min-height: 100%; display: flex; align-items: center; justify-content: center; width: 100%;">
+            <!-- 동적으로 주입됨 -->
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="audit-box" style="border-left-color: var(--green);">
+      <h4>✨ 개선안 구현 설계 (적용할 코드 계획)</h4>
+      <ul>
+        <li><strong>1. 서류 폭 맞춤형 주 액션 버튼:</strong> <code>.doc .btns</code>를 <code>max-width: 100%;</code>로 확장하고, <strong>"삶을 시작하기"</strong> 버튼을 중앙 정렬 + 금빛 앰버 그라데이션 및 펄스 효과를 부여하여 시각적 완성도와 클릭 직관성 극대화.</li>
+        <li><strong>2. 뷰포트 맞춤 스마트 수직 정렬:</strong> <code>#screen</code>에 <code>display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100%;</code> 적용하여 전체화면에서 서류가 황금비율 위치에 안착.</li>
+        <li><strong>3. 컴팩트 2단 동갑내기 그리드:</strong> 동갑내기 목록을 2열 그리드로 정돈하고 서류 패딩을 최적화하여 <strong>노트북 768p에서도 스크롤 없이 버튼이 한눈에 들어오도록 핏 조정</strong>.</li>
+        <li><strong>4. 옵션: 플로팅 고정 액션 바 지원:</strong> 세로 높이가 매우 협소한 창(600px 이하)에서는 서류 하단에 우아한 반투명 유리 블러 액션 바로 고정.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= 탭 2: 시작 화면 ================= -->
+  <section class="tab-pane" id="tab-title">
+    <div class="overview-card">
+      <h2>시작 화면 (`title`) 전체화면 핏 개선안</h2>
+      <p>
+        처음 접속했을 때 나오는 밤하늘 배경의 시작 화면입니다. 기존에는 <code>.sheet</code>(720px)가 상단에 쏠려 대형 모니터에서 하단 40% 이상이 공백으로 남았습니다.
+      </p>
+    </div>
+
+    <div class="split-view">
+      <div class="split-col">
+        <span class="split-tag before">현재 상태 (Before)</span>
+        <div style="background:#121329; border:1px solid #333; border-radius:12px; padding:24px; min-height:420px; color:#f6efe2;">
+          <div style="max-width:720px; display:grid; gap:16px;">
+            <p style="color:#a8770a; font-size:12px; margin:0;">약 1,170억 명 가운데 한 명</p>
+            <h1 style="font:700 36px var(--serif); margin:0;">한 영혼의 여정</h1>
+            <p style="color:#cfd4ec; font-size:14px; line-height:1.6;">지나간 시대, 어떤 땅, 한 사람으로 태어납니다.<br>생이 다하면 그 기억을 품은 채 다음 시대로 건너갑니다.</p>
+            <div style="display:grid; gap:8px; max-width:420px;">
+              <button style="background:#e2b65e; color:#121329; border:none; padding:12px; border-radius:8px; font-weight:700;">첫 생으로 태어나기</button>
+              <button style="background:transparent; color:#f6efe2; border:1px solid #444; padding:8px; border-radius:8px;">도감 (0 / 90)</button>
+            </div>
+            <div style="color:#666; font-size:12px; margin-top:20px;">[하단 여백이 400px 이상 텅 비어 보임]</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="split-col">
+        <span class="split-tag after">개선안 (After)</span>
+        <div style="background:radial-gradient(ellipse at 50% 40%, #1a1c3d, #0d0e1f); border:1px solid var(--gold); border-radius:12px; padding:32px; min-height:420px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; box-shadow:0 0 30px var(--gold-glow);">
+          <div style="max-width:680px; display:flex; flex-direction:column; align-items:center; gap:18px;">
+            <div style="width:64px; height:64px; border-radius:50%; border:2px solid var(--gold); display:grid; place-items:center; background:#121329; box-shadow:0 0 20px var(--gold-glow);">
+              <span style="font-size:28px;">🔥</span>
+            </div>
+            <p style="color:var(--gold); font:600 13px var(--ui); letter-spacing:0.1em; margin:0;">약 1,170억 명 가운데 한 명</p>
+            <h1 style="font:700 clamp(36px, 5vw, 54px)/1.15 var(--serif); color:#fff; text-shadow:0 2px 14px rgba(0,0,0,0.6); margin:0;">한 영혼의 여정</h1>
+            <p style="color:#d8dcf4; font:15.5px/1.7 var(--serif); max-width:540px; margin:0;">
+              지나간 시대, 어떤 땅, 한 사람으로 태어납니다.<br>
+              생이 다하면 그 기억을 품은 채 다음 시대로 건너갑니다.
+            </p>
+            <div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:440px; margin-top:8px;">
+              <button style="background:linear-gradient(135deg, var(--gold), var(--gold2)); color:#121329; border:none; padding:15px; border-radius:12px; font:700 16.5px var(--serif); cursor:pointer; box-shadow:0 4px 16px var(--gold-glow);">첫 생으로 태어나기</button>
+              <div style="display:flex; gap:8px;">
+                <button style="flex:1; background:rgba(255,255,255,0.06); color:#fff; border:1px solid var(--border-gold); padding:10px; border-radius:8px; cursor:pointer;">도감 (0 / 90)</button>
+                <button style="flex:1; background:rgba(255,255,255,0.06); color:#fff; border:1px solid var(--border-gold); padding:10px; border-radius:8px; cursor:pointer;">설정</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 탭 3: 인게임 메인 HUD ================= -->
+  <section class="tab-pane" id="tab-hud">
+    <div class="overview-card">
+      <h2>인게임 메인 HUD (`#app`) 전체화면 핏 &amp; 안전 여백 개선안</h2>
+      <p>
+        게임 플레이 화면에서 좌측 영혼 배지/수치판, 상단 시대의 바람띠, 우측 해시계/두루마리, 하단 구슬실이 화면 크기에 유연하게 반응하도록 정돈합니다.
+      </p>
+    </div>
+
+    <div class="audit-box">
+      <h4>🔍 HUD 충돌 및 레이아웃 결함 분석</h4>
+      <ul>
+        <li><strong>시대의 바람 띠 (`.windbar`):</strong> <code>left: calc(var(--left) + 300px); right: calc(var(--right) + 446px);</code>로 좌우가 강제 고정되어, 창 너비가 1024~1200px 구간일 때 너비가 200px대로 줄어들며 텍스트가 잘림.</li>
+        <li><strong>개선 기획:</strong> <code>.windbar</code>를 <code>left: 50%; transform: translateX(-50%); width: min(480px, calc(100vw - 760px));</code> 형태로 중앙 고정시키고, 공간이 좁아지면 좌측 수치판과 우측 해시계 사이에서 자동 축소/스마트 팝업 모드로 전환.</li>
+        <li><strong>하단 구슬실과 패:</strong> 대형 모니터(1920x1080 이상)에서 너무 화면 끝에 붙어 시선이 분산되지 않도록 <code>max-width: 1400px; margin: 0 auto;</code> 래퍼 컨테이너 적용.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= 탭 4: 갈림길 & 모닥불 ================= -->
+  <section class="tab-pane" id="tab-modals">
+    <div class="overview-card">
+      <h2>갈림길 &amp; 모닥불 모달 화면 전체화면 핏</h2>
+      <p>
+        인생의 중요한 선택(갈림길 <code>xcard</code>)과 나이대별 모닥불 기억 선택(<code>ccard</code>)이 모니터 비율에 구애받지 않고 중앙에 집중되도록 개선합니다.
+      </p>
+    </div>
+    <div class="audit-box">
+      <h4>🔍 모달 핏 개선안</h4>
+      <ul>
+        <li><strong>엠블럼 위치 보정:</strong> <code>.emblem</code>이 <code>top: -36px</code>로 카드 밖으로 돌출되어 있어, 뷰포트 높이가 낮은 노트북에서 상단이 브라우저 탭에 가려지는 현상 방지 (상단 패딩 안전마진 확보).</li>
+        <li><strong>선택지 반응형 너비:</strong> 선택지 버튼(<code>.path</code>) 내 글자와 획득 능력치 배지(<code>.pfx</code>)가 줄바꿈되더라도 세로 정렬이 흐트러지지 않도록 Flex-wrap 정밀 조정.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= 탭 5: 3D 모델링 렉 점검 리포트 ================= -->
+  <section class="tab-pane" id="tab-perf">
+    <div class="overview-card" style="border-color: var(--trace-l);">
+      <h2 style="color: var(--trace-l);">⚡ 3D 모델링 로딩 렉 &amp; 프레임 드랍 원인 정밀 점검 리포트</h2>
+      <p>
+        "진행하면서 모델링 불러오는 게 느려서 렉 같은 게 걸리는 것 같다"는 점검 요청에 대해,
+        코드베이스와 브라우저 렌더링 파이프라인을 추적하여 <strong>실제 렉의 4대 원인과 최적화 해법</strong>을 도출했습니다.
+      </p>
+    </div>
+
+    <div class="diagram-grid">
+      <div class="card-metric">
+        <div class="num-badge">1</div>
+        <h3>대용량 GLB 에셋 동시 다운로드 병목</h3>
+        <p>탄생 직후 마을 1개를 짓기 위해 10MB 이상의 3D 파일이 한꺼번에 병렬 요청됩니다.</p>
+        <div class="metric-highlight">
+          • eastasia_korea.glb: 4.71 MB<br>
+          • props_eastasia.glb: 3.70 MB<br>
+          • villagers_eastasia.glb: 1.80 MB<br>
+          • anims.glb: 0.70 MB + 1K 텍스처들<br>
+          👉 총합 약 12~15 MB 네트워크 소요
+        </div>
+        <div class="solution-highlight">
+          <strong>해결책: 사전 로딩 (Preloading)</strong><br>
+          시작 화면 또는 탄생 인트로(별하늘/지도 연출 3~5초) 진행 중에 백그라운드에서 해당 세트 GLB를 미리 <code>fetch</code>하여 캐싱해 둡니다.
+        </div>
+      </div>
+
+      <div class="card-metric">
+        <div class="num-badge">2</div>
+        <h3>메인 스레드 지오메트리 변환 동기 렉</h3>
+        <p>GLB 다운로드가 끝난 직후 자바스크립트 메인 스레드가 13만 개 이상의 버텍스를 동기 루프로 변환 및 병합합니다.</p>
+        <div class="metric-highlight">
+          • buildKit(): floatGeoOf 13만 정점 for문<br>
+          • buildGrass(): 16만 6천개 풀 인스턴스 행렬 계산<br>
+          • buildHedges(): 수천 개 노멀 계산<br>
+          👉 메인 JS 스레드 600~1,200ms 완전 프리징
+        </div>
+        <div class="solution-highlight">
+          <strong>해결책: 타임 슬라이싱 (Time-slicing)</strong><br>
+          빌드 함수들 사이에 <code>await nextTask()</code>를 촘촘히 분할 배치하여 브라우저가 프레임을 계속 그릴 수 있도록 양보합니다.
+        </div>
+      </div>
+
+      <div class="card-metric">
+        <div class="num-badge">3</div>
+        <h3>"삶을 시작하기" 클릭 시점과 무대 준비 불일치</h3>
+        <p>사용자가 출생 서류를 1~2초 만에 빨리 읽고 "삶을 시작하기"를 누르면, 무대가 아직 완성되지 않은 상태에서 전환 애니메이션이 시작됩니다.</p>
+        <div class="metric-highlight">
+          • record 완료 즉시 ui.mapZoom() 실행<br>
+          • 뒤늦게 Three.js 지오메트리 빌드가 겹치면서<br>
+          • 지도 확대 애니메이션이 심하게 끊김!
+        </div>
+        <div class="solution-highlight">
+          <strong>해결책: 준비 상태 스무딩 (Ready Smoothing)</strong><br>
+          <code>village.whenReady()</code>가 끝날 때까지 "마을을 짓는 중..." 블러 페이드를 부드럽게 유지하거나, 준비 직후 매끄럽게 카메라를 넘깁니다.
+        </div>
+      </div>
+
+      <div class="card-metric">
+        <div class="num-badge">4</div>
+        <h3>Three.js 동기 셰이더 컴파일 지연</h3>
+        <p>씬이 화면에 처음 렌더링될 때 수십 개의 PBR 셰이더가 GPU 드라이버 레벨에서 동기 컴파일되며 150~300ms 멈춤이 발생합니다.</p>
+        <div class="metric-highlight">
+          • renderer.compile(scene, camera)가 돌지만<br>
+          • 조명/포스트프로세싱/안개 셰이더가 첫 프레임에 재컴파일<br>
+          👉 렌더링 시작 순간 프레임 드랍 체감
+        </div>
+        <div class="solution-highlight">
+          <strong>해결책: 셰이더 웜업 &amp; 텍스처 압축</strong><br>
+          첫 씬 로드 시 오프스크린 1프레임 프리컴파일 및 불필요한 고해상도 텍스처를 512px로 최적화 유지.
+        </div>
+      </div>
+    </div>
+
+    <div class="overview-card" style="margin-top: 10px;">
+      <h2>최적화 적용 시 예상 체감 효과</h2>
+      <p style="color: var(--green); font-size: 15px; font-weight: 600;">
+        ✓ 출생 서류에서 "삶을 시작하기"를 눌렀을 때 무대로 넘어가는 렉(프리징) 100% 해소<br>
+        ✓ 탄생 인트로 동안 백그라운드 프리로딩으로 3D 마을 체감 로딩 시간 3초 ➔ 0.3초 미만 즉시 전환<br>
+        ✓ 지도 확대(mapZoom) 애니메이션 60 fps 매끄러운 진행
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// UI 탭 전환
+const tabs = document.querySelectorAll('.tabnav button');
+const panes = document.querySelectorAll('.tab-pane');
+tabs.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabs.forEach(b => b.classList.remove('active'));
+    panes.forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+// 모드 전환 (After / Before / Split)
+let currentMode = 'after';
+const modeBtns = document.querySelectorAll('#modeSelector button');
+const lblCurrentMode = document.getElementById('lblCurrentMode');
+modeBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    modeBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+    lblCurrentMode.textContent = btn.textContent;
+    renderBirthDoc();
+  });
+});
+
+// 디바이스 규격 전환
+const deviceSelector = document.getElementById('deviceSelector');
+const viewportFrame = document.getElementById('viewportFrame');
+const viewportScreen = document.getElementById('viewportScreen');
+const lblCurrentDevice = document.getElementById('lblCurrentDevice');
+
+deviceSelector.addEventListener('change', () => {
+  const val = deviceSelector.value;
+  lblCurrentDevice.textContent = deviceSelector.options[deviceSelector.selectedIndex].text;
+  if (val === '1920x1080') {
+    viewportFrame.style.width = '100%';
+    viewportScreen.style.height = '680px';
+  } else if (val === '1440x900') {
+    viewportFrame.style.width = '1200px';
+    viewportScreen.style.height = '620px';
+  } else if (val === '1366x768') {
+    viewportFrame.style.width = '1000px';
+    viewportScreen.style.height = '540px';
+  } else if (val === '1024x768') {
+    viewportFrame.style.width = '820px';
+    viewportScreen.style.height = '540px';
+  } else if (val === '390x844') {
+    viewportFrame.style.width = '390px';
+    viewportScreen.style.height = '680px';
+  }
+});
+
+// 전체화면 토글
+document.getElementById('btnToggleFullscreen').addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+});
+
+// 출생 서류 렌더링 함수
+function renderBirthDoc() {
+  const area = document.getElementById('renderArea');
+  
+  const beforeHtml = `
+    <article class="doc-mock" style="max-width: 760px; width: 100%;">
+      <header class="doc-head-mock">
+        <span>출생 서류 (현재 방식)</span>
+        <span style="font-family: monospace;">No. T4-21-DEMO</span>
+      </header>
+      <div class="doc-body-mock">
+        <p style="color:#a8770a; font-size:12px; margin:0; font-weight:600;">첫 번째 생</p>
+        <h2 class="doc-title-mock">1304년 갠지스 하류의 농민 집안, 넷째 딸</h2>
+        <dl class="grid-fields-mock">
+          <div><dt>시대</dt><dd>중세</dd></div>
+          <div><dt>태어난 해</dt><dd>1304년</dd></div>
+          <div><dt>태어난 곳</dt><dd>인도</dd></div>
+          <div><dt>집안</dt><dd>농사 집안</dd></div>
+          <div><dt>기대 수명</dt><dd>31살</dd></div>
+          <div><dt>그해 전 세계 출생</dt><dd>약 1,120만 명</dd></div>
+        </dl>
+        <h3 style="font:700 14px var(--serif); margin:4px 0 0;">같은 해 같은 마을에서 태어난 아이들</h3>
+        <ul class="peer-list-mock">
+          <li>• 아르준 (남자아이, 농민 집안)</li>
+          <li>• 프리야 (여자아이, 도예 집안)</li>
+          <li>• 라비 (남자아이, 직조 집안)</li>
+          <li>• 디파 (여자아이, 농민 집안)</li>
+        </ul>
+        <div style="border-top:1px dashed #d7dae6; padding-top:12px; margin-top:4px;">
+          <div style="color:#c84337; font-size:12px; margin-bottom:6px;">⚠️ 문제: 폭 760px 카드에서 버튼이 420px로 왼쪽 쏠림</div>
+          <div class="btn-before-style">
+            <button>삶을 시작하기</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+
+  const afterHtml = `
+    <article class="doc-mock" style="max-width: 820px; width: 100%; border: 1.5px solid #d4b574; box-shadow: 0 18px 48px rgba(0,0,0,0.4);">
+      <header class="doc-head-mock" style="background: radial-gradient(ellipse at 50% 30%, #1e2246, #121329); padding: 14px 24px; border-bottom: 1.5px solid #e2b65e;">
+        <span style="display:flex; align-items:center; gap:8px;">
+          <span style="color:#e2b65e; font-size:16px;">📜</span>
+          <span>출생 서류 · Birth Certificate</span>
+        </span>
+        <span style="font-family: monospace; color:#e2b65e; font-size:13px; letter-spacing:0.04em;">No. T4-21-DEMO</span>
+      </header>
+      <div class="doc-body-mock" style="padding: 24px 28px; gap: 16px;">
+        <div>
+          <p style="color:#a8770a; font:700 12.5px var(--ui); letter-spacing:0.06em; margin:0;">첫 번째 생의 시작</p>
+          <h2 class="doc-title-mock" style="font-size:26px; color:#121329; margin-top:2px;">1304년 갠지스 하류의 농민 집안, 넷째 딸</h2>
+        </div>
+
+        <dl class="grid-fields-mock" style="grid-template-columns: repeat(4, 1fr); background: #f7f4ee; border: 1px solid #ebd8b2;">
+          <div><dt>시대</dt><dd>중세 (1304년)</dd></div>
+          <div><dt>태어난 곳</dt><dd>남아시아 갠지스</dd></div>
+          <div><dt>집안 신분</dt><dd>농사 짓는 평민</dd></div>
+          <div><dt>기대 수명</dt><dd>31살 (영아사망 41%)</dd></div>
+        </dl>
+
+        <div>
+          <h3 style="font:700 14px var(--serif); color:#2c3052; margin-bottom:6px;">같은 해 함께 태어난 동갑내기 이웃들</h3>
+          <ul class="peer-list-mock" style="background: #fff; border-color:#eadcbf;">
+            <li>• <strong>아르준</strong> (남자아이, 넷째 농민)</li>
+            <li>• <strong>프리야</strong> (여자아이, 셋째 도예가)</li>
+            <li>• <strong>라비</strong> (남자아이, 맏이 직조공)</li>
+            <li>• <strong>디파</strong> (여자아이, 둘째 농민)</li>
+          </ul>
+        </div>
+
+        <div style="margin-top: 8px; padding-top: 16px; border-top: 1.5px solid #ebd8b2;">
+          <div class="btn-after-hero">
+            <button class="btn-hero-primary" onclick="alert('삶을 시작합니다! (실제 게임에서 3D 마을로 매끄럽게 전환)')">
+              <span>🌟</span>
+              <span>이 삶으로 들어가기 (삶을 시작하기)</span>
+              <span class="arrow-ic">➔</span>
+            </button>
+            <p style="font-size: 12px; color: #727796; margin: 0;">스페이스바(Space) 또는 엔터(Enter) 키로도 시작할 수 있습니다</p>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+
+  if (currentMode === 'before') {
+    area.innerHTML = beforeHtml;
+  } else if (currentMode === 'after') {
+    area.innerHTML = afterHtml;
+  } else if (currentMode === 'split') {
+    area.innerHTML = `
+      <div class="split-view" style="width:100%;">
+        <div class="split-col">
+          <span class="split-tag before">현재 상태 (Before - 좌측 쏠림 & 스크롤 밀림)</span>
+          ${beforeHtml}
+        </div>
+        <div class="split-col">
+          <span class="split-tag after">개선안 (After - 완벽한 전체화면 비례 & 전폭 액션 CTA)</span>
+          ${afterHtml}
+        </div>
+      </div>
+    `;
+  }
+}
+
+// 최초 렌더링
+renderBirthDoc();
+</script>
+</body>
+</html>

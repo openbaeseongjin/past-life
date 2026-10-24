@@ -64,8 +64,16 @@ export function createUI({ lang, robot = false, fast = false }) {
   // root 안 [data-v] 단추를 누를 때까지. auto 가 있으면 그 단추를 곧 누른다 ('first' = 첫 단추)
   function pick(root, auto = robot ? 'first' : null) {
     return new Promise((res) => {
-      const on = (e) => { const b = e.target.closest('[data-v]'); if (!b || !root.contains(b)) return; root.removeEventListener('click', on); res(b.dataset.v); };
+      const cleanup = () => { root.removeEventListener('click', on); window.removeEventListener('keydown', onKey); };
+      const on = (e) => { const b = e.target.closest('[data-v]'); if (!b || !root.contains(b)) return; cleanup(); res(b.dataset.v); };
+      const onKey = (e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && !e.target.matches('textarea, input')) {
+          const prim = root.querySelector('button.primary[data-v]');
+          if (prim) { e.preventDefault(); prim.click(); }
+        }
+      };
       root.addEventListener('click', on);
+      window.addEventListener('keydown', onKey);
       if (auto != null) setTimeout(() => { const b = auto === 'first' ? root.querySelector('[data-v]') : root.querySelector(`[data-v="${auto}"]`); if (b) b.click(); }, fast ? 20 : 350);
     });
   }
@@ -416,7 +424,7 @@ export function createUI({ lang, robot = false, fast = false }) {
         <h3>${esc(t(L, 'peersTitle'))}</h3>
         <ul class="peers">${peers.map((p) => `<li>${esc(peerLine(p, null, L))}</li>`).join('')}</ul>
         <p class="hint">${esc(t(L, 'peersHint'))}</p>
-        <div class="btns"><button class="primary" data-v="go">${esc(t(L, 'start'))}</button></div>
+        <div class="btns"><button class="primary" data-v="go">${esc(t(L, 'start'))}</button><span class="hint-kbd">${esc(L === 'ko' ? 'Space 또는 Enter 키로 시작할 수 있습니다' : 'Press Space or Enter to begin')}</span></div>
       </div></article>`);
     screen.scrollTop = 0;
     return pick(screen).then(() => { screen.hidden = true; });

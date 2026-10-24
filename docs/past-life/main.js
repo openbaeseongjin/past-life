@@ -32,7 +32,7 @@ const ui = createUI({ lang: S.lang, robot, fast });
 // 실사 3D 무대 (realscene.js createStage: 생마다 출생 시드로 마을을 짓는다. 옛 KayKit 육각 섬 village.js 와 메서드 이름이 같다)
 // three.js(CDN, 1 MB 남짓)를 뒤에서 받는다: 시작 화면은 바로 뜨고, 첫 생을 시작할 때 무대를 기다린다 (stageReady).
 // WebGL 이 없거나 꺼져 있거나 three 를 못 받으면 3D 마을 없이 글로만 간다. 빈 마을은 진짜 마을과 메서드 이름이 같다 (그림은 null → 족보·나누기가 건너뛴다)
-const NO_STAGE = { fast: false, setKit() {}, setLife() {}, setAge() {}, setFocus() {}, setPhase() {}, tick() {}, snapshot: () => null, setCampfire() {}, flameRise: () => Promise.resolve(), setView() {}, setQuality() {}, whenReady: () => Promise.resolve() };
+const NO_STAGE = { fast: false, preload() {}, setKit() {}, setLife() {}, setAge() {}, setFocus() {}, setPhase() {}, tick() {}, snapshot: () => null, setCampfire() {}, flameRise: () => Promise.resolve(), setView() {}, setQuality() {}, whenReady: () => Promise.resolve() };
 let village = NO_STAGE, has3d = false;
 const textOnly = (e) => {
   console.warn('한 영혼의 여정: 3D 마을을 만들지 못해 글로만 진행한다', e);
@@ -112,6 +112,7 @@ async function playLife(soul) {
   const life = createLife({ birth, traces, avoid: prev && Array.isArray(prev.lines) ? prev.lines : [] });
   const peers = makePeers(birth);
   window.__pl.life = life; window.__pl.soul = soul;
+  try { if (village && village.preload) village.preload(birth); } catch (e) {}
   sound.chime();
   await ui.birthIntro({ birth, n, gap: prev ? birth.year - prev.death.year : null, traces, prev });
   // 무대 짓기(동기로 1초 남짓)는 출생 기록 종이가 한 번 그려진 뒤에: 시작을 누르면 화면이 바로 바뀌고, 짓는 동안의 멈춤은 가만히 읽는 종이 뒤에 숨는다
@@ -123,6 +124,7 @@ async function playLife(soul) {
   ui.stageLoading(has3d);
   village.whenReady().then(() => ui.stageLoading(false), () => ui.stageLoading(false));
   await record;
+  await Promise.race([village.whenReady(), wait(800)]);
   Object.assign(S, { paused: false, skipping: false, exit: false, n });
   cur = { life, peers };
   ui.showApp(life, peers, S);

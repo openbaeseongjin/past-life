@@ -35,7 +35,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { KIT_DIMS, PROP_DIMS, KIT_SETS, TREES_SA, BUSHES_SA, TREE_GLB_SA, TREES_EA, BUSHES_EA, TREE_GLB_EA } from './kitdata.js';
 import { lerp, smooth, rng, hash2, fbm, obb, obbLocal, obbHas, VC, WATER_Y, RIVER_HW, RIVER, BRIDGE, CHURCH, CHURCHYARD, SMITHY, MILL, WELL, GREEN, LANES, VIEW_CLEAR, inRect, smoothLine, polyCum, polyAt, makeEnv, planVillage, planDressing, recipeFor, flavorOf, dressSeed } from './villageplan.js';
 import { planPeople, peopleSeed, PEOPLE_DEFAULT, paletteOf, dressVariant } from './peopleplan.js';
-import { createPeople, touchPeople, sweepPeople, peopleCacheSize } from './realpeople.js';
+import { createPeople, touchPeople, sweepPeople, peopleCacheSize, preloadPeople } from './realpeople.js';
 import { stageOf, stageSeed, builtKit, sceneKitOf, LAND_LOOK } from './lands.js';
 import { t as tr } from './i18n.js';
 
@@ -205,6 +205,25 @@ export function loadKit(url) {
   kitCache.set(url, p);
   p.catch(() => kitCache.delete(url));
   return p;
+}
+export function preloadAssets(birth) {
+  try {
+    if (!birth) return;
+    const stage = stageOf(birth);
+    const kitName = sceneKitOf(stage);
+    const KIT = KIT_SETS[kitName] ? kitName : 'england';
+    const KS = KIT_SETS[KIT];
+    if (!KS) return;
+    const FL = flavorOf(KIT, stage.variant), FLV = (FL && KS.flavors && KS.flavors[FL]) || null;
+    const kitUrl = ASSET + 'kits/' + ((FLV && FLV.kit) || KS.kit) + '.glb';
+    const propsUrl = ASSET + 'kits/' + KS.props + '.glb';
+    const people = (FLV && FLV.people) || KS.people;
+    const peopleUrl = ASSET + 'people/' + people + '.glb';
+    loadKit(kitUrl);
+    loadKit(propsUrl);
+    if (KS.trees) loadKit(ASSET + 'kits/' + KS.trees + '.glb');
+    preloadPeople(peopleUrl, ASSET + 'people/anims.glb');
+  } catch (e) {}
 }
 // 양자화된(정수) 속성을 Float32 로 풀어 새 지오메트리로 (행렬을 곱해 합치려고)
 // 다음 일거리로 넘긴다 (세트·나무를 캐시에서 바로 받아도 짓기를 여러 덩어리로 나눠, 한 번에 오래 멈추지 않게)
@@ -1438,7 +1457,10 @@ export function createRealScene(canvas, opts = {}) {
     await nextTask();
     if (state.disposed) return;
     const chunks = new Map(), _m = new THREE.Matrix4(), _p = new THREE.Vector3();
+    let pCount = 0;
     for (const pl of placements) {
+      if (++pCount % 6 === 0) await nextTask();
+      if (state.disposed) return;
       const ck = chunkOf(pl); let kbins = chunks.get(ck); if (!kbins) chunks.set(ck, kbins = new Map());
       const root = kit.pieces.get(pl.piece);
       if (!root) throw new Error('세트에 조각이 없다: ' + pl.piece);
@@ -1489,7 +1511,10 @@ export function createRealScene(canvas, opts = {}) {
     const byPiece = new Map();
     for (const it of dressing.items) { let a = byPiece.get(it.p); if (!a) byPiece.set(it.p, a = []); a.push(it); }
     const _m = new THREE.Matrix4(), _p = new THREE.Vector3(), _c = new THREE.Color();
+    let pieceIdx = 0;
     for (const [piece, list] of byPiece) {
+      if (++pieceIdx % 8 === 0) await nextTask();
+      if (state.disposed) return;
       const root = pk.pieces.get(piece); if (!root) throw new Error('소품 세트에 조각이 없다: ' + piece);
       const d = PD[piece] || [1, 1, 1];
       // 바닥 다섯 점의 가장 낮은 땅에 놓는다 (비탈에서 뜨지 않게, 울타리 기둥·담 밑은 땅속으로 이어짐)
@@ -1757,6 +1782,8 @@ export function createRealScene(canvas, opts = {}) {
     await new Promise((r) => setTimeout(r, 0));
     if (state.disposed) return api;
     { const t = performance.now(); grass = buildGrass(); times.grass = Math.round(performance.now() - t); }
+    await nextTask();
+    if (state.disposed) return api;
     const res = await Promise.allSettled([buildTrees(), buildPeople(), buildKit(), buildProps()]);
     if (state.disposed) return api;   // 다 짓기 전에 풀렸다 (게임에서 생이 빨리 바뀜)
     await nextTask();
@@ -2509,6 +2536,7 @@ export function createStage(canvas) {
   return {
     get fast() { return st.fast; },
     set fast(v) { st.fast = !!v; },
+    preload(birth) { preloadAssets(birth); },
     setKit() {},   // KayKit 육각 섬 시절의 이름 (실사 무대는 생마다 세트를 스스로 부른다)
     setLife(birth) {
       Object.assign(st, { birth, age: 0, year: birth.year, focus: null, campOn: false, ghostOn: false, meKey: '', tr: null, time: PHASE_TIME.night, phi: 0, spin: 0, mode: 'wide', wideHold: WIDE_HOLD, rate: 1.2, wideW: 1, dying: false, colDa: 0 });
