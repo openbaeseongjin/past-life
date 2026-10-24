@@ -2,6 +2,7 @@
 // 한 해의 순서: 0 사건(시작 줄·결정) → 1 정해진 나이 결정 → 2 잠시 멈춤 → 3 해 마무리(초점·되돌림·작은 일·죽음 굴림·해 넘기기)
 // 결정·멈춤이 나오면 돌려주고, 다음 advance 가 같은 해 다음 순서부터 잇는다
 import { sub } from './rng.js';
+import { setLifeRoute } from './routes.js';
 import { eraOf, groupOf } from './births.js';
 import { shapeFor, yearHazard, healthMul } from './lifetable.js';
 import { activeEvents } from './events.js';
@@ -58,7 +59,7 @@ export function createLife({ birth, traces = [], noDeath = false, quiet = false,
   };
   const life = {
     birth, traces, noDeath, quiet, age: 0, year: birth.year, step: 0, stats, base: { wealth: birth.wealth },
-    focus: null, focusYears: {}, flags: {}, kids: 0, wedWait: 0, skills: {}, dream: null, fulfilled: [], bond: null,
+    focus: null, focusYears: {}, flags: {}, route: null, kids: 0, wedWait: 0, skills: {}, dream: null, fulfilled: [], bond: null,
     slots: slotAges(birth.seed), seen: [], linesSeen: [], eventsSeen: [], eventsStarted: [], pausesDone: [],
     log: [], journal: [], history: [{ age: 0, ...stats }], pending: null, death: null,
     // 모닥불 (memory.js): 꿴 기억 구슬, 메아리로 짙어진 흔적 (traceKey → 횟수), 멈춤마다 그때의 일지 길이, 이 생에 이미 보인 메아리 줄
@@ -95,7 +96,7 @@ function ctxOf(life, seen) {
     stage: stageOf(life.age), age: life.age, year: life.year, era: eraOf(life.year).id, group: b.household === 'band' ? 'forager' : groupOf(life.year),
     region: b.region, area: b.area, coast: !!AREAS[b.area].coast, tags: b.tags, sex: b.sex,
     flags: { ...life.flags, kids: life.kids > 0 }, traces: life.traces, dream: life.dream, stats: life.stats, seen,
-    attrs: life.attrs, status: life.status, zone: w.zone, setting: settingOf(b.household, b.group || groupOf(b.year)), war: w.war.level,
+    attrs: life.attrs, status: life.status, zone: w.zone, setting: settingOf(b.household, b.group || groupOf(b.year)), war: w.war.level, route: life.route,
   };
 }
 
@@ -303,6 +304,7 @@ export function choose(life, i) {
   if (life.attrs) { for (const k of ATTRS) if (effects[k]) life.attrs[k] = clampAttr(life.attrs[k] + effects[k]); readCheck(life); }
   for (const f of c.set || []) life.flags[f] = true;
   for (const f of c.unset || []) delete life.flags[f];
+  if (c.route) setLifeRoute(life, c.route);
   // 혼인 카드에서 혼인하지 않는 쪽을 고르면 몇 해는 조용한 혼인도 쉰다 (kinYear)
   if (!(c.set || []).includes('married') && card.choices.some((x) => (x.set || []).includes('married'))) life.wedWait = life.age + 4;
   if (c.kids) life.kids += c.kids;

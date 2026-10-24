@@ -15,7 +15,7 @@ export const LIFE_CARDS = [
     title: { ko: '먼바다의 고기 떼', en: 'A shoal far out' },
     text: { ko: '먼바다에 큰 고기 떼가 왔대요. 다들 멀리 나갈 채비를 해요.', en: 'Word is a great shoal has come far offshore. Everyone is getting ready to go out.' },
     choices: [
-      { text: { ko: '멀리 나간다', en: 'Sail out far' }, risk: 'sea', skill: 'sea',
+      { text: { ko: '멀리 나간다', en: 'Sail out far' }, route: { id: 'voyager', step: 2 }, risk: 'sea', skill: 'sea',
         chance: { p: 0.6,
           win: { effects: { wealth: 12, happy: 4 }, result: { ko: '배가 가라앉을 만큼 잡았어요. 거의 가라앉을 뻔했고요.', en: 'You caught enough to sink the boat. It nearly did.' } },
           lose: { effects: { health: -10 }, result: { ko: '바람이 바뀌었어요. 빈 그물과 젖은 몸으로 돌아왔어요.', en: 'The wind turned. You came back soaked, with empty nets.' } } } },
@@ -129,11 +129,11 @@ export const LIFE_CARDS = [
     title: { ko: '배울 거리', en: 'Something to learn' },
     text: { ko: '어른 한 분이 기술 하나를 가르쳐 주겠대요. 무엇을 배울지는 당신이 정하래요.', en: 'One of the elders offers to teach you a skill. Which one is up to you.' },
     choices: [
-      { text: { ko: '손재주를 배운다', en: 'Learn to make things' }, skill: 'craft', effects: { wealth: 3 },
+      { text: { ko: '손재주를 배운다', en: 'Learn to make things' }, route: { id: 'artisan', step: 1 }, skill: 'craft', effects: { wealth: 3 },
         result: { ko: '손가락을 몇 번 다쳤어요. 그때마다 손이 조금씩 영리해졌어요.', en: 'You hurt your fingers a few times. Each time, they got a little cleverer.' } },
-      { text: { ko: '셈을 배운다', en: 'Learn to count and bargain' }, skill: 'trade', effects: { wealth: 3 },
+      { text: { ko: '셈을 배운다', en: 'Learn to count and bargain' }, route: { id: 'merchant', step: 1 }, skill: 'trade', effects: { wealth: 3 },
         result: { ko: '이제 {market}에서 누가 덜 주면 바로 알아요. 친구는 조금 줄었어요.', en: 'Now you can tell at once when someone at the {market} shorts you. You have slightly fewer friends.' } },
-      { text: { ko: '노래를 배운다', en: 'Learn to sing' }, skill: 'music', effects: { happy: 4 },
+      { text: { ko: '노래를 배운다', en: 'Learn to sing' }, route: { id: 'artist', step: 1 }, skill: 'music', effects: { happy: 4 },
         result: { ko: '목청이 조금씩 트였어요. 어른들은 귀를 막다가 나중엔 따라 불렀어요.', en: 'Your voice slowly opened up. The elders covered their ears at first, then started singing along.' } },
     ] },
   { id: 'u.teen.sick', ill: true, stage: 'teen', tokens: true,

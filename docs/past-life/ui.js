@@ -18,6 +18,7 @@ import { contextOf } from './context.js';
 import { holdingsOf } from './holdings.js';
 import { openChoices, chanceOf } from './life.js';
 import { DECK } from './deck.js';
+import { ROUTES, getRouteBadge, careerSummary } from './routes.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -730,6 +731,17 @@ export function createUI({ lang, robot = false, fast = false }) {
       if (statusKey && statusKey.split('|')[0] !== ss.id && !reduced() && !fast) { const sv = row.querySelector('.sv'); sv.classList.remove('glow'); void sv.offsetWidth; sv.classList.add('glow'); }
       statusKey = sk;
     }
+    // 생애 진로 배지
+    const rb = getRouteBadge(life, L);
+    const rRow = $('routeRow');
+    if (rRow) {
+      if (rb) {
+        rRow.textContent = rb.fullTitle;
+        rRow.style.display = 'block';
+      } else {
+        rRow.style.display = 'none';
+      }
+    }
     // 시대의 바람 띠 (설계 3.3): 올해 죽을 위험은 그 사람의 그해 생명표 × 건강 배율 (life.js 죽음 굴림의 바탕)에 사건 위험률을 더한 배율
     const base = yearHazard(shapeFor(eraOf(life.year).id, b.region), life.age) * healthMul(life.stats.health);
     const wind = eraWind(ctx, L, { year: life.year, area: b.area, base }), wk = `${wind.head}|${wind.sub}`;
@@ -784,6 +796,7 @@ export function createUI({ lang, robot = false, fast = false }) {
     show(modal, `<div class="xcard" role="dialog" aria-modal="true" aria-labelledby="dlgT" tabindex="-1">
       <span class="emblem" aria-hidden="true">${icon('i-sign')}</span>
       <p class="xwhen">${esc(cap(ageWord(life.age, L)))} · ${esc(fmtYear(life.year, L))}</p>
+      ${card.route && ROUTES[card.route] ? `<p class="xroute" style="margin:2px 0 6px;font:700 13px var(--ui);color:var(--gold2)">${esc(ROUTES[card.route].icon)} [${esc(ROUTES[card.route][L])}]${card.routeStep ? ' · ' + card.routeStep + (L === 'ko' ? '단계' : ' Step') : ''}</p>` : ''}
       <h3 id="dlgT">${esc(t(L, 'crossTitle', R(card.title[L], life)))}</h3>
       ${tr && !marks.length ? `<p class="xtrace">${bead}${esc(trName)}</p>` : ''}
       <div class="orn" aria-hidden="true"></div>
@@ -950,6 +963,7 @@ export function createUI({ lang, robot = false, fast = false }) {
         <p class="eyebrow">${esc(soul ? t(L, 'nth', soul.lives.length) : t(L, 'practice'))}</p>
         <h2>${esc(spanText(b, d, L))} · ${esc(t(L, 'age', d.age))} · ${esc(AREAS[b.area].short[L])}</h2>
         <p class="obit">${esc(obituary(life, sum, L))}</p>
+        <p class="obit-career" style="margin:4px 0 14px;font:600 13.5px var(--serif);color:var(--gold2)">${esc(careerSummary(life, L))}</p>
         ${now ? '' : `<p>${esc(t(L, 'cause'))} · ${esc(causeName(d.cause, L))}</p>`}
         <p class="common"><b>${esc(t(L, 'commonTitle'))}</b> ${esc(common)}</p>
         <dl class="fields">${field(t(L, 'happiest'), t(L, 'age', sum.happiest))}${field(t(L, 'topFocus'), sum.topFocus ? focusName(sum.topFocus, 30, L) : '—')}
