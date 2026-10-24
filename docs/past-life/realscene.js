@@ -2050,15 +2050,47 @@ export function createStage(canvas) {
     const [home, hi] = near.length ? near[Math.floor(r() * Math.min(8, near.length))] : [L.houses[0], 0];
     const S = {};
     const toward = (x, z, tx, tz) => Math.atan2(tx - x, tz - z);
+
+    // 소품·가구와 겹치지 않게 안전한 빈 지면으로 밀어내는 함수
+    const clearSpot = (x, z, minDist = 0.95, ignore = null) => {
+      let cx = x, cz = z;
+      for (let pass = 0; pass < 3; pass++) {
+        let hit = false;
+        for (const it of items) {
+          if (it === ignore) continue;
+          const d = Math.hypot(it.x - cx, it.z - cz);
+          const isLarge = it.p === 'charpai' || it.p === 'bench' || it.p === 'bench_ea' || it.p === 'carpet_mb' || it.p === 'cart_bullock' || (it.p && it.p.includes('bed'));
+          const need = isLarge ? Math.max(minDist, 1.25) : minDist;
+          if (d < need) {
+            hit = true;
+            const pushD = need - d + 0.15;
+            const ang = d > 1e-4 ? Math.atan2(cx - it.x, cz - it.z) : (it.rot != null ? it.rot + Math.PI / 2 : 0);
+            cx += Math.sin(ang) * pushD;
+            cz += Math.cos(ang) * pushD;
+          }
+        }
+        if (!hit) break;
+      }
+      return { x: cx, z: cz };
+    };
+
     // 집 앞 (길 쪽 2.4 m): 가족 이야기·아기
     { const fx = home.x - home.n[0] * (home.D / 2 + 2.4), fz = home.z - home.n[1] * (home.D / 2 + 2.4);
-      S.home = { x: fx, z: fz, face: toward(fx, fz, home.x, home.z) + Math.PI, bg: [home.x, home.z] }; }
+      const cl = clearSpot(fx, fz, 0.95);
+      S.home = { x: cl.x, z: cl.z, face: toward(cl.x, cl.z, home.x, home.z) + Math.PI, bg: [home.x, home.z] }; }
     // 텃밭 (집 뒤뜰의 채소밭 곁에 무릎 꿇기) — 없으면 뒤뜰 가운데
     // 남아시아: 텃밭 대신 마당 아궁이(chulha) 앞, 걸상 대신 끈 침상(charpai)
     const A = sc.recipe.activity, BED = A.bed, SEAT = A.seat, SEAT_H = A.seatH, SITE = sc.recipe.sites;   // 세트별 활동 자리 (villageplan.js RECIPES.*.activity)
     { const bed = items.filter((it) => it.p === BED && it.yard === hi)[0] || items.filter((it) => it.p === BED).sort((a, b) => Math.hypot(a.x - home.x, a.z - home.z) - Math.hypot(b.x - home.x, b.z - home.z))[0];
-      if (bed) { const x = bed.x + Math.sin(bed.rot) * 0.95, z = bed.z + Math.cos(bed.rot) * 0.95; S.garden = { x, z, face: bed.rot + Math.PI, bg: [home.x, home.z] }; }
-      else { const c = home.croft || home.foot; S.garden = { x: c.x, z: c.z, face: 0, bg: [home.x, home.z] }; } }
+      if (bed) {
+        const x = bed.x + Math.sin(bed.rot) * 0.95, z = bed.z + Math.cos(bed.rot) * 0.95;
+        const cl = clearSpot(x, z, 0.9, bed);
+        S.garden = { x: cl.x, z: cl.z, face: bed.rot + Math.PI, bg: [home.x, home.z] };
+      } else {
+        const c = home.croft || home.foot;
+        const cl = clearSpot(c.x, c.z, 1.15);
+        S.garden = { x: cl.x, z: cl.z, face: 0, bg: [home.x, home.z] };
+      } }
     // 밭 (마을에서 150~260 m 의 갈아엎은 밭·밀밭, 마을 사람 괭이질 자리와 20 m 넘게): 괭이질, 뒤로 마을
     { const busy = sc.people.people.filter((P) => P.p.action === 'hoe').map((P) => [P.p.x, P.p.z]);
       const a0 = r() * Math.PI * 2;
@@ -2088,8 +2120,17 @@ export function createStage(canvas) {
     { const sitters = sc.people.people.filter((P) => P.p.action === 'sit').map((P) => [P.p.x, P.p.z]);
       const benches = items.filter((it) => it.p === SEAT && !sitters.some(([sx, sz]) => Math.hypot(sx - it.x, sz - it.z) < 1.2)).sort((a, b) => Math.hypot(a.x - home.x, a.z - home.z) - Math.hypot(b.x - home.x, b.z - home.z));
       const b = benches[0];
-      if (b && Math.hypot(b.x - home.x, b.z - home.z) < 60) S.bench = { x: b.x + Math.sin(b.rot) * 0.06, z: b.z + Math.cos(b.rot) * 0.06, face: b.rot, sitOn: SEAT_H * b.s, bg: [b.x - Math.sin(b.rot) * 5, b.z - Math.cos(b.rot) * 5] };
-      else { const t = [...sc.dressing.trees].sort((a, c) => Math.hypot(a.x - home.x, a.z - home.z) - Math.hypot(c.x - home.x, c.z - home.z))[0]; S.bench = t ? { x: t.x + 1.4, z: t.z + 0.6, face: 0, bg: [t.x, t.z], tree: true } : { ...S.home, tree: true }; } }
+      if (b && Math.hypot(b.x - home.x, b.z - home.z) < 60) {
+        const sx = b.x + Math.sin(b.rot) * 0.95, sz = b.z + Math.cos(b.rot) * 0.95;
+        S.bench = {
+          x: b.x + Math.sin(b.rot) * 0.06, z: b.z + Math.cos(b.rot) * 0.06,
+          face: b.rot, sitOn: SEAT_H * b.s, bg: [b.x - Math.sin(b.rot) * 5, b.z - Math.cos(b.rot) * 5],
+          stand: { x: sx, z: sz, face: b.rot + Math.PI, bg: [b.x, b.z] }
+        };
+      } else {
+        const t = [...sc.dressing.trees].sort((a, c) => Math.hypot(a.x - home.x, a.z - home.z) - Math.hypot(c.x - home.x, c.z - home.z))[0];
+        S.bench = t ? { x: t.x + 1.4, z: t.z + 0.6, face: 0, bg: [t.x, t.z], tree: true } : { ...S.home, tree: true };
+      } }
     // 물가 (다리 아래쪽 강둑, 그물 손질)
     { const k = RIVER.findIndex(([x, z]) => Math.hypot(x - BRIDGE.x, z - BRIDGE.z) < 30 && z > BRIDGE.z + 18);
       const [x0, z0] = RIVER[Math.max(0, k)], [x1, z1] = RIVER[Math.max(1, k + 1)], [tx, tz] = unit(x1 - x0, z1 - z0), off = RIVER_HW + 0.8;
@@ -2105,14 +2146,28 @@ export function createStage(canvas) {
       S.estate_front = { x: fx, z: fz, face: est.rot, bg: [est.x, est.z] };
       const [tx, tz] = obbLocal(eFoot, 0, eD / 2 - 0.8);
       S.estate_terrace = { x: tx, z: tz, face: est.rot, bg: [est.x, est.z] };
-      const [hx, hz] = obbLocal(eFoot, -eL / 4, -eD / 2 - 2.2);
-      S.estate_hearth = { x: hx, z: hz, face: est.rot + Math.PI, bg: [est.x, est.z] };
+
+      // 큰 집 뒤뜰 화덕: 주변에 실제 아궁이/화덕(chulha/clay_oven) 소품이 있으면 그 앞,
+      // 없으면 뒤뜰 기준 자리를 잡되 침상(charpai) 등 소품과 겹치지 않게 안전 반경(1.3m)을 확보한다
+      const nearHearth = items.filter((it) => (it.p === BED || it.p === 'chulha' || it.p === 'clay_oven') && Math.hypot(it.x - est.x, it.z - est.z) < 25)[0];
+      let hx, hz, hface;
+      if (nearHearth) {
+        hx = nearHearth.x + Math.sin(nearHearth.rot) * 0.95;
+        hz = nearHearth.z + Math.cos(nearHearth.rot) * 0.95;
+        hface = nearHearth.rot + Math.PI;
+      } else {
+        const [bx, bz] = obbLocal(eFoot, -eL / 4, -eD / 2 - 2.2);
+        const cl = clearSpot(bx, bz, 1.3);
+        hx = cl.x; hz = cl.z; hface = est.rot + Math.PI;
+      }
+      S.estate_hearth = { x: hx, z: hz, face: hface, bg: [est.x, est.z] };
+
       const well = (L.fixed && L.fixed.find((f) => f.role === 'well')) || { x: 2, z: -14, rot: 0.3 };
-      const [wx, wz] = [well.x + 1.8, well.z + 0.8];
-      S.estate_wash = { x: wx, z: wz, face: toward(wx, wz, well.x, well.z), bg: [est.x, est.z] };
+      const clw = clearSpot(well.x + 1.8, well.z + 0.8, 1.0);
+      S.estate_wash = { x: clw.x, z: clw.z, face: toward(clw.x, clw.z, well.x, well.z), bg: [est.x, est.z] };
       const store = (L.fixed && L.fixed.find((f) => f.role === 'store')) || { x: 26, z: -20, rot: -Math.PI / 2 };
-      const [sx, sz] = [store.x - 2.5, store.z];
-      S.estate_stable = { x: sx, z: sz, face: toward(sx, sz, store.x, store.z), bg: [store.x, store.z] };
+      const cls = clearSpot(store.x - 2.5, store.z, 1.1);
+      S.estate_stable = { x: cls.x, z: cls.z, face: toward(cls.x, cls.z, store.x, store.z), bg: [store.x, store.z] };
     }
     return S;
   }
@@ -2149,7 +2204,7 @@ export function createStage(canvas) {
       }
       if (h === 'serve') {
         if (f === 'family') return { key: 'family', spot: S.home, action: a < 3 ? 'stand' : 'talk', mates: fam() };
-        if (f === 'rest') return S.bench.tree || a < 13 ? { key: 'tree', spot: S.bench, action: 'stand' } : { key: 'bench', spot: S.bench, action: 'sit' };
+        if (f === 'rest') return S.bench.tree || a < 13 ? { key: 'tree', spot: S.bench.stand || S.bench, action: 'stand' } : { key: 'bench', spot: S.bench, action: 'sit' };
         if (f === 'body') return { key: 'lane', spot: S.lane, action: 'carry' };
         if (f === 'learn') return { key: 'garden', spot: S.estate_hearth || S.garden, action: 'kneel' };
         if (stage !== 'grown') return { key: 'garden', spot: S.estate_hearth || S.garden, action: 'kneel' };
@@ -2166,7 +2221,7 @@ export function createStage(canvas) {
     }
     if (f === 'family') return { key: 'family', spot: S.home, action: a < 3 ? 'stand' : 'talk', mates: fam() };
     if (f === 'body') return { key: 'lane', spot: S.lane, action: 'walk' };   // 노인은 굽은 등·지팡이로 천천히
-    if (f === 'rest') return S.bench.tree || a < 13 ? { key: 'tree', spot: S.bench, action: 'stand' } : { key: 'bench', spot: S.bench, action: 'sit' };
+    if (f === 'rest') return S.bench.tree || a < 13 ? { key: 'tree', spot: S.bench.stand || S.bench, action: 'stand' } : { key: 'bench', spot: S.bench, action: 'sit' };
     if (f === 'learn') return { key: 'church', spot: S.church, action: 'talk', mates: a < 13 ? [['m_hood', 'talk'], ['child', 'stand']] : [['m_hood', 'talk']] };
     // 일: 집안에 따라 (아이는 집안 돕기 = 텃밭, 노인은 소일거리 = 텃밭)
     if (stage !== 'grown') return { key: 'garden', spot: S.garden, action: 'kneel' };
@@ -2215,6 +2270,21 @@ export function createStage(canvas) {
       plan.push({ id: i + 1, variant: dress(v, b), action: ac, place: 'mate', x, z, face: at ? at.face : Math.atan2(sp.x - x, sp.z - z), speed: 0, phase: 0.2 + i * 0.27, scale: v === 'child' ? (a < 13 ? 0.62 : 0.58) : 1, palette: pl });
     });
     act.group = act.mates ? [gx / plan.length, gz / plan.length] : null;
+    // 소품·가구 침범 방지 (앉기가 아닌데 걸상/침상/소품 위에 올라타서 박히지 않게 외곽 지면으로 밀어냄)
+    for (const pl of plan) {
+      if (pl.action === 'sit') continue;
+      for (const it of W.sc.dressing.items) {
+        const isBed = it.p === 'charpai' || it.p === 'bench' || it.p === 'bench_ea' || it.p === 'carpet_mb' || (it.p && it.p.includes('bed'));
+        const minD = isBed ? 1.15 : 0.65;
+        const d = Math.hypot(it.x - pl.x, it.z - pl.z);
+        if (d < minD) {
+          const pushD = minD - d + 0.1;
+          const ang = d > 1e-4 ? Math.atan2(pl.x - it.x, pl.z - it.z) : (it.rot != null ? it.rot + Math.PI / 2 : 0);
+          pl.x += Math.sin(ang) * pushD;
+          pl.z += Math.cos(ang) * pushD;
+        }
+      }
+    }
     // 곁 사람도 가림 검사에 넣는다 (카메라가 돌아가도 가족이 나를 가리지 않게)
     act.blk = plan.slice(1).map((q) => ({ o: obb(q.x, q.z, 0, 0.4, 0.4), top: q.scale > 0.8 ? 1.85 : 1.2 }));
     // 남아시아: 뒤뜰 소품이 크다 (쇠똥 떡 더미·볏짚 가리·베틀·흙 담) — 가까운 높은 소품도 가림 검사에 넣어 아이·무릎 꿇은 사람을 가리지 않게

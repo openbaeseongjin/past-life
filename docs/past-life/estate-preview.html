@@ -69,9 +69,9 @@ async function updateLife() {
     area: curArea,
     household: curHousehold,
     sex: 'm',
-    seed: 1329,
+    seed: +(Q.get('seed') || 1329),
   });
-  stage.setAge(30, curYear);
+  stage.setAge(+(Q.get('age') || 30), curYear);
   await stage.whenReady();
   stage.debugView(curView);
   if (load) load.style.display = 'none';
