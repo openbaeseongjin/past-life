@@ -746,7 +746,9 @@ export function createUI({ lang, robot = false, fast = false }) {
     const common = commonEnd(contextOf(d.year, b.area, b.household), L, { area: b.area, present: now, cause: d.cause });
     const first = soul ? `<button class="primary" data-v="${ended ? 'lineage' : 'next'}">${esc(ended ? t(L, 'toLineage') : t(L, 'nextBtn'))}</button>`
       : `<button class="primary" data-v="title">${esc(t(L, 'toTitle'))}</button>`;
-    show(screen, `<article class="doc ${now ? '' : 'death'}"><header class="doc-head"><span>${esc(t(L, now ? 'presentDoc' : 'deathDoc'))}</span><span class="mono">No. ${esc(b.seed)}</span></header>
+    const quickBtn = soul ? `<button class="quick-act" data-v="${ended ? 'lineage' : 'next'}">${esc(ended ? t(L, 'toLineage') : t(L, 'nextBtn'))} →</button>`
+      : `<button class="quick-act" data-v="title">${esc(t(L, 'toTitle'))} →</button>`;
+    show(screen, `<article class="doc ${now ? '' : 'death'}"><header class="doc-head"><span>${esc(t(L, now ? 'presentDoc' : 'deathDoc'))}</span><div class="head-actions"><span class="mono">No. ${esc(b.seed)}</span>${quickBtn}</div></header>
       <div class="doc-body">
         <p class="eyebrow">${esc(soul ? t(L, 'nth', soul.lives.length) : t(L, 'practice'))}</p>
         <h2>${esc(spanText(b, d, L))} · ${esc(t(L, 'age', d.age))} · ${esc(AREAS[b.area].short[L])}</h2>

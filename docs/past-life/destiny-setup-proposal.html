@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>운명의 제단 · 출생 리롤 & 능력 투자 기획안</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #ece5d8;
+      --card: #fbf7ee;
+      --paper: #f6efe2;
+      --ink: #121329;
+      --ink-soft: #2a2e4d;
+      --line: #ded3be;
+      --gold: #e2b65e;
+      --gold2: #b58428;
+      --gold-glow: rgba(226, 182, 94, 0.35);
+      --c-health: #428255;
+      --c-wealth: #b87b28;
+      --c-know: #2c5985;
+      --c-luck: #7b4282;
+      --shadow: rgba(18, 19, 41, 0.12);
+      --serif: "Gowun Batang", serif;
+      --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px 16px 40px;
+      background: var(--bg);
+      color: var(--ink);
+      font: 14px/1.6 var(--ui);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      width: 100%;
+      max-width: 760px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    header.header {
+      text-align: center;
+      padding: 10px 0;
+    }
+    .eyebrow {
+      color: var(--gold2);
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 0 0 4px;
+    }
+    h1 {
+      font: 700 28px/1.3 var(--serif);
+      margin: 0;
+      color: var(--ink);
+    }
+    p.sub {
+      margin: 6px 0 0;
+      color: var(--ink-soft);
+      font-size: 14.5px;
+    }
+
+    /* 운명 요약 카드 */
+    .card-destiny {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px var(--shadow);
+      position: relative;
+    }
+    .destiny-head {
+      background: var(--ink);
+      color: var(--gold);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+    }
+    .destiny-body {
+      padding: 20px 24px;
+      display: grid;
+      gap: 16px;
+    }
+    .destiny-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .destiny-title {
+      font: 700 24px/1.3 var(--serif);
+      margin: 0;
+      color: var(--ink);
+    }
+    .destiny-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(226, 182, 94, 0.16);
+      color: var(--gold2);
+      border: 1px solid rgba(226, 182, 94, 0.4);
+    }
+    .tag.hazard {
+      background: rgba(184, 60, 60, 0.1);
+      color: #a42c2c;
+      border-color: rgba(184, 60, 60, 0.3);
+    }
+
+    /* 리롤 컨트롤 */
+    .reroll-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(226, 182, 94, 0.1);
+      border: 1px dashed var(--gold);
+      border-radius: 12px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .reroll-info {
+      font-size: 13.5px;
+      color: var(--ink-soft);
+    }
+    .reroll-info b {
+      color: var(--gold2);
+      font-size: 15px;
+    }
+    .reroll-actions {
+      display: flex;
+      gap: 8px;
+    }
+    button.btn-reroll {
+      background: linear-gradient(135deg, #1f2347, #353b6e);
+      color: var(--gold);
+      border: 1.5px solid var(--gold);
+      border-radius: 10px;
+      padding: 8px 18px;
+      font: 700 14px var(--serif);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(226, 182, 94, 0.2);
+      transition: all 0.2s ease;
+    }
+    button.btn-reroll:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(226, 182, 94, 0.4);
+      background: linear-gradient(135deg, #282e5c, #444c8c);
+    }
+    button.btn-reroll:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(0.8);
+    }
+    button.btn-undo {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--ink-soft);
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    button.btn-undo:hover:not(:disabled) {
+      background: #fff;
+      border-color: var(--ink);
+    }
+    button.btn-undo:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* 환생의 불씨 (능력 투자) 카드 */
+    .card-investment {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 24px var(--shadow);
+      display: grid;
+      gap: 20px;
+    }
+    .investment-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 16px;
+    }
+    .ember-display {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ember-icons {
+      display: flex;
+      gap: 5px;
+    }
+    .ember-pip {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 10px var(--gold-glow);
+      transition: all 0.25s ease;
+    }
+    .ember-pip.empty {
+      background: var(--line);
+      box-shadow: none;
+      transform: scale(0.85);
+      opacity: 0.6;
+    }
+    .ember-text {
+      font: 700 16px var(--serif);
+      color: var(--gold2);
+    }
+
+    /* 프리셋 버튼 */
+    .preset-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .preset-label {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      font-weight: 600;
+    }
+    button.btn-preset {
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    button.btn-preset:hover {
+      border-color: var(--gold2);
+      color: var(--gold2);
+      background: rgba(226, 182, 94, 0.08);
+    }
+    button.btn-preset.active {
+      background: var(--ink);
+      color: var(--gold);
+      border-color: var(--ink);
+    }
+
+    /* 능력치 그리드 */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 14px;
+    }
+    .stat-row {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      transition: border-color 0.2s ease;
+    }
+    .stat-row:hover {
+      border-color: rgba(226, 182, 94, 0.7);
+    }
+    .stat-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 14.5px;
+      color: var(--ink);
+    }
+    .stat-icon {
+      font-size: 16px;
+    }
+    .stat-desc {
+      font-size: 12px;
+      color: var(--ink-soft);
+      grid-column: 1 / -1;
+      margin-top: -4px;
+    }
+    .stat-stepper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .stepper-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--ink);
+      font-weight: bold;
+      font-size: 15px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: all 0.15s;
+    }
+    .stepper-btn:hover:not(:disabled) {
+      background: var(--gold);
+      color: #121329;
+      border-color: var(--gold);
+    }
+    .stepper-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .stat-val-box {
+      min-width: 65px;
+      text-align: right;
+      font-family: ui-monospace, monospace;
+    }
+    .stat-base {
+      font-size: 14px;
+      color: var(--ink-soft);
+    }
+    .stat-invest {
+      font-weight: 700;
+      color: #2e7d32;
+      font-size: 13px;
+    }
+    .stat-bar-outer {
+      grid-column: 1 / -1;
+      height: 6px;
+      background: #f0ebe1;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 2px;
+      position: relative;
+    }
+    .stat-bar-base {
+      height: 100%;
+      background: var(--gold2);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .stat-bar-invest {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      background: #4caf50;
+      border-radius: 0 3px 3px 0;
+      transition: left 0.3s ease, width 0.3s ease;
+    }
+
+    /* 하단 시작 버튼 */
+    .cta-bar {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    button.btn-start {
+      width: 100%;
+      max-width: 500px;
+      min-height: 52px;
+      font: 700 18px var(--serif);
+      letter-spacing: 0.04em;
+      background: linear-gradient(135deg, var(--gold), #caa049);
+      color: #121329;
+      border: 1.5px solid #fff;
+      border-radius: 14px;
+      box-shadow: 0 6px 20px var(--gold-glow);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    button.btn-start:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px var(--gold-glow);
+      background: linear-gradient(135deg, #f0c66e, #d8ac53);
+    }
+
+    /* 리롤 주사위 연출용 모달/토스트 */
+    .dice-anim {
+      animation: diceRoll 0.45s ease-in-out;
+    }
+    @keyframes diceRoll {
+      0% { opacity: 0.4; transform: scale(0.96); filter: blur(2px); }
+      50% { opacity: 0.8; transform: scale(1.02); filter: blur(1px); }
+      100% { opacity: 1; transform: scale(1); filter: blur(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <p class="eyebrow">영혼의 여정 · 환생 준비</p>
+      <h1>운명의 제단 (Altar of Destiny)</h1>
+      <p class="sub">새 생으로 들어가기 전, 주어진 운명을 다시 굴리거나 영혼의 불씨를 원하는 재능에 배분할 수 있습니다.</p>
+    </header>
+
+    <!-- 1. 점지된 운명 카드 -->
+    <article class="card-destiny" id="destinyCard">
+      <div class="destiny-head">
+        <span>점지된 탄생 운명</span>
+        <span class="mono" id="destinySeed">No. 9CRM-WNXG-1</span>
+      </div>
+      <div class="destiny-body">
+        <div class="destiny-main">
+          <div>
+            <h2 class="destiny-title" id="destinySpan">기원전 1340년 · 고대 이란 고원</h2>
+            <div class="destiny-tags" id="destinyTags">
+              <span class="tag">고기잡이 집안</span>
+              <span class="tag">둘째 아들</span>
+              <span class="tag hazard">5세 미만 사망률 46%</span>
+              <span class="tag">기대수명 28세</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 리롤 컨트롤 영역 -->
+        <div class="reroll-bar">
+          <div class="reroll-info">
+            운명 다시 굴리기 기회: <b id="rerollCount">3 / 3 회</b>
+            <span style="display:block;font-size:12px;color:#8d7959">마음에 들지 않는 시대나 혹독한 운명이라면 다시 뽑을 수 있습니다.</span>
+          </div>
+          <div class="reroll-actions">
+            <button class="btn-undo" id="btnUndo" disabled title="직전 운명으로 복원">↩ 이전 운명</button>
+            <button class="btn-reroll" id="btnReroll">🎲 운명 다시 굴리기</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 2. 환생의 불씨 (능력치 및 스탯 투자) -->
+    <section class="card-investment">
+      <div class="investment-head">
+        <div>
+          <h2 style="font:700 20px/1.3 var(--serif);margin:0">환생의 불씨 (Embers of Rebirth)</h2>
+          <span style="font-size:13px;color:var(--ink-soft)">남은 불씨를 원하는 재능이나 생존력에 나누어 담으세요.</span>
+        </div>
+        <div class="ember-display">
+          <div class="ember-icons" id="emberPips">
+            <div class="ember-pip"></div>
+            <div class="ember-pip"></div>
+            <div class="ember-pip"></div>
+            <div class="ember-pip"></div>
+            <div class="ember-pip"></div>
+          </div>
+          <span class="ember-text"><span id="embersLeft">5</span> pt</span>
+        </div>
+      </div>
+
+      <!-- 추천 프리셋 -->
+      <div class="preset-bar">
+        <span class="preset-label">추천 프리셋:</span>
+        <button class="btn-preset" data-preset="survive">🛡️ 생존형 (건강+2, 행운+2, 친화+1)</button>
+        <button class="btn-preset" data-preset="scholar">📜 학자형 (지식+3, 친화+1, 행운+1)</button>
+        <button class="btn-preset" data-preset="craft">🔨 장인형 (손재주+3, 부+1, 행운+1)</button>
+        <button class="btn-preset" data-preset="reset">↺ 초기화</button>
+      </div>
+
+      <!-- 능력치 및 스탯 배분 그리드 -->
+      <div class="stat-grid">
+        <!-- 행운 -->
+        <div class="stat-row" data-stat="luck">
+          <div class="stat-name"><span class="stat-icon">🍀</span> 행운 (Luck)</div>
+          <div class="stat-stepper">
+            <button class="stepper-btn minus" disabled>−</button>
+            <div class="stat-val-box">
+              <span class="stat-base" id="val-luck">50</span>
+              <span class="stat-invest" id="inv-luck"></span>
+            </div>
+            <button class="stepper-btn plus">+</button>
+          </div>
+          <div class="stat-desc">불운한 질병·사고를 모면하고, 갈림길 위험 선택 성공률 보정 (+0.1~0.2)</div>
+          <div class="stat-bar-outer">
+            <div class="stat-bar-base" id="bar-base-luck" style="width: 50%;"></div>
+            <div class="stat-bar-invest" id="bar-inv-luck" style="left: 50%; width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- 친화력 -->
+        <div class="stat-row" data-stat="charm">
+          <div class="stat-name"><span class="stat-icon">🤝</span> 친화력 (Charm)</div>
+          <div class="stat-stepper">
+            <button class="stepper-btn minus" disabled>−</button>
+            <div class="stat-val-box">
+              <span class="stat-base" id="val-charm">45</span>
+              <span class="stat-invest" id="inv-charm"></span>
+            </div>
+            <button class="stepper-btn plus">+</button>
+          </div>
+          <div class="stat-desc">혼인·자녀 확률 증가, 이웃 유대 및 가족과 함께할 때 행복 회복 배율 상승</div>
+          <div class="stat-bar-outer">
+            <div class="stat-bar-base" id="bar-base-charm" style="width: 45%;"></div>
+            <div class="stat-bar-invest" id="bar-inv-charm" style="left: 45%; width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- 지식 -->
+        <div class="stat-row" data-stat="know">
+          <div class="stat-name"><span class="stat-icon">📖</span> 지식 (Knowledge)</div>
+          <div class="stat-stepper">
+            <button class="stepper-btn minus" disabled>−</button>
+            <div class="stat-val-box">
+              <span class="stat-base" id="val-know">15</span>
+              <span class="stat-invest" id="inv-know"></span>
+            </div>
+            <button class="stepper-btn plus">+</button>
+          </div>
+          <div class="stat-desc">배움 성장 가속, 60 도달 시 글을 읽을 수 있게 되어(문해력) 특수 진로 개척</div>
+          <div class="stat-bar-outer">
+            <div class="stat-bar-base" id="bar-base-know" style="width: 15%;"></div>
+            <div class="stat-bar-invest" id="bar-inv-know" style="left: 15%; width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- 손재주 -->
+        <div class="stat-row" data-stat="skill">
+          <div class="stat-name"><span class="stat-icon">🛠️</span> 손재주 (Skill)</div>
+          <div class="stat-stepper">
+            <button class="stepper-btn minus" disabled>−</button>
+            <div class="stat-val-box">
+              <span class="stat-base" id="val-skill">40</span>
+              <span class="stat-invest" id="inv-skill"></span>
+            </div>
+            <button class="stepper-btn plus">+</button>
+          </div>
+          <div class="stat-desc">생계 노동 품삯 배율 증가, 장인·기술 관련 이벤트 성공률 대폭 상승</div>
+          <div class="stat-bar-outer">
+            <div class="stat-bar-base" id="bar-base-skill" style="width: 40%;"></div>
+            <div class="stat-bar-invest" id="bar-inv-skill" style="left: 40%; width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- 건강 수호 -->
+        <div class="stat-row" data-stat="health">
+          <div class="stat-name"><span class="stat-icon">❤️</span> 강인한 숨결 (Health)</div>
+          <div class="stat-stepper">
+            <button class="stepper-btn minus" disabled>−</button>
+            <div class="stat-val-box">
+              <span class="stat-base" id="val-health">50</span>
+              <span class="stat-invest" id="inv-health"></span>
+            </div>
+            <button class="stepper-btn plus">+</button>
+          </div>
+          <div class="stat-desc">유아기(0~4세) 열병·역병 저항력 강화 (영아 사망률 극복에 필수)</div>
+          <div class="stat-bar-outer">
+            <div class="stat-bar-base" id="bar-base-health" style="width: 50%;"></div>
+            <div class="stat-bar-invest" id="bar-inv-health" style="left: 50%; width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- 가계 수호 -->
+        <div class="stat-row" data-stat="wealth">
+          <div class="stat-name"><span class="stat-icon">🪙</span> 숨겨둔 복채 (Wealth)</div>
+          <div class="stat-stepper">
+            <button class="stepper-btn minus" disabled>−</button>
+            <div class="stat-val-box">
+              <span class="stat-base" id="val-wealth">35</span>
+              <span class="stat-invest" id="inv-wealth"></span>
+            </div>
+            <button class="stepper-btn plus">+</button>
+          </div>
+          <div class="stat-desc">가난한 집안에서 태어나도 초기 식량과 생계 궁핍을 완화하는 비상금</div>
+          <div class="stat-bar-outer">
+            <div class="stat-bar-base" id="bar-base-wealth" style="width: 35%;"></div>
+            <div class="stat-bar-invest" id="bar-inv-wealth" style="left: 35%; width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 시작하기 CTA -->
+    <div class="cta-bar">
+      <button class="btn-start" id="btnStart">이 운명으로 삶 시작하기 ➔</button>
+      <span style="font-size:12.5px;color:var(--ink-soft)">결정한 능력치와 운명으로 출생 서류를 작성하고 3D 마을로 들어섭니다.</span>
+    </div>
+  </div>
+
+  <script type="module">
+    // 실제 모듈 동적 로드 시뮬레이션
+    let birthMod, placesMod, householdsMod, lifetableMod;
+    try {
+      birthMod = await import('./birth.js');
+      placesMod = await import('./places.js');
+      householdsMod = await import('./households.js');
+      lifetableMod = await import('./lifetable.js');
+    } catch (e) {
+      console.warn('Standalone demo mode without module access:', e);
+    }
+
+    const FATES_POOL = [
+      { year: -1340, area: 'ir', areaName: '이란 고원', eraName: '고대', house: '고기잡이 집안', role: '둘째 아들', u5: 46, e0: 28, seed: '9CRM-WNXG-1',
+        base: { luck: 50, charm: 45, know: 15, skill: 40, health: 50, wealth: 35 } },
+      { year: 1542, area: 'ko', areaName: '조선 반도', eraName: '조선 전기', house: '서당 훈장 집안', role: '장남', u5: 38, e0: 32, seed: '7KOR-JOSE-2',
+        base: { luck: 62, charm: 55, know: 30, skill: 35, health: 52, wealth: 45 } },
+      { year: 1888, area: 'en', areaName: '잉글랜드 서퍽', eraName: '빅토리아 시대', house: '방직 공장 노동자', role: '셋째 딸', u5: 24, e0: 44, seed: '4ENG-VICT-5',
+        base: { luck: 40, charm: 50, know: 22, skill: 58, health: 48, wealth: 30 } },
+      { year: 950, area: 'in', areaName: '인도 갠지스 유역', eraName: '중세 남아시아', house: '도자기 장인 집안', role: '외동딸', u5: 42, e0: 30, seed: '3IND-GANJ-8',
+        base: { luck: 55, charm: 60, know: 18, skill: 52, health: 54, wealth: 40 } },
+      { year: 1210, area: 'cn', areaName: '몽골 초원', eraName: '유목 제국기', house: '말 치는 유목민', role: '막내아들', u5: 44, e0: 29, seed: '2MNG-STEP-4',
+        base: { luck: 68, charm: 42, know: 12, skill: 65, health: 58, wealth: 38 } }
+    ];
+
+    let currentFateIndex = 0;
+    let fateHistory = [];
+    let rerollsLeft = 3;
+    let totalEmbers = 5;
+    let investments = { luck: 0, charm: 0, know: 0, skill: 0, health: 0, wealth: 0 };
+    const STAT_STEPS = { luck: 10, charm: 10, know: 8, skill: 10, health: 8, wealth: 8 };
+
+    function currentFate() {
+      return FATES_POOL[currentFateIndex];
+    }
+
+    function renderFate() {
+      const f = currentFate();
+      const card = document.getElementById('destinyCard');
+      card.classList.remove('dice-anim');
+      void card.offsetWidth;
+      card.classList.add('dice-anim');
+
+      document.getElementById('destinySeed').textContent = `No. ${f.seed}`;
+      const yearStr = f.year < 0 ? `기원전 ${-f.year}년` : `${f.year}년`;
+      document.getElementById('destinySpan').textContent = `${yearStr} · ${f.eraName} ${f.areaName}`;
+
+      const tagsEl = document.getElementById('destinyTags');
+      tagsEl.innerHTML = `
+        <span class="tag">${f.house}</span>
+        <span class="tag">${f.role}</span>
+        <span class="tag hazard">5세 미만 사망률 ${f.u5}%</span>
+        <span class="tag">기대수명 ${f.e0}세</span>
+      `;
+
+      document.getElementById('rerollCount').textContent = `${rerollsLeft} / 3 회`;
+      document.getElementById('btnReroll').disabled = rerollsLeft <= 0;
+      document.getElementById('btnUndo').disabled = fateHistory.length === 0;
+
+      updateStatUI();
+    }
+
+    function updateStatUI() {
+      const f = currentFate();
+      let used = 0;
+      for (const k in investments) used += investments[k];
+      const left = totalEmbers - used;
+      document.getElementById('embersLeft').textContent = left;
+
+      // 불씨 아이콘 갱신
+      const pips = document.querySelectorAll('.ember-pip');
+      pips.forEach((pip, i) => {
+        if (i < left) pip.classList.remove('empty');
+        else pip.classList.add('empty');
+      });
+
+      // 스탯 갱신
+      for (const k in investments) {
+        const base = f.base[k];
+        const inv = investments[k];
+        const added = inv * STAT_STEPS[k];
+        const total = Math.min(100, base + added);
+
+        document.getElementById(`val-${k}`).textContent = base;
+        const invEl = document.getElementById(`inv-${k}`);
+        invEl.textContent = inv > 0 ? `+${added} (최종 ${total})` : '';
+
+        const barBase = document.getElementById(`bar-base-${k}`);
+        const barInv = document.getElementById(`bar-inv-${k}`);
+        barBase.style.width = `${base}%`;
+        barInv.style.left = `${base}%`;
+        barInv.style.width = `${Math.min(100 - base, added)}%`;
+
+        const row = document.querySelector(`.stat-row[data-stat="${k}"]`);
+        row.querySelector('.stepper-btn.minus').disabled = inv <= 0;
+        row.querySelector('.stepper-btn.plus').disabled = left <= 0 || total >= 100;
+      }
+    }
+
+    // 리롤 버튼 클릭
+    document.getElementById('btnReroll').addEventListener('click', () => {
+      if (rerollsLeft <= 0) return;
+      rerollsLeft--;
+      fateHistory.push(currentFateIndex);
+      currentFateIndex = (currentFateIndex + 1) % FATES_POOL.length;
+      renderFate();
+    });
+
+    // 언두 버튼 클릭
+    document.getElementById('btnUndo').addEventListener('click', () => {
+      if (fateHistory.length === 0) return;
+      currentFateIndex = fateHistory.pop();
+      rerollsLeft++;
+      renderFate();
+    });
+
+    // 스텝퍼 +/- 버튼 핸들러
+    document.querySelectorAll('.stat-row').forEach(row => {
+      const stat = row.dataset.stat;
+      row.querySelector('.stepper-btn.plus').addEventListener('click', () => {
+        let used = 0;
+        for (const k in investments) used += investments[k];
+        if (totalEmbers - used <= 0) return;
+        investments[stat]++;
+        updateStatUI();
+      });
+      row.querySelector('.stepper-btn.minus').addEventListener('click', () => {
+        if (investments[stat] <= 0) return;
+        investments[stat]--;
+        updateStatUI();
+      });
+    });
+
+    // 프리셋 버튼
+    document.querySelectorAll('.btn-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = btn.dataset.preset;
+        document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+        if (p === 'reset') {
+          investments = { luck: 0, charm: 0, know: 0, skill: 0, health: 0, wealth: 0 };
+        } else if (p === 'survive') {
+          btn.classList.add('active');
+          investments = { luck: 2, charm: 1, know: 0, skill: 0, health: 2, wealth: 0 };
+        } else if (p === 'scholar') {
+          btn.classList.add('active');
+          investments = { luck: 1, charm: 1, know: 3, skill: 0, health: 0, wealth: 0 };
+        } else if (p === 'craft') {
+          btn.classList.add('active');
+          investments = { luck: 1, charm: 0, know: 0, skill: 3, health: 0, wealth: 1 };
+        }
+        updateStatUI();
+      });
+    });
+
+    // 삶 시작하기 클릭
+    document.getElementById('btnStart').addEventListener('click', () => {
+      const f = currentFate();
+      alert(`[운명 확정]\n- 출생: ${f.year}년 ${f.areaName} (${f.house} ${f.role})\n- 투자: ${JSON.stringify(investments)}\n\n이 설정으로 출생 서류를 작성하고 3D 마을로 진입합니다!`);
+    });
+
+    // 최초 렌더링
+    renderFate();
+  </script>
+</body>
+</html>
