@@ -13,6 +13,7 @@ test('KIT_DIMS 가 Blender 세트 크기(england.dims.json)와 0.15 m 안에서 
     assert.ok(Math.abs(x - bx) <= 0.15 && Math.abs(z - bz) <= 0.15, `${name}: KIT_DIMS [${x}, ${z}] ≠ Blender [${bx}, ${bz}]`);
   }
   for (const list of Object.values(KIT_POOL)) for (const p of list) assert.ok(p in pieces, `주머니의 ${p} 가 세트에 없다`);
+  assert.ok('manor' in pieces, 'manor 가 없다');
 });
 
 test('PROP_DIMS 가 Blender 소품 세트 크기(props_england.dims.json)와 0.15 m 안에서 같다', () => {
@@ -49,7 +50,7 @@ function sameDims(table, rel, n) {
 
 test('남아시아 건물 KIT_DIMS_SA 가 southasia.dims.json 과 0.15 m 안에서 같고, 주머니의 조각이 모두 세트에 있다', () => {
   const pieces = sameDims(KIT_DIMS_SA, '../assets/real/kits/southasia.dims.json', 2);
-  for (const name of ['hut_mud_a', 'hut_mud_b', 'house_courtyard', 'house_town', 'temple_small', 'shrine_tree', 'well_step', 'granary', 'market_stall_sa']) assert.ok(name in pieces, `${name} 가 없다`);
+  for (const name of ['hut_mud_a', 'hut_mud_b', 'house_courtyard', 'house_town', 'temple_small', 'shrine_tree', 'well_step', 'granary', 'market_stall_sa', 'haveli']) assert.ok(name in pieces, `${name} 가 없다`);
   for (const list of Object.values(KIT_POOL_SA)) for (const p of list) assert.ok(p in pieces, `주머니의 ${p} 가 세트에 없다`);
 });
 
@@ -163,7 +164,7 @@ test('동아시아 건물 크기 표 셋(중국·한국·일본)이 각 dims.jso
   for (const [file, table] of EA_KITS) {
     const pieces = sameDims(table, `../assets/real/kits/${file}.dims.json`, 2);
     assert.deepEqual(Object.keys(table).sort(), Object.keys(KIT_DIMS_EA).sort(), `${file}: 조각 이름`);
-    for (const name of ['house_thatch_ea', 'house_tile_ea', 'house_town_ea', 'temple_ea', 'pagoda_small', 'gate_ea', 'well_ea', 'granary_ea', 'pit_house_ea', 'camp_hearth']) assert.ok(name in pieces, `${file}: ${name}`);
+    for (const name of ['house_thatch_ea', 'house_tile_ea', 'house_town_ea', 'temple_ea', 'pagoda_small', 'gate_ea', 'well_ea', 'granary_ea', 'pit_house_ea', 'camp_hearth', 'courtyard_estate']) assert.ok(name in pieces, `${file}: ${name}`);
     for (const list of Object.values(KIT_POOL_EA)) for (const p of list) assert.ok(p in pieces, `주머니의 ${p}`);
   }
   assert.equal(KIT_SETS.eastasia.dims, KIT_DIMS_EA);

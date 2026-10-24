@@ -26,11 +26,11 @@ const doc = await io.read(inPath);
 await doc.transform(
   dedup(),
   prune({ keepLeaves: true, keepAttributes: true }),
-  textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [2048, 2048], quality: 88, slots: /^occlusionTexture$/ }),
-  textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [1024, 1024], quality: 80, slots: /^baseColorTexture$/ }),
-  // 노멀: 가까이서 결이 중요한 초가·돌·슬레이트·나무는 1K, 나머지(회벽·흙벽·자갈·천·판자)는 512
-  textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [512, 512], quality: 80, slots: /^normalTexture$/, pattern: /plaster|clay|cobble|linen|planks/ }),
-  textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [1024, 1024], quality: 80, slots: /^normalTexture$/, pattern: /^(?!.*(plaster|clay|cobble|linen|planks))/ }),
+  textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [2048, 2048], quality: 80, slots: /^occlusionTexture$/ }),
+  textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [1024, 1024], quality: 78, slots: /^baseColorTexture$/ }),
+  // 노멀: 가까이서 결이 중요한 초가·돌·슬레이트·나무는 1K, 나머지(회벽·흙벽·자갈·천·판자·벽돌·막돌·바닥·기와)는 512
+  textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [512, 512], quality: 80, slots: /^normalTexture$/, pattern: /plaster|clay|cobble|linen|plank|broken_wall|japanese_stone|brick_wall|weathered|hinoki|rubble|granite|earth|floor|boards|roof_tile/ }),
+  textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [1024, 1024], quality: 80, slots: /^normalTexture$/, pattern: /^(?!.*(plaster|clay|cobble|linen|plank|broken_wall|japanese_stone|brick_wall|weathered|hinoki|rubble|granite|earth|floor|boards|roof_tile))/ }),
   meshopt({ encoder: MeshoptEncoder, level: 'high' }),
 );
 // 결과를 늘 같게: 생성기 문자열 고정

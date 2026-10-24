@@ -1109,12 +1109,104 @@ def market_stall():
     return P
 
 
-BUILDERS = [cottage_a, cottage_b, cottage_c, house_jetty, longhouse, barn, smithy, church, mill, well, market_stall]
+def manor():
+    """중세 장원 영주 저택: 그레이트 홀(높은 석조 본채·아치 창) + 솔라 윙(2층 돌출 침소) + 서비스 윙 + 아치 포치 입구 + 굴뚝 2개."""
+    P = Piece('manor', 901)
+    A = 'stone_ashlar'
+    R = 'stone_rubble'
+
+    # ── 1. 그레이트 홀 본채 (가운데 석조 대연회장) ──
+    hx0, hx1, hy0, hy1 = -5.5, 4.0, -3.0, 3.0
+    Hh, ph = 4.8, 50
+    plinth(P, hx0, hx1, hy0, hy1, top=0.45, out=0.08)
+    quoins(P, hx0, hx1, hy0, hy1, 0.45, Hh, mat=A, hb=0.32)
+
+    cuts_h = []
+    Fhf, Fhb = Face(P, '-y', hy0), Face(P, '+y', hy1)
+    # 홀 아치 고딕 창문 3개
+    for wx in (-3.5, -1.5, 0.5):
+        lancet(Fhf, cuts_h, wx, 0.75, 1.8, 4.0, 0.38)
+    for wx in (-3.0, -0.5):
+        lancet(Fhb, cuts_h, Fhb.loc(wx), 0.75, 1.8, 4.0, 0.38)
+
+    # 입구 문 자리 (포치 안쪽 통로)
+    cuts_h.append(Fhf.cutter(1.5, 2.7, 0.4, 2.4, 0.4, arch=True))
+    Fhf.box(1.5, 2.7, 0.35, 0.4, 0.38, 3.2, 'planks', tile=1.6)
+
+    wall_solid(P, [prism_vf(gable_profile(hy0, hy1, Hh, ph, 0.3), 'x', hx0, hx1)], R, cuts_h)
+    slate_roof(P, hx1 - hx0, hy1 - hy0, Hh, ph, oE=0.35, oG=0.3, cy=(hy0 + hy1) / 2)
+
+    # ── 2. 서쪽 솔라 윙 (영주 가족 주거 2층, 앞뒤로 돌출) ──
+    sx0, sx1, sy0, sy1 = -7.6, -4.6, -4.4, 4.0
+    Hs1, Hs2, ps = 2.8, 5.5, 52
+    plinth(P, sx0, sx1, sy0, sy1, top=0.45, out=0.08)
+    quoins(P, sx0, sx1, sy0, sy1, 0.45, Hs1, mat=A, hb=0.3)
+
+    # 1층 석조
+    cuts_s1 = []
+    Fsf, Fsb, Fsl = Face(P, '-y', sy0), Face(P, '+y', sy1), Face(P, '-x', sx0)
+    window(Fsf, cuts_s1, Fsf.loc(-6.1), 0.85, 1.1, 1.95, 0.3)
+    window(Fsl, cuts_s1, Fsl.loc(0.0), 0.85, 1.1, 1.95, 0.3)
+    wall_solid(P, [box_vf(sx0, sx1, sy0, sy1, 0.3, Hs1)], R, cuts_s1)
+
+    # 2층 팀버 프레임 + 석회 회벽
+    zu_s = Hs1 + 0.15
+    P.box(sx0, sx1, sy0, sy1, Hs1, zu_s, 'planks', tile=1.6)
+
+    cuts_s2 = []
+    Usf, Usb, Usl = Face(P, '-y', sy0), Face(P, '+y', sy1), Face(P, '-x', sx0)
+    # 2층 창문
+    window(Usf, cuts_s2, Usf.loc(-6.1), 1.0, zu_s + 0.8, zu_s + 1.8, 0.25, shutters='open')
+    frame_wall(Usf, sx0, sx1, zu_s, Hs2, [(sx0 + 0.6, sx1 - 0.6, zu_s + 0.8, zu_s + 1.8)], close=True)
+    window(Usl, cuts_s2, Usl.loc(-1.5), 0.8, zu_s + 0.8, zu_s + 1.6, 0.25)
+    window(Usl, cuts_s2, Usl.loc(1.5), 0.8, zu_s + 0.8, zu_s + 1.6, 0.25)
+    frame_wall(Usl, sy0, sy1, zu_s, Hs2, [])
+
+    zr_s = Hs2 + (sx1 - sx0) / 2 * TP(ps)
+    gable_frame(Usf, sx0, sx1, Hs2, zr_s)
+    gable_frame(Usb, sx0, sx1, Hs2, zr_s)
+
+    wall_solid(P, [prism_vf(gable_profile(sx0, sx1, Hs2, ps, zu_s), 'y', sy0, sy1)], 'plaster_lime', cuts_s2)
+    Rz_s = Matrix.Translation(((sx0 + sx1) / 2, 0, 0)) @ Matrix.Rotation(rad(90), 4, 'Z')
+    slate_roof(P, sy1 - sy0, sx1 - sx0, Hs2, ps, oE=0.35, oG=0.28, matrix=Rz_s, barge=(False, False))
+
+    # ── 3. 동쪽 서비스 윙 (하인·주방·식료품 저장고, 단층 석조) ──
+    kx0, kx1, ky0, ky1 = 4.0, 7.8, -2.5, 2.5
+    Hk, pk = 3.6, 48
+    plinth(P, kx0, kx1, ky0, ky1, top=0.45, out=0.06)
+    cuts_k = []
+    Fkf, Fkr, Fkb = Face(P, '-y', ky0), Face(P, '+x', kx1), Face(P, '+y', ky1)
+    # 동쪽 하인 출입문
+    door(Fkr, cuts_k, 0.0, 0.95, 2.0, 0.45, 0.32, wall='stone')
+    window(Fkf, cuts_k, Fkf.loc(5.8), 0.75, 1.2, 1.9, 0.3)
+    window(Fkb, cuts_k, Fkb.loc(5.8), 0.75, 1.2, 1.9, 0.3)
+    wall_solid(P, [prism_vf(gable_profile(ky0, ky1, Hk, pk, 0.3), 'x', kx0, kx1)], R, cuts_k)
+    slate_roof(P, kx1 - kx0, ky1 - ky0, Hk, pk, oE=0.32, oG=0.28, cy=(ky0 + ky1) / 2)
+
+    # ── 4. 입구 포치 (Entrance Porch, 아치 포털) ──
+    px0, px1, py0, py1 = 1.1, 3.1, -4.4, -3.0
+    Hp, pp = 3.5, 52
+    plinth(P, px0, px1, py0, py1, top=0.45, out=0.05)
+    cuts_p = []
+    Fpf = Face(P, '-y', py0)
+    cuts_p.append(Fpf.cutter(1.4, 2.8, 0.45, 2.5, 0.5, arch=True))
+    wall_solid(P, [prism_vf(gable_profile(px0, px1, Hp, pp, 0.3), 'y', py0, py1)], A, cuts_p)
+    Rz_p = Matrix.Translation(((px0 + px1) / 2, 0, 0)) @ Matrix.Rotation(rad(90), 4, 'Z')
+    slate_roof(P, py1 - py0, px1 - px0, Hp, pp, oE=0.25, oG=0.22, matrix=Rz_p, barge=(False, False))
+
+    # ── 5. 굴뚝 2개 & 연기 마커 ──
+    chimney(P, (sx0 + sx1) / 2, sy1 + 0.35, 0.0, zr_s + 0.9, w=0.95, d=0.75, tag='_solar')
+    chimney(P, (kx0 + kx1) / 2, ky1 + 0.35, 0.0, Hh + 2.6, w=0.9, d=0.7, tag='_kitchen')
+
+    return P
+
+
+BUILDERS = [cottage_a, cottage_b, cottage_c, house_jetty, longhouse, barn, smithy, church, mill, well, market_stall, manor]
 
 
 # ───────────────────────── 실행 ─────────────────────────
 CENTER = {'barn': (0.0, 0.0), 'mill': (0.0, 0.9)}     # 문짝·바퀴 때문에 경계 상자 가운데가 몸채에서 벗어나는 조각
-CAM = {'mill': (215, 12), 'smithy': (-28, 16), 'church': (-35, 12), 'market_stall': (-30, 10)}
+CAM = {'mill': (215, 12), 'smithy': (-28, 16), 'church': (-35, 12), 'market_stall': (-30, 10), 'manor': (-35, 15)}
 
 
 def recenter(root, foot):

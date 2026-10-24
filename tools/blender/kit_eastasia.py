@@ -1390,13 +1390,279 @@ def camp_hearth():
     return P
 
 
+# ───────────────────────── 큰 집: 큰 저택 (courtyard_estate) ─────────────────────────
+def courtyard_estate():
+    """동아시아 큰 집 (대저택):
+    - 한국: 솟을대문 행랑채 + 안마당(디딤돌·장독대) + 높은 기단 팔작기와 본채(대청·툇마루) + 굴뚝
+    - 중국: 사합원 도좌방/광량대문 + 안마당(석조 수반) + 청벽돌 박공 본채(정방·화창)
+    - 일본: 나가야몬(무사실) + 안마당(토비이시·석등) + 엔가와 팔작기와 본채(슈야·쇼지)
+    """
+    P = Piece('courtyard_estate', 3114)
+    if CN:
+        return _estate_china(P)
+    if KR:
+        return _estate_korea(P)
+    return _estate_japan(P)
+
+
+def _estate_korea(P):
+    """한국 양반 종가 대저택:
+    - 앞쪽 솟을대문 행랑채: 가운데 우뚝 솟은 솟을대문(두 짝 판문 + 철물), 좌우 행랑방(띠살문, 온돌방, 광)
+    - 넓은 안마당: 디딤돌, 장독대(옹기 4개)
+    - 뒤쪽 본채: 높은 화강암 기단, 3단 계단, 가운데 넓은 대청마루(우물마루, 뒤 판문), 양옆 방 띠살문,
+      앞 툇마루, 네모 기둥과 인방, 웅장한 팔작기와 지붕(곡선·귀들림·흰 양성바름 용마루/내림마루, 막새, 서까래)
+    - 뒤뜰 전통 굴뚝 + 연기 마커
+    """
+    # 1. 앞쪽 행랑채 (y: -5.8 ~ -3.6)
+    P.box(-7.8, 7.8, -5.8, -3.6, -0.4, 0.18, 'stone', tile=1.4, bevel=0.02)
+    # 솟을대문 기둥 넷 + 들보
+    for sx in (-1, 1):
+        post(P, sx * 1.5, -5.5, 0.18, 3.4, r=0.12, mat='timber', round_=False, base='stone', base_h=0.1)
+        post(P, sx * 1.5, -3.9, 0.18, 3.4, r=0.11, mat='timber', round_=False, base='stone', base_h=0.1)
+    P.box(-1.7, 1.7, -5.6, -3.8, 3.3, 3.45, 'timber', tile=(1.6, 0.8), grain='x')
+    P.box(-1.45, 1.45, -4.75, -4.65, 2.65, 3.3, 'plaster', tile=2.0)
+    # 대문 문짝 두 짝
+    door_leaf(P, (-1.3, -4.7), 1.3, 2.45, 0.18, rad(-65), mat='planks', studs='iron')
+    door_leaf(P, (1.3, -4.7), -1.3, 2.45, 0.18, rad(-65), mat='planks', studs='iron')
+    # 솟을대문 지붕 (맞배)
+    R_gate = Roof(4.2, 3.0, 3.45, 30, 0.22, 'gable', oE=0.65, oG=0.45, curve=V['curve'], lift=V['lift'] * 0.7, cy=-4.7, seed=61)
+    tile_roof(P, R_gate, caps=False, raft=None, res=0.35, ridge_h=0.26, ridge_w=0.3)
+
+    # 좌우 행랑방
+    for sx, a, b in ((-1, -7.6, -1.5), (1, 1.5, 7.6)):
+        cuts = []
+        Ff = F_(P, '-y', -5.6)
+        if sx < 0:
+            lattice(Ff, cuts, -4.5, 1.1, 1.25, 0.55, 0.25, pattern='ttisal', frame='timber', bar='timber', leaves=2)
+            lattice(Ff, cuts, -2.8, 0.9, 1.8, 0.18, 0.25, pattern='plank', frame='timber', leaves=2)
+        else:
+            lattice(Ff, cuts, 4.5, 1.2, 1.9, 0.18, 0.25, pattern='plank', frame='timber', leaves=2)
+        wall_ok(P, [box_vf(a, b, -5.6, -3.8, 0.16, 2.65)], 'plaster', cuts, tile=2.2)
+        for x in (a, (a + b) / 2, b):
+            post(P, x, -5.6, 0.18, 2.68, r=0.1, mat='timber', round_=False, base='stone', base_h=0.08)
+            post(P, x, -3.8, 0.18, 2.68, r=0.1, mat='timber', round_=False, base='stone', base_h=0.08)
+    R_front = Roof(15.2, 2.2, 2.65, 27, 0.2, 'gable', oE=0.55, oG=0.4, curve=V['curve'], lift=V['lift'] * 0.6, cy=-4.7, seed=62)
+    tile_roof(P, R_front, caps=False, raft=None, res=0.36, ridge_h=0.24, ridge_w=0.28)
+
+    # 2. 안마당 (y: -3.6 ~ 0.7)
+    # 디딤돌 5개
+    for y in lin(-3.0, 0.4, 5):
+        P.box(-0.35, 0.35, y - 0.2, y + 0.2, -0.05, 0.05, 'stone', bevel=0.015, tile=1.2)
+    # 장독대 (안마당 동쪽)
+    P.box(4.8, 6.6, -2.0, -0.5, -0.1, 0.22, 'stone', tile=1.4, bevel=0.02)
+    crock(P, Tm(5.3, -1.5, 0.22), 1.15, 'onggi')
+    crock(P, Tm(6.1, -1.5, 0.22), 0.95, 'onggi_dark')
+    crock(P, Tm(5.7, -0.8, 0.22), 1.05, 'onggi')
+
+    # 3. 본채 사랑채/안채 (y: 0.7 ~ 6.2)
+    zb = 0.72
+    zf = zb + 0.42     # 마루 높이 1.14
+    plinth(P, -7.8, 7.8, 0.7, 6.3, -0.45, zb, mat='stone', steps=[(0.0, 2.8, '-y', 2)])
+
+    bx = [-7.2, -2.6, 0.0, 2.6, 7.2]
+    cuts = []
+    Ff = F_(P, '-y', 1.5)
+    Fb = F_(P, '+y', 5.8)
+
+    # 대청마루 (가운데 칸 x: -2.6 ~ 2.6)
+    P.box(-2.6, 2.6, 1.5, 5.8, zf - 0.1, zf, 'floor', tile=1.4)
+    # 대청 뒤 판문
+    for k in (-1, 1):
+        lattice(Fb, cuts, Fb.loc(k * 1.3), 1.3, 1.7, zf, 0.25, pattern='plank', frame='timber', leaves=2)
+
+    # 좌우 방 띠살문
+    for (a, b) in ((bx[0], bx[1]), (bx[3], bx[4])):
+        c = (a + b) / 2
+        lattice(Ff, cuts, c, 1.5, 1.45, zf + 0.4, 0.25, pattern='ttisal', frame='timber', bar='timber', leaves=2)
+        lattice(Fb, cuts, Fb.loc(c), 0.75, 0.65, zf + 0.95, 0.25, pattern='ttisal', leaves=1)
+
+    # 방 벽체 (흰 회벽)
+    wall_ok(P, [box_vf(bx[0], bx[1], 1.5, 1.66, zb - 0.02, 3.65), box_vf(bx[3], bx[4], 1.5, 1.66, zb - 0.02, 3.65)], 'plaster', cuts, tile=2.2)
+    wall_ok(P, [box_vf(-7.2, 7.2, 5.64, 5.8, zb - 0.02, 3.65)], 'plaster', cuts, tile=2.2)
+    for (a, b) in ((-7.2, -7.04), (7.04, 7.2)):
+        wall_ok(P, [box_vf(a, b, 1.5, 5.8, zb - 0.02, 3.65)], 'plaster', [], tile=2.2)
+
+    # 앞 툇마루
+    P.box(-7.2, 7.2, 0.75, 1.5, zf - 0.1, zf, 'floor', tile=1.4, bevel=0.008)
+    P.box(-7.2, 7.2, 0.73, 0.83, zb, zf - 0.1, 'timber', tile=1.0)
+
+    # 기둥 (앞 툇간 줄·벽 줄·뒤 줄) + 인방
+    for x in bx:
+        post(P, x, 0.85, zb, 3.73, r=0.12, mat='timber', round_=False, base='stone', base_h=0.12)
+        post(P, x, 1.58, zb, 3.73, r=0.11, mat='timber', round_=False, base=None)
+        post(P, x, 5.72, zb, 3.73, r=0.11, mat='timber', round_=False, base=None)
+    for y in (1.56, 5.74):
+        for z in (zf + 0.3, 3.5):
+            P.box(-7.2, 7.2, y - 0.06, y + 0.06, z - 0.07, z + 0.07, 'timber', tile=(1.6, 0.8), bevel=0.008, grain='x')
+    P.beam((-7.3, 0.85, 3.67), (7.3, 0.85, 3.67), 0.2, 0.24, 'timber')
+    for x in bx:
+        P.beam((x, 0.85, 3.57), (x, 1.58, 3.57), 0.12, 0.16, 'timber')
+
+    # 본채 팔작지붕
+    R_main = Roof(14.8, 5.6, 3.65, 31, 0.32, 'hipgable', oE=1.5, oG=1.4, curve=V['curve'], lift=V['lift'], cy=3.4, setback=1.8, seed=65)
+    tile_roof(P, R_main, caps=False, raft=('front',), res=0.36, gable_mat='timber', ridge_h=0.38, ridge_w=0.4, hip_h=0.28)
+
+    # 뒤뜰 굴뚝
+    chimney_kr(P, 6.8, 6.5, 1.6)
+    smoke(P, 'courtyard_estate', (6.8, 6.5, 2.1))
+    return P
+
+
+def _estate_china(P):
+    """중국 사합원 고택:
+    - 앞채: 청벽돌 도좌방 + 웅장한 광량대문(붉은 판문·황동 못·문루)
+    - 안마당: 청벽돌 포장 바닥 + 석조 수반/향로 + 석등
+    - 좌우 상방: 청벽돌 외벽 맞배집
+    - 뒤쪽 정방(본채): 돌 기단 + 3단 계단, 붉은 두리기둥 툇간, 정면 조각 화창, 맞배 기와지붕(치미 장식), 등롱 둘
+    - 연기 마커
+    """
+    # 1. 앞채 (도좌방 & 광량대문, y: -5.8 ~ -3.6)
+    P.box(-7.8, 7.8, -5.8, -3.6, -0.4, 0.15, 'stone', tile=1.4, bevel=0.02)
+    # 광량대문 (중앙)
+    W_gate, Hd = 2.2, 2.7
+    for sx in (-1, 1):
+        P.box(sx * (W_gate / 2) - (0.0 if sx > 0 else 0.7), sx * (W_gate / 2) + (0.7 if sx > 0 else 0.0), -5.6, -3.8, 0.15, 3.4, 'brick_grey', tile=1.4, bevel=0.01)
+    P.box(-W_gate / 2, W_gate / 2, -5.6, -3.8, Hd + 0.15, 3.4, 'brick_grey', tile=1.4)
+    pal_box(P, -0.6, 0.6, -5.62, -5.6, Hd + 0.35, Hd + 0.65, 'black')      # 편액
+    door_leaf(P, (-W_gate / 2, -4.7), W_gate / 2, Hd - 0.05, 0.15, rad(-65), mat='timber_red', studs='bronze')
+    door_leaf(P, (W_gate / 2, -4.7), -W_gate / 2, Hd - 0.05, 0.15, rad(-65), mat='timber_red', studs='bronze')
+    R_gate = Roof(4.2, 2.8, 3.5, 32, 0.24, 'gable', oE=0.6, oG=0.4, curve=V['curve'], lift=0.18, cy=-4.7, seed=71)
+    tile_roof(P, R_gate, caps=False, raft=None, res=0.35, ridge_h=0.28, ridge_w=0.32)
+
+    # 좌우 도좌방 (청벽돌)
+    for a, b in ((-7.6, -1.6), (1.6, 7.6)):
+        cuts = []
+        Ff = F_(P, '-y', -5.6)
+        lattice(Ff, cuts, (a + b) / 2, 1.4, 1.1, 1.0, 0.35, pattern='grid', frame='timber_red', bar='timber_red', leaves=2)
+        wall_ok(P, [box_vf(a, b, -5.6, -3.8, 0.15, 2.75)], 'brick_grey', cuts, tile=1.4)
+    R_front = Roof(15.2, 2.2, 2.75, 28, 0.22, 'gable', oE=0.5, oG=0.35, curve=V['curve'], lift=0.15, cy=-4.7, seed=72)
+    tile_roof(P, R_front, caps=False, raft=('front',), res=0.35, gable_mat='brick_grey')
+
+    # 2. 안마당 (y: -3.6 ~ 0.7)
+    P.box(-3.5, 3.5, -3.4, 0.7, 0.0, 0.06, 'brick_grey', tile=1.4)
+    # 중앙 석조 수반
+    P.box(-0.65, 0.65, -1.6, -0.4, 0.06, 0.45, 'stone', tile=1.0, bevel=0.02)
+    # 석등
+    P.box(3.5, 4.3, -1.8, -1.0, 0.0, 1.25, 'stone', tile=1.0, bevel=0.02)
+    P.box(3.7, 4.1, -1.6, -1.2, 1.25, 1.55, 'glass', tile=1.0)
+
+    # 3. 본채 정방 (y: 0.7 ~ 6.2)
+    zb = 0.55
+    plinth(P, -7.8, 7.8, 0.7, 6.3, -0.45, zb, mat='stone', steps=[(0.0, 2.6, '-y', 3)])
+    porch = 1.1
+    cuts = []
+    Ff = F_(P, '-y', 1.8)
+    lattice(Ff, cuts, 0.0, 2.8, 2.5, zb, 0.25, pattern='grid', frame='timber_red', bar='timber_red', leaves=4)
+    for sx in (-1, 1):
+        lattice(Ff, cuts, sx * 4.2, 2.2, 1.35, zb + 1.0, 0.25, pattern='grid', frame='timber_red', bar='timber_red', leaves=2)
+    wall_ok(P, [box_vf(-7.2, 7.2, 1.8, 2.05, zb - 0.02, 3.65)], 'timber', cuts, tile=1.2)
+    # 뒷벽 및 박공벽 (청벽돌)
+    cb = []
+    Fb = F_(P, '+y', 5.8)
+    lattice(Fb, cb, 0.0, 1.0, 0.75, zb + 1.5, 0.4, pattern='grid', frame='timber', leaves=1)
+    wall_ok(P, [box_vf(-7.2, 7.2, 5.4, 5.8, zb - 0.02, 3.65)], 'brick_grey', cb, tile=1.4)
+    for a, b in ((-7.2, -6.7), (6.7, 7.2)):
+        wall_ok(P, [box_vf(a, b, 1.8, 5.8, zb - 0.02, 3.65)], 'brick_grey', [], tile=1.4)
+
+    # 툇간 붉은 두리기둥 + 도리
+    for x in (-6.5, -4.2, -1.8, 1.8, 4.2, 6.5):
+        post(P, x, 0.85, zb, 3.7, r=0.13, mat='timber_red', base='stone', base_h=0.15)
+    P.beam((-7.3, 0.85, 3.66), (7.3, 0.85, 3.66), 0.22, 0.26, 'timber_red')
+
+    # 본채 맞배/경산지붕
+    R_main = Roof(15.2, 5.6, 3.7, 30, 0.3, 'gable', oE=1.1, oG=0.35, curve=V['curve'], lift=0.16, cy=3.4, seed=75)
+    tile_roof(P, R_main, raft=('front',), res=0.32, gable_mat='brick_grey')
+    for sx in (-1, 1):
+        pts = [(sx * 7.7, y, R_main.z_long(y) + 0.06) for y in lin(R_main.cy - R_main.ye + 0.1, R_main.cy + R_main.ye - 0.1, 14)]
+        E.ridge_line(P, pts, 0.55, 0.16, 'ridge')
+    for sx in (-1, 1):
+        lantern(P, sx * 2.2, 0.85, 3.1)
+
+    smoke(P, 'courtyard_estate', (6.5, 6.2, 4.2))
+    return P
+
+
+def _estate_japan(P):
+    """일본 무가 저택 (호농 고택):
+    - 앞채: 나가야몬(중후한 흑색 판벽 + 큰 대문 + 좌우 무사실 격자창)
+    - 안마당: 자갈 마당, 토비이시(디딤돌), 석등, 초즈바치(수반)
+    - 뒤쪽 슈야(본채): 돌 기초, 넓은 엔가와, 쇼지 미닫이문, 흰 회벽·판벽, 웅장한 이리모야 기와지붕
+    - 연기 마커
+    """
+    # 1. 앞채 나가야몬 (y: -5.8 ~ -3.6)
+    P.box(-7.8, 7.8, -5.8, -3.6, -0.4, 0.12, 'stone', tile=1.4, bevel=0.02)
+    # 중앙 대문
+    W_gate, Hd = 2.4, 2.5
+    for sx in (-1, 1):
+        post(P, sx * (W_gate / 2 + 0.12), -4.7, 0.12, 3.15, r=0.14, mat='timber', round_=False, base='stone', base_h=0.12)
+    P.box(-W_gate / 2 - 0.6, W_gate / 2 + 0.6, -4.82, -4.58, 2.75, 2.98, 'timber', tile=(1.6, 0.8), grain='x')
+    door_leaf(P, (-W_gate / 2, -4.65), W_gate / 2, Hd, 0.12, rad(-75), mat='boards')
+    door_leaf(P, (W_gate / 2, -4.65), -W_gate / 2, Hd, 0.12, rad(-75), mat='boards')
+
+    # 좌우 무사실 (흑색 판벽 + 격자창)
+    for a, b in ((-7.6, -1.6), (1.6, 7.6)):
+        cuts = []
+        Ff = F_(P, '-y', -5.6)
+        lattice(Ff, cuts, (a + b) / 2, 1.4, 1.0, 1.0, 0.25, pattern='shoji', frame='timber', bar='timber', leaves=2)
+        wall_ok(P, [box_vf(a, b, -5.6, -3.8, 0.12, 2.8)], 'boards', cuts, tile=1.4)
+    R_gate = Roof(16.0, 2.6, 2.85, 27, 0.22, 'gable', oE=0.7, oG=0.5, curve=V['curve'], lift=V['lift'], cy=-4.7, seed=81)
+    tile_roof(P, R_gate, caps=False, raft=('front',), res=0.35, ridge_h=0.25, ridge_w=0.28)
+
+    # 2. 안마당 (y: -3.6 ~ 0.7)
+    for y in lin(-3.2, 0.5, 6):
+        P.box(-0.35, 0.35, y - 0.2, y + 0.2, -0.05, 0.05, 'stone', bevel=0.015, tile=1.2)
+    # 석등
+    P.box(3.8, 4.4, -1.6, -1.0, 0.0, 0.25, 'granite', tile=1.0, bevel=0.02)
+    P.cyl(0.12, 0.12, 0.85, 'granite', n=8, matrix=Tm(4.1, -1.3, 0.25), tile=0.8)
+    P.box(3.85, 4.35, -1.55, -1.05, 1.1, 1.45, 'granite', tile=1.0)
+    P.box(3.95, 4.25, -1.45, -1.15, 1.18, 1.38, 'glass', tile=1.0)
+    # 수반 (초즈바치)
+    P.box(-4.4, -3.6, -1.6, -0.8, 0.0, 0.45, 'stone', tile=1.0, bevel=0.03)
+    P.box(-4.2, -3.8, -1.4, -1.0, 0.35, 0.46, 'water', tile=1.0)
+
+    # 3. 본채 슈야 (y: 0.7 ~ 6.2)
+    zf = 0.65
+    P.box(-7.8, 7.8, 0.7, 6.3, -0.4, 0.2, 'stone', tile=1.6, bevel=0.03)
+    P.box(-7.4, 7.4, 1.8, 5.8, 0.2, zf, 'boards', tile=1.4)
+
+    # 엔가와 (툇마루)
+    P.box(-7.4, 7.4, 0.75, 1.8, zf - 0.07, zf, 'floor', tile=1.4, bevel=0.01)
+    bays = [-7.2, -4.8, -2.4, 0.0, 2.4, 4.8, 7.2]
+    for x in bays:
+        P.box(x - 0.06, x + 0.06, 0.85, 0.97, 0.0, zf - 0.07, 'timber', tile=1.0)
+
+    # 본채 쇼지문들
+    cuts = []
+    Ff = F_(P, '-y', 1.8)
+    Fb = F_(P, '+y', 5.8)
+    for k in range(len(bays) - 1):
+        lattice(Ff, cuts, (bays[k] + bays[k + 1]) / 2, 2.2, 1.9, zf, 0.25, pattern='shoji', frame='timber', bar='timber', leaves=2,
+                open_=0.5 if k in (2, 3) else 0.0, sill=0.05)
+    wall_ok(P, [box_vf(-7.2, 7.2, 1.8, 5.8, zf - 0.02, 3.45)], 'plaster', cuts, tile=2.2)
+    # 하부 판벽
+    for fc, Lw in ((Fb, 14.4), (F_(P, '-x', -7.2), 4.0), (F_(P, '+x', 7.2), 4.0)):
+        fc.box(-Lw / 2, Lw / 2, -0.025, 0.0, zf, zf + 0.75, 'boards', tile=1.4)
+
+    # 본채 기둥들
+    for x in bays:
+        P.box(x - 0.08, x + 0.08, 1.74, 1.86, 0.2, 3.55, 'timber', tile=1.0)
+        P.box(x - 0.08, x + 0.08, 5.68, 5.8, 0.2, 3.55, 'timber', tile=1.0)
+
+    # 본채 이리모야 기와지붕
+    R_main = Roof(14.8, 5.6, 3.45, 28, 0.28, 'hipgable', oE=1.3, oG=1.1, curve=V['curve'], lift=V['lift'], cy=3.4, setback=1.7, seed=85)
+    tile_roof(P, R_main, raft=('front',), gable_mat='plaster')
+
+    smoke(P, 'courtyard_estate', (6.5, 5.8, 4.2))
+    return P
+
+
 BUILDERS = [house_thatch_ea, house_tile_ea, house_town_ea, temple_ea, pagoda_small, gate_ea, well_ea, granary_ea, smithy_ea, shrine_ea, stall_ea,
-            pit_house_ea, camp_hearth]
+            pit_house_ea, camp_hearth, courtyard_estate]
 
 
 # ───────────────────────── 실행 ─────────────────────────
 CENTER = {'smithy_ea': (0.0, 0.0), 'camp_hearth': (0.0, 0.0), 'shrine_ea': (0.0, 0.0)}
-CAM = {'temple_ea': (-32, 12), 'house_tile_ea': (-30, 14), 'house_town_ea': (-30, 10), 'pagoda_small': (-28, 6), 'shrine_ea': (-30, 12)}
+CAM = {'temple_ea': (-32, 12), 'house_tile_ea': (-30, 14), 'house_town_ea': (-30, 10), 'pagoda_small': (-28, 6), 'shrine_ea': (-30, 12), 'courtyard_estate': (-34, 18)}
 
 
 def only_names():

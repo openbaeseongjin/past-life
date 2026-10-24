@@ -53,3 +53,32 @@ test('smoothLine: 끝점을 지나고 간격이 거의 고르다', () => {
     assert.ok(Math.max(...d) - Math.min(...d) < 0.05, `간격 ${Math.min(...d)}~${Math.max(...d)}`);
   }
 });
+
+test('큰 집 장소 (setting === "estate"): 4대 문화권 큰 집 중심 + 하인 집 3~5채 + 장터 없음', async () => {
+  const { recipeFor, planVillage } = await import('../villageplan.js');
+  const EXPECT = {
+    england: 'manor',
+    southasia: 'haveli',
+    eastasia: 'courtyard_estate',
+    mudbrick: 'palace_mb',
+  };
+  for (const [kit, piece] of Object.entries(EXPECT)) {
+    const rc = recipeFor(kit, { setting: 'estate' });
+    assert.equal(rc.setting, 'estate', `${kit} setting`);
+    assert.equal(rc.estatePiece, piece, `${kit} estatePiece`);
+    assert.ok(rc.fixed.some((f) => f.role === 'estate' && f.piece === piece), `${kit} fixed estate`);
+    assert.equal(rc.noMarket, true, `${kit} noMarket`);
+
+    for (const s of [1329, 42, 999]) {
+      const layout = planVillage(s, env, rc);
+      assert.ok(layout.estate, `${kit} layout.estate`);
+      assert.equal(layout.estate.piece, piece, `${kit} estate piece`);
+      assert.ok(layout.houses.length >= 3 && layout.houses.length <= 5, `${kit} 하인 집 3~5채: ${layout.houses.length}`);
+      assert.equal(layout.stalls.length, 0, `${kit} stalls 0`);
+      assert.equal(layout.awnings.length, 0, `${kit} awnings 0`);
+      for (const h of layout.houses) {
+        assert.ok(h.croft, `${kit} 하인 집 croft 보유`);
+      }
+    }
+  }
+});

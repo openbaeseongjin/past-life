@@ -23,3 +23,8 @@ Task 2: formal review HELD — user asked to stop at 95% weekly usage; waiting f
 PAUSED 2026-10-21 at user's 93% weekly usage (stop at 95%). Next on resume: phase2 Task 2 review → sim2 Task 8 → phase2 Task 3/4 → share build
 Task 2 review (cloud 2026-10-21, code·tests): APPROVED with fixes — 걱정 6 고침: 옷이 시대를 가린다 (peopleplan.js ERA_SWAP·dressVariant: 한국 1392 전 갓·두루마기 m_hood·elder → m_tunic, 일본 1600 전 넓은 오비 f_cloak → f_apron·하오리 m_hood → m_tunic; 마을 사람·내 사람·곁 사람 모두; glb 그대로) + test/eadress.test.mjs 4개 · 걱정 2 고침: 일본 절·탑 538 → 588 (아스카데라) · 걱정 1 한국 glb 4.97 MiB 는 kit.test 5 MB 시험이 이미 막음 · 걱정 3·4·5·7 은 Blender 재빌드가 필요해 사용자 PC 몫으로 남김
 Task 2: complete
+Task 3: 흙벽돌 세트 완성 (건물 12종·소품 11종·식생 5종·복식 8종, 시대 분기, 검증 시험 313개 통과) (commit 1f0c2c3)
+Task 3: complete
+Task 4: 큰 집 장소 (estate) 완성 (잉글랜드 manor, 남아시아 haveli, 동아시아 courtyard_estate, 흙벽돌 palace_mb; villageplan estate 레시피; realscene 귀족/하인 활동 자리 연동; 4대 문화권 12개 스크린샷 검증; 시험 314개 통과)
+Task 4: complete
+

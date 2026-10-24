@@ -4,3 +4,5 @@ __pycache__/
 *.blend1
 _site/
 tools/blender/_src/
+docs/past-life/assets/real/kits/preview/*
+!docs/past-life/assets/real/kits/preview/people_*

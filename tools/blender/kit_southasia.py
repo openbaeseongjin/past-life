@@ -961,12 +961,208 @@ def smithy_sa():
     return P
 
 
-BUILDERS = [hut_mud_a, hut_mud_b, house_courtyard, house_town, temple_small, shrine_tree, well_step, well_kuan, granary, market_stall_sa, smithy_sa]
+# ───────────────────────── 큰 집: 하벨리 도구 ─────────────────────────
+def chhatri_roof(P, cx, cy, z0, w=1.9, d=1.9, h_col=1.65, mat_stone='sandstone', mat_dome='mud_lime'):
+    """옥상 4모퉁이 차트리 (사암 기단 + 기둥 넷 + 처마 차양 + 석회 돔 + 칼라샤)."""
+    P.box(cx - w / 2, cx + w / 2, cy - d / 2, cy + d / 2, z0, z0 + 0.18, mat_stone, bevel=0.015, tile=1.4)
+    gx, gy = w / 2 - 0.22, d / 2 - 0.22
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            x, y = cx + sx * gx, cy + sy * gy
+            P.box(x - 0.08, x + 0.08, y - 0.08, y + 0.08, z0 + 0.18, z0 + 0.3, mat_stone, tile=1.0)
+            P.box(x - 0.06, x + 0.06, y - 0.06, y + 0.06, z0 + 0.3, z0 + 0.18 + h_col - 0.1, mat_stone, tile=1.0)
+            P.box(x - 0.09, x + 0.09, y - 0.09, y + 0.09, z0 + 0.18 + h_col - 0.1, z0 + 0.18 + h_col, mat_stone, tile=1.0)
+    zb = z0 + 0.18 + h_col
+    P.box(cx - w / 2 - 0.04, cx + w / 2 + 0.04, cy - d / 2 - 0.04, cy + d / 2 + 0.04, zb, zb + 0.12, mat_stone, tile=1.4)
+    ch_o = 0.22
+    P.box(cx - w / 2 - ch_o, cx + w / 2 + ch_o, cy - d / 2 - ch_o, cy + d / 2 + ch_o, zb + 0.12, zb + 0.18, mat_stone, bevel=0.012, tile=1.4)
+    r_dome = min(w, d) * 0.44
+    h_dome = r_dome * 1.12
+    P.add_bm(KP.lathe_bm([(r_dome, 0.0), (r_dome * 0.98, 0.06), (r_dome * 0.9, h_dome * 0.3), (r_dome * 0.7, h_dome * 0.65), (r_dome * 0.4, h_dome * 0.88), (r_dome * 0.12, h_dome * 0.98), (0.0, h_dome)], n=12),
+             mat_dome, uv=False, smooth=True, matrix=Tm(cx, cy, zb + 0.18))
+    # 작은 칼라샤
+    prof_k = [(0.0, 0.0), (0.12, 0.0), (0.14, 0.04), (0.1, 0.08), (0.15, 0.18), (0.13, 0.3), (0.06, 0.4), (0.02, 0.52), (0.0, 0.58)]
+    P.add_bm(KP.lathe_bm([(r * 0.5, z * 0.5) for r, z in prof_k], n=8), mat_stone, uv=False, smooth=True, matrix=Tm(cx, cy, zb + 0.18 + h_dome))
+
+
+def jharokha(P, F, cuts, cx, zf, bw=2.2, bd=0.65, zh=2.2, mat_bracket='timber_dark', mat_body='sandstone', mat_roof='mud_lime', arch='cusp'):
+    """돌출 자로카 (발코니): 까치발 + 사암 바닥판·난간 + 조각 기둥 + 상부 아치·차양 + 뒷벽 개구부."""
+    nb = 3 if bw > 2.2 else 2
+    for k in range(nb):
+        bx = cx - bw / 2 + 0.2 + (bw - 0.4) * k / (nb - 1)
+        v, f = prism_ok([(0.0, zf - 0.1), (-bd + 0.05, zf - 0.1), (0.0, zf - 0.75)], 'x', bx - 0.06, bx + 0.06)
+        add_vf(P, ([tuple(F.M @ Vector(p)) for p in v], f), mat_bracket, tile=1.0)
+    # 발코니 바닥판 (사암)
+    F.box(cx - bw / 2, cx + bw / 2, -bd, 0.05, zf - 0.08, zf, mat_body, bevel=0.01, tile=1.2)
+    # 발코니 난간벽 (사암)
+    rail_h = 0.7
+    F.box(cx - bw / 2, cx + bw / 2, -bd, -bd + 0.06, zf, zf + rail_h, mat_body, tile=1.2)
+    F.box(cx - bw / 2, cx - bw / 2 + 0.06, -bd, 0.0, zf, zf + rail_h, mat_body, tile=1.2)
+    F.box(cx + bw / 2 - 0.06, cx + bw / 2, -bd, 0.0, zf, zf + rail_h, mat_body, tile=1.2)
+    # 난간 갓돌
+    F.box(cx - bw / 2 - 0.02, cx + bw / 2 + 0.02, -bd - 0.02, -bd + 0.08, zf + rail_h, zf + rail_h + 0.05, mat_body, bevel=0.006, tile=1.2)
+    F.box(cx - bw / 2 - 0.02, cx - bw / 2 + 0.08, -bd - 0.02, 0.0, zf + rail_h, zf + rail_h + 0.05, mat_body, bevel=0.006, tile=1.2)
+    F.box(cx + bw / 2 - 0.08, cx + bw / 2 + 0.02, -bd - 0.02, 0.0, zf + rail_h, zf + rail_h + 0.05, mat_body, bevel=0.006, tile=1.2)
+    # 앞면 기둥들 (단순화: 2~3개)
+    for k in range(nb):
+        bx = cx - bw / 2 + 0.12 + (bw - 0.24) * k / (nb - 1)
+        F.box(bx - 0.035, bx + 0.035, -bd + 0.01, -bd + 0.07, zf + rail_h, zf + zh - 0.12, mat_body, tile=1.0)
+    # 벽쪽 기둥
+    F.box(cx - bw / 2 + 0.01, cx - bw / 2 + 0.07, -0.07, 0.0, zf + rail_h, zf + zh - 0.12, mat_body, tile=1.0)
+    F.box(cx + bw / 2 - 0.07, cx + bw / 2 - 0.01, -0.07, 0.0, zf + rail_h, zf + zh - 0.12, mat_body, tile=1.0)
+    # 상부 아치 들보
+    F.box(cx - bw / 2 - 0.02, cx + bw / 2 + 0.02, -bd - 0.02, 0.05, zf + zh - 0.12, zf + zh, mat_body, tile=1.2)
+    # 돌출 처마 차양 (chhajja)
+    F.box(cx - bw / 2 - 0.16, cx + bw / 2 + 0.16, -bd - 0.2, 0.08, zf + zh, zf + zh + 0.07, mat_body, bevel=0.01, tile=1.4)
+    # 상부 갓 지붕
+    F.box(cx - bw / 2 - 0.05, cx + bw / 2 + 0.05, -bd - 0.08, 0.04, zf + zh + 0.07, zf + zh + 0.2, mat_roof, bevel=0.015, tile=1.2)
+    # 뒷벽 개구부 (문)
+    door_sa(F, cuts, cx, min(bw - 0.35, 1.1), zh - 0.15, zf, 0.45, leaves='open', arch=arch)
+
+
+def haveli():
+    """남아시아 큰 집 (하벨리 — haveli):
+    - 높은 사암 기단과 진입 계단
+    - 2층 다층 안뜰(chowk) 저택 (L=15.2, D=13.0, 옥상 바닥 7.4m, 차트리 돔 꼭대기 10.0m)
+    - 1층: 석회칠 벽체 + 사암 기단/띠, 웅장한 다엽 아치 대문(pol)과 문지기 툇마루(chabutra), 안뜰을 둘러싼 기둥 회랑
+    - 2층: 정면 중앙 대형 돌출 자로카(jharokha) 발코니 1채 + 좌우 자로카 2채 + 측면 자로카 각 1채 (정교한 까치발, 조각 기둥, 차양)
+    - 옥상: 사암 난간, 4모퉁이 차트리(chhatri 돔 정자 4채), 옥상 방(barsati)
+    - 안뜰 중심 툴시 제단, 놋쇠/도자기 항아리들
+    - 연기 마커 haveli_smoke
+    """
+    P = Piece('haveli', 2112)
+    L, D = 15.2, 13.0
+    x0, x1, y0, y1 = -L / 2, L / 2, -D / 2, D / 2
+    cx0, cx1, cy0, cy1 = -2.8, 2.8, -2.2, 2.8
+    zp, H1, H2, Hp = 0.55, 3.9, 7.4, 8.25
+
+    # 기단 (sandstone)
+    P.box(x0 - 0.15, x1 + 0.15, y0 - 0.15, y1 + 0.15, -0.4, zp, 'sandstone', bevel=0.025, tile=2.0)
+    # 정면 출입 계단 3단
+    for i in range(1, 4):
+        P.box(-1.8, 1.8, y0 - 0.15 - i * 0.35, y0 - 0.15 - (i - 1) * 0.35, -0.4, zp - (i - 1) * 0.18, 'sandstone', bevel=0.015, tile=1.6)
+
+    cuts = [
+        box_vf(cx0, cx1, cy0, cy1, zp, H2 + 2.0),                # 안뜰 개구부
+        box_vf(-1.15, 1.15, y0 - 1.2, cy0 + 0.1, zp, zp + 3.0), # 1층 대문 통로 (안뜰까지 연결)
+    ]
+
+    Ff, Fb, Fl, Fr = F_(P, '-y', y0), F_(P, '+y', y1), F_(P, '-x', x0), F_(P, '+x', x1)
+
+    # 1층 정면 대문 (웅장한 다엽 아치 대문)
+    door_sa(Ff, cuts, 0.0, 1.8, 2.7, zp, 0.6, leaves='ajar', arch='cusp', mat_frame='sandstone')
+    # 문지기 평상 (chabutra) 양옆
+    for sx in (-1, 1):
+        a, b = sorted((sx * 1.35, sx * 2.85))
+        P.box(a, b, y0 - 0.85, y0 + 0.02, zp - 0.05, zp + 0.45, 'sandstone', bevel=0.02, tile=1.4)
+        P.box(a - 0.02, b + 0.02, y0 - 0.87, y0 + 0.02, zp + 0.45, zp + 0.5, 'mud_lime', bevel=0.01, tile=1.2)
+
+    # 1층 정면 창문 (좌우 사암 자알리 격자창)
+    for sx in (-1, 1):
+        window_sa(Ff, cuts, sx * 5.0, 0.8, 1.3, zp + 0.8, 0.5, jaali=True, arch='cusp')
+        niche(Ff, cuts, sx * 3.3, 0.28, 0.38, zp + 1.2)
+
+    # 1층 측면 창문들
+    for side, F in (('-x', Fl), ('+x', Fr)):
+        for y_pos in (-3.0, 0.0, 3.0):
+            window_sa(F, cuts, F.loc(y_pos), 0.75, 1.25, zp + 0.85, 0.45, bars=3, arch='cusp')
+
+    # 1층 후면 창문 및 뒷문
+    window_sa(Fb, cuts, Fb.loc(-4.0), 0.75, 1.25, zp + 0.85, 0.45, bars=3, arch='cusp')
+    window_sa(Fb, cuts, Fb.loc(4.0), 0.75, 1.25, zp + 0.85, 0.45, bars=3, arch='cusp')
+    door_sa(Fb, cuts, Fb.loc(0.0), 1.0, 2.05, zp, 0.45, leaves='closed', arch='round')
+
+    # 2층 자로카 (jharokha) 발코니들
+    # 정면 중앙 대형 자로카 1채
+    jharokha(P, Ff, cuts, 0.0, H1 + 0.3, bw=3.2, bd=0.85, zh=2.5, arch='cusp')
+    # 정면 좌우 자로카 2채
+    jharokha(P, Ff, cuts, -5.0, H1 + 0.3, bw=2.0, bd=0.65, zh=2.2, arch='cusp')
+    jharokha(P, Ff, cuts, 5.0, H1 + 0.3, bw=2.0, bd=0.65, zh=2.2, arch='cusp')
+    # 측면 자로카 각 1채
+    jharokha(P, Fl, cuts, Fl.loc(0.0), H1 + 0.3, bw=2.2, bd=0.65, zh=2.2, arch='cusp')
+    jharokha(P, Fr, cuts, Fr.loc(0.0), H1 + 0.3, bw=2.2, bd=0.65, zh=2.2, arch='cusp')
+
+    # 2층 후면 창문들
+    for x_pos in (-4.2, 0.0, 4.2):
+        window_sa(Fb, cuts, Fb.loc(x_pos), 0.7, 1.2, H1 + 0.85, 0.45, bars=3, arch='cusp', shutters='open')
+
+    # 안뜰 쪽 1층/2층 문과 회랑 (veranda)
+    Ci = F_(P, '+y', cy0)
+    for sx in (-1, 1):
+        door_sa(Ci, cuts, Ci.loc(sx * 1.8), 0.85, 1.95, zp, 0.4, leaves='ajar' if sx < 0 else 'closed', lime_frame=True)
+    Cl, Cr = F_(P, '+x', cx0), F_(P, '-x', cx1)
+    door_sa(Cl, cuts, Cl.loc(0.3), 0.85, 1.95, zp, 0.4, leaves='open', lime_frame=True)
+    door_sa(Cr, cuts, Cr.loc(0.3), 0.85, 1.95, zp, 0.4, leaves='closed', lime_frame=True)
+
+    # 안뜰 1층 기둥들 (기둥 6개)
+    for px in (cx0 + 0.25, cx1 - 0.25):
+        for py in (cy0 + 0.3, (cy0 + cy1) / 2, cy1 - 0.3):
+            P.box(px - 0.1, px + 0.1, py - 0.1, py + 0.1, zp, zp + 0.25, 'sandstone', bevel=0.015, tile=1.0)
+            P.box(px - 0.08, px + 0.08, py - 0.08, py + 0.08, zp + 0.25, H1 - 0.15, 'sandstone', bevel=0.012, tile=1.0)
+            P.box(px - 0.12, px + 0.12, py - 0.12, py + 0.12, H1 - 0.15, H1, 'sandstone', bevel=0.015, tile=1.0)
+
+    # 본체 벽체 (외벽)
+    wall_ok(P, [box_vf(x0, x1, y0, y1, zp - 0.05, H2)], 'mud_lime', cuts, tile=2.2)
+
+    # 1층-2층 사암 띠 (전면, 측면, 후면)
+    P.box(x0 - 0.08, x1 + 0.08, y0 - 0.08, y1 + 0.08, H1 - 0.06, H1 + 0.12, 'sandstone', bevel=0.018, tile=2.0)
+    # 2층 상부 처마 턱
+    P.box(x0 - 0.1, x1 + 0.1, y0 - 0.1, y1 + 0.1, H2 - 0.14, H2 + 0.02, 'sandstone', bevel=0.02, tile=2.0)
+
+    # 안뜰 바닥 (sandstone)
+    P.box(cx0, cx1, cy0, cy1, zp - 0.05, zp, 'sandstone', bevel=0.01, tile=2.0)
+
+    # 안뜰 중심 툴시 제단 + 항아리
+    tx, ty = (cx0 + cx1) / 2, (cy0 + cy1) / 2
+    P.box(tx - 0.45, tx + 0.45, ty - 0.45, ty + 0.45, zp, zp + 0.3, 'sandstone', bevel=0.02, tile=1.2)
+    P.box(tx - 0.32, tx + 0.32, ty - 0.32, ty + 0.32, zp + 0.3, zp + 0.9, 'mud_lime', bevel=0.02, tile=1.2)
+    P.box(tx - 0.38, tx + 0.38, ty - 0.38, ty + 0.38, zp + 0.9, zp + 1.05, 'mud_red', bevel=0.015, tile=1.2)
+    leaf_bush(P, tx, ty, zp + 1.05, 0.32, 0.48, 16, ['tulsi', 'leaf_dark', 'leaf'], s=0.065)
+    diya(P, Tm(tx, ty - 0.34, zp + 0.35))
+    brass_pot(P, Tm(cx0 + 0.6, cy0 + 0.6, zp), 0.9)
+    clay_pot(P, Tm(cx1 - 0.6, cy0 + 0.6, zp), 1.1)
+
+    # 옥상 바닥 (sandstone)
+    P.box(x0 + 0.05, x1 - 0.05, y0 + 0.05, y1 - 0.05, H2, H2 + 0.05, 'sandstone', tile=2.0)
+
+    # 옥상 둘레 난간벽 (sandstone)
+    parapet_ring(P, x0, x1, y0, y1, H2, Hp - H2, 0.26, mat='sandstone', cap='sandstone', cap_t=0.06)
+    # 안뜰 둘레 난간벽
+    parapet_ring(P, cx0 - 0.25, cx1 + 0.25, cy0 - 0.25, cy1 + 0.25, H2, 0.72, 0.22, mat='sandstone', cap='sandstone', cap_t=0.05)
+
+    # 옥상 빗물 홈통
+    for x in (-5.5, -2.0, 2.0, 5.5):
+        spout(P, x, y0 + 0.1, H2 + 0.1, 0, -1)
+        spout(P, x, y1 - 0.1, H2 + 0.1, 0, 1)
+
+    # 옥상 4모퉁이 차트리 (Chhatri 4채)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            chx = sx * (L / 2 - 1.4)
+            chy = sy * (D / 2 - 1.4)
+            chhatri_roof(P, chx, chy, H2, w=1.9, d=1.9, h_col=1.65, mat_stone='sandstone', mat_dome='mud_lime')
+
+    # 옥상 후방 작은 방 (Barsati - 계단실/방)
+    rcuts = []
+    Rf = F_(P, '-y', y1 - 3.2)
+    door_sa(Rf, rcuts, 0.0, 0.9, 1.85, H2, 0.3, leaves='ajar')
+    window_sa(Rf, rcuts, -1.3, 0.5, 0.8, H2 + 0.8, 0.3, bars=2)
+    window_sa(Rf, rcuts, 1.3, 0.5, 0.8, H2 + 0.8, 0.3, bars=2)
+    wall_ok(P, [box_vf(-2.3, 2.3, y1 - 3.2, y1 - 0.35, H2 - 0.02, H2 + 2.35)], 'mud_lime', rcuts, tile=1.8)
+    P.box(-2.45, 2.45, y1 - 3.35, y1 - 0.2, H2 + 2.35, H2 + 2.5, 'sandstone', bevel=0.02, tile=2.0)
+
+    # 연기 마커 (주방/부속실 위치)
+    P.marker('haveli_smoke', (x1 - 2.5, y1 - 1.8, H2 + 2.6))
+
+    return P
+
+
+BUILDERS = [hut_mud_a, hut_mud_b, house_courtyard, house_town, temple_small, shrine_tree, well_step, well_kuan, granary, market_stall_sa, smithy_sa, haveli]
 
 
 # ───────────────────────── 실행 ─────────────────────────
 CENTER = {'smithy_sa': (0.0, 0.0)}     # 대장간: 잉글랜드 smithy 처럼 바닥 가운데를 옮기지 않는다 (모루·화덕 자리 약속)
-CAM = {'temple_small': (-32, 10), 'well_step': (-35, 22), 'house_courtyard': (-30, 32), 'market_stall_sa': (-28, 10), 'house_town': (-30, 12)}
+CAM = {'temple_small': (-32, 10), 'well_step': (-35, 22), 'house_courtyard': (-30, 32), 'market_stall_sa': (-28, 10), 'house_town': (-30, 12), 'haveli': (-34, 18)}
 
 
 def main():

@@ -6,6 +6,7 @@
 export const KIT_DIMS = {
   cottage_a: [7.97, 5.55], cottage_b: [10.44, 5.79], cottage_c: [7.0, 5.41], house_jetty: [7.97, 6.28], longhouse: [15.04, 6.63],
   barn: [14.1, 8.3], smithy: [7.01, 6.97], church: [30.7, 12.6], mill: [9.15, 8.7], well: [2.96, 2.96], market_stall: [3.4, 2.41],
+  manor: [16.16, 9.53],
 };
 // 프로토타입 집 종류 → 고를 수 있는 조각 (시드로 섞은 뒤 앞에서부터, 길·강에 걸리면 다음 것)
 export const KIT_POOL = {
@@ -53,6 +54,7 @@ export const BUSHES_SA = [
 export const KIT_DIMS_SA = {
   hut_mud_a: [6.27, 5.97], hut_mud_b: [6.65, 6.87], house_courtyard: [12.71, 12.02], house_town: [6.51, 9.28], temple_small: [6.3, 9.9],
   shrine_tree: [5.34, 5.72], well_step: [6.14, 6.52], well_kuan: [4.49, 4.48], granary: [3.94, 4.0], market_stall_sa: [3.5, 2.72], smithy_sa: [7.22, 6.89],
+  haveli: [16.9, 14.55],
 };
 // 고르기 주머니 (마을 서민 집 · 큰 집 마당 · 거리)
 export const KIT_POOL_SA = {
@@ -109,14 +111,17 @@ export const KIT_SETS = {
 export const KIT_DIMS_EA = {
   house_thatch_ea: [8.18, 5.69], house_tile_ea: [10.6, 8.39], house_town_ea: [8.75, 7.82], temple_ea: [13.8, 13.45], pagoda_small: [5.2, 5.8], gate_ea: [4.45, 2.6],
   well_ea: [3, 3], granary_ea: [3.54, 3.73], smithy_ea: [7.21, 7.03], shrine_ea: [3.2, 5], stall_ea: [3.7, 2.81], pit_house_ea: [6.04, 6.5], camp_hearth: [5.4, 3.6],
+  courtyard_estate: [16.12, 14.05],
 };
 export const KIT_DIMS_EA_KR = {
   house_thatch_ea: [8.86, 6.61], house_tile_ea: [12.88, 9.52], house_town_ea: [11.24, 7.64], temple_ea: [13.92, 13.66], pagoda_small: [3.16, 3.16], gate_ea: [4.52, 3.1],
   well_ea: [3, 3], granary_ea: [4.39, 3.96], smithy_ea: [7.21, 7.03], shrine_ea: [5.58, 3.86], stall_ea: [3.7, 2.81], pit_house_ea: [6.04, 6.5], camp_hearth: [5.4, 3.6],
+  courtyard_estate: [17.73, 14.66],
 };
 export const KIT_DIMS_EA_JP = {
   house_thatch_ea: [10.5, 7.7], house_tile_ea: [12.1, 8.2], house_town_ea: [7.76, 8.9], temple_ea: [13.7, 12.88], pagoda_small: [7.2, 7.2], gate_ea: [4.16, 2.5],
   well_ea: [3, 3], granary_ea: [4.51, 4.25], smithy_ea: [7.26, 7.2], shrine_ea: [3.2, 5.34], stall_ea: [3.7, 2.81], pit_house_ea: [6.04, 6.5], camp_hearth: [5.4, 3.6],
+  courtyard_estate: [17.1, 14.25],
 };
 // 고르기 주머니: 초가(서민) · 기와집 · 가게 딸린 집 · 움집(신석기~고대·농사 전) · 곳간 — 몫은 villageplan.js HOUSE_MIX.eastasia (땅·해마다)
 export const KIT_POOL_EA = {

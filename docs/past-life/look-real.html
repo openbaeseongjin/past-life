@@ -54,6 +54,7 @@ const make = (o = {}) => createRealScene(canvas, {
   post: on('post', true), ao: on('ao', true), bloom: on('bloom', true), pixelRatio: +(Q.get('pr') || 1),
   kitUrl: Q.get('kit') || undefined, propsUrl: Q.get('props') || undefined, seed: Q.has('seed') ? +Q.get('seed') : undefined,
   people: Q.has('people') ? +Q.get('people') : undefined, kit: Q.get('set') || undefined, land: Q.get('land') || undefined, area: Q.get('area') || undefined,
+  setting: Q.get('setting') || undefined,
   renderer: shared || undefined, ...o,
 });
 let real = make();

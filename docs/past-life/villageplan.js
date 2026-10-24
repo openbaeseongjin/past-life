@@ -265,6 +265,7 @@ export const RECIPES = {
     // 내 사람 활동 자리 (realscene.js planSpots): 텃밭·걸상 소품, 장터 좌판 앞에 서기, 큰 소품 가림, 교회/사원 앞 자리, 빈터 배경, 내 살빛 범위
     activity: { bed: 'vegetable_bed', seat: 'bench', seatH: 0.45, marketFront: false, tallBlock: 0, templeFront: null, greenBg: 'church', meSkin: [0.92, 0.12] },
     hedge: null, dress: null, graveyard: true,
+    estatePiece: 'manor', estateServants: ['cottage_a', 'cottage_c'],
   },
   southasia: {
     kit: 'southasia', dims: KIT_DIMS_SA, pool: KIT_POOL_SA,
@@ -283,6 +284,7 @@ export const RECIPES = {
     // 밭 가장자리: 산울타리 띠 없이 두렁 나무만 (가장자리의 40%), 종은 야자·망고·바불·님
     hedge: { keep: 0.4, strips: false, pick: (r) => (r < 0.42 ? 'coconut' : r < 0.58 ? 'areca' : r < 0.8 ? 'mango' : r < 0.92 ? 'babul' : 'neem') },
     dress: planDressingSA, graveyard: false,
+    estatePiece: 'haveli', estateServants: ['hut_mud_a', 'hut_mud_b'],
   },
   // 동아시아: 개울을 따라 늘어선 마을 — 비탈 위 절(법당·탑), 한가운데 마을 나무 신당, 담 두른 기와 큰 집, 집마다 뒤뜰(텃밭·장독·볏가리·감나무),
   //   나무다리 + 개울 디딤돌, 땅 그림의 논은 비탈에서 등고선 두렁(계단 논)으로 (terrace). 땅(중국·한국·일본)마다 건물 glb·담·독·사람 옷이 다르다 (recipeFor)
@@ -303,6 +305,7 @@ export const RECIPES = {
     // 밭 가장자리: 산울타리 띠 없이 두렁 나무만 (가장자리의 35%), 종은 감나무·소나무·느티·버들
     hedge: { keep: 0.35, strips: false, pick: (r) => (r < 0.35 ? 'persimmon' : r < 0.62 ? 'pine' : r < 0.82 ? 'zelkova' : 'willow') },
     dress: planDressingEA, graveyard: false, bridge: 'timber', terrace: 1.3, variant: 'china',
+    estatePiece: 'courtyard_estate', estateServants: ['house_thatch_ea'],
   },
   mudbrick: {
     kit: 'mudbrick', dims: KIT_DIMS_MB, pool: KIT_POOL_MB,
@@ -320,6 +323,7 @@ export const RECIPES = {
     activity: { bed: 'clay_oven', seat: 'carpet_mb', seatH: 0.1, marketFront: true, tallBlock: 0.9, templeFront: [0, 6.5], greenBg: 'church', meSkin: [0.82, 0.18] },
     hedge: { keep: 0.35, strips: false, pick: (r) => (r < 0.45 ? 'palm_date_tall' : r < 0.75 ? 'palm_date_medium' : r < 0.9 ? 'olive_tree_mb' : 'bush_desert_mb') },
     dress: planDressingMB, graveyard: false, bridge: 'stone', terrace: 0,
+    estatePiece: 'palace_mb', estateServants: ['house_flat_a', 'house_flat_b'],
   },
 };
 export const recipeOf = (kit) => RECIPES[kit] || RECIPES.england;
@@ -392,28 +396,71 @@ export function pieceAllowed(kit, piece, year, area) {
   if (g.area && area in g.area) span = g.area[area];
   return span !== null && year >= span[0] && year < span[1];
 }
-const recipeMemo = new Map();
-// 세트 + {해, 땅} → 마을 요리법. 거를 것이 없으면 RECIPES[kit] 그 객체를 그대로 (잉글랜드·중세 인도는 수정 전과 같은 계획)
-export function recipeFor(kit, { year = 1329, area = null } = {}) {
-  const base = recipeOf(kit), gates = PIECE_GATES[base.kit], mixes = HOUSE_MIX[base.kit];
-  if (!gates) return base;
-  const y = Number.isFinite(year) ? year : 1329;
-  if (base.kit === 'eastasia') return recipeEA(base, y, area);
-  if (base.kit === 'mudbrick') return recipeMB(base, y, area);
-  const mix = mixes ? mixes.filter(([from]) => y >= from).pop()[1] : null;
-  const without = Object.keys(gates).filter((p) => !pieceAllowed(base.kit, p, y, area)).sort();
-  const key = base.kit + '|' + without.join(',') + '|' + (mix ? mix.courtyard + ',' + mix.town : '');
-  if (!without.length && (!mix || mixes[mixes.length - 1][1] === mix)) return base;
-  if (recipeMemo.has(key)) return recipeMemo.get(key);
-  const swap = (f) => (without.includes(f.piece) && f.piece === 'temple_small' ? { ...f, piece: 'shrine_tree' } : f);
-  const fixed = base.fixed.map(swap);
-  const RC = {
-    ...base, fixed, without,
-    fixedFoot: fixed.map((f) => { const [L, D] = base.dims[f.piece]; return obb(f.x, f.z, f.rot, L / 2, D / 2); }),
-    kindOf: mix ? (r) => (r < mix.courtyard ? 'courtyard' : r < mix.courtyard + mix.town ? 'town' : 'mud') : base.kindOf,
+// 큰 집 (estate) 장소 요리법: 중심에 문화권별 큰 집, 주변에 우물·곳간·사당, 장터 없음
+export const ESTATE_SITE = { x: 12, z: -28, rot: 0.1 };
+function makeEstateRecipe(base, area, year) {
+  const dims = base.dims;
+  const ep = base.estatePiece || 'manor';
+  const fixed = [];
+  fixed.push({ role: 'estate', piece: ep, ...ESTATE_SITE });
+  const well = base.fixed.find((f) => f.role === 'well');
+  if (well) fixed.push({ role: 'well', piece: well.piece, x: 2, z: -14, rot: 0.3 });
+  const store = base.fixed.find((f) => f.role === 'store') || base.fixed.find((f) => f.piece && /granary|barn/.test(f.piece));
+  if (store) fixed.push({ role: 'store', piece: store.piece, x: 26, z: -20, rot: -Math.PI / 2 });
+  const smithy = base.fixed.find((f) => f.role === 'smithy');
+  if (smithy) fixed.push({ role: 'smithy', piece: smithy.piece, x: 26, z: -8, rot: -0.45 });
+  const shrine = base.fixed.find((f) => f.role === 'shrine');
+  if (shrine) fixed.push({ role: 'shrine', piece: shrine.piece, x: 24, z: -40, rot: 0.3 });
+
+  return {
+    ...base,
+    setting: 'estate',
+    fixed,
+    fixedFoot: fixed.map((f) => { const [L, D] = dims[f.piece] || [12, 12]; return obb(f.x, f.z, f.rot, L / 2, D / 2); }),
+    noMarket: true,
+    sites: {
+      ...base.sites,
+      estate: ESTATE_SITE,
+      well: { x: 2, z: -14, rot: 0.3 },
+    },
   };
-  recipeMemo.set(key, RC);
-  return RC;
+}
+
+const recipeMemo = new Map();
+// 세트 + {해, 땅, 자리} → 마을 요리법. 거를 것이 없으면 RECIPES[kit] 그 객체를 그대로 (잉글랜드·중세 인도는 수정 전과 같은 계획)
+export function recipeFor(kit, { year = 1329, area = null, setting = 'village' } = {}) {
+  const base = recipeOf(kit), gates = PIECE_GATES[base.kit], mixes = HOUSE_MIX[base.kit];
+  const y = Number.isFinite(year) ? year : 1329;
+  let res;
+  if (!gates) res = base;
+  else if (base.kit === 'eastasia') res = recipeEA(base, y, area);
+  else if (base.kit === 'mudbrick') res = recipeMB(base, y, area);
+  else {
+    const mix = mixes ? mixes.filter(([from]) => y >= from).pop()[1] : null;
+    const without = Object.keys(gates).filter((p) => !pieceAllowed(base.kit, p, y, area)).sort();
+    const key = base.kit + '|' + without.join(',') + '|' + (mix ? mix.courtyard + ',' + mix.town : '');
+    if (!without.length && (!mix || mixes[mixes.length - 1][1] === mix)) res = base;
+    else if (recipeMemo.has(key)) res = recipeMemo.get(key);
+    else {
+      const swap = (f) => (without.includes(f.piece) && f.piece === 'temple_small' ? { ...f, piece: 'shrine_tree' } : f);
+      const fixed = base.fixed.map(swap);
+      const RC = {
+        ...base, fixed, without,
+        fixedFoot: fixed.map((f) => { const [L, D] = base.dims[f.piece]; return obb(f.x, f.z, f.rot, L / 2, D / 2); }),
+        kindOf: mix ? (r) => (r < mix.courtyard ? 'courtyard' : r < mix.courtyard + mix.town ? 'town' : 'mud') : base.kindOf,
+      };
+      recipeMemo.set(key, RC);
+      res = RC;
+    }
+  }
+  if (setting === 'estate') {
+    const estateKey = kit + '|estate|' + y + '|' + area;
+    if (recipeMemo.has(estateKey)) return recipeMemo.get(estateKey);
+    const estRC = makeEstateRecipe(res, area, y);
+    recipeMemo.set(estateKey, estRC);
+    return estRC;
+  }
+  return res;
 }
 
 // 동아시아 요리법: 땅 갈래(중국·한국·일본)의 건물 크기 표 + 시대 거름 + 집 섞기 + 농사 전 야영 (FARM_FROM 전: 움집·야영 화덕만, 장터·논 없음)
@@ -1218,6 +1265,59 @@ export function makeEnv() {
   };
 }
 
+// ───────────────────────── 큰 집 짜기 (estate) ─────────────────────────
+// setting === 'estate': 중앙에 큰 집 1채 + 뒤뜰·측면에 하인들의 작은 집 3~5채 (각각 뒤뜰 croft 보유)
+export function planEstate(seed, env, RC, R) {
+  const DIMS = RC.dims;
+  const ep = RC.estatePiece || 'manor';
+  const [eL, eD] = DIMS[ep] || [16, 12];
+  const mX = ESTATE_SITE.x + (R() - 0.5) * 1.5;
+  const mZ = ESTATE_SITE.z + (R() - 0.5) * 1.5;
+  const mRot = ESTATE_SITE.rot + (R() - 0.5) * 0.04;
+  const estateFoot = obb(mX, mZ, mRot, eL / 2, eD / 2);
+  const estate = { piece: ep, x: mX, z: mZ, rot: mRot, s: 1, L: eL, D: eD, foot: estateFoot, role: 'estate' };
+
+  const boxes = [estateFoot];
+  for (const f of RC.fixedFoot || []) boxes.push(f);
+
+  // 하인들의 작은 집 3~5채 (큰 집 뒤뜰 및 측면)
+  const servantPool = RC.estateServants || ['cottage_a', 'cottage_c'];
+  const servantSpots = [
+    { x: mX - eL / 2 - 5, z: mZ - 4, rot: 0.35 },            // 서쪽 날개
+    { x: mX - eL / 4,     z: mZ - eD / 2 - 7, rot: 0.1 },     // 북서 뒤뜰
+    { x: mX + eL / 4,     z: mZ - eD / 2 - 8, rot: -0.15 },   // 북동 뒤뜰
+    { x: mX + eL / 2 + 5, z: mZ - 6, rot: -Math.PI / 2 },     // 동쪽 뒤
+    { x: mX - eL / 2 - 4, z: mZ + 6, rot: Math.PI / 3 },      // 서쪽 앞
+  ];
+  const count = 3 + Math.floor(R() * 3); // 3 ~ 5채
+  const houses = [];
+  for (let i = 0; i < count; i++) {
+    const sp = servantSpots[i];
+    const piece = servantPool[Math.floor(R() * servantPool.length)];
+    const sc = 0.95 + R() * 0.1;
+    const [L0, D0] = DIMS[piece] || [8, 6];
+    const L = L0 * sc, D = D0 * sc;
+    const rot = sp.rot + (R() - 0.5) * 0.1;
+    const cx = sp.x + (R() - 0.5) * 1.2;
+    const cz = sp.z + (R() - 0.5) * 1.2;
+    const foot = obb(cx, cz, rot, L / 2, D / 2);
+    // 뒤뜰 croft (집 뒤쪽으로 마당 OBB 생성)
+    const croftD = 6 + R() * 4;
+    const croft = obb(cx - Math.sin(rot) * (D / 2 + croftD / 2), cz - Math.cos(rot) * (D / 2 + croftD / 2), rot, L / 2 + 1, croftD / 2);
+    boxes.push(foot, croft);
+    houses.push({
+      piece, kind: 'servant', x: cx, z: cz, rot, s: sc, L, D, foot, croft,
+      n: [Math.sin(rot), Math.cos(rot)], t: [Math.cos(rot), -Math.sin(rot)],
+      face: rot, lane: 0, gable: false, set: 2,
+    });
+  }
+
+  return {
+    houses, farms: [], stalls: [], awnings: [], boxes,
+    fixed: RC.fixed, kit: RC.kit, estate,
+  };
+}
+
 // ───────────────────────── 마을 짜기 (시드) ─────────────────────────
 // env = makeEnv() (roadEdge·riverEdge 만 쓴다), recipe = RECIPES[세트] (없으면 잉글랜드). 돌려주는 것:
 //   houses: [{ piece, kind, x, z, rot, s, L, D, foot(OBB), croft(OBB, 늘 있다), n:[x,z](집→뒤뜰), t:[x,z](길 방향), face, lane, gable, set }]
@@ -1227,6 +1327,7 @@ export function makeEnv() {
 export function planVillage(seed, env, recipe = RECIPES.england) {
   const RC = recipe, POOL = RC.pool, DIMS = RC.dims;
   const R = rng(Math.imul(seed, 2654435761) >>> 0);
+  if (RC.setting === 'estate') return planEstate(seed, env, RC, R);
   const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const bags = Object.fromEntries(Object.entries(POOL).map(([k, v]) => [k, shuffle([...v])]));
   const take = (kind) => { let b = bags[kind]; if (!b.length) b = bags[kind] = shuffle([...POOL[kind]]); return b.shift(); };

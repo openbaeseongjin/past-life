@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>실사 큰 집 (Estate) 시험</title>
+<link rel="icon" href="data:,">
+<script type="importmap">{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "@dgreenheck/ez-tree": "https://cdn.jsdelivr.net/npm/@dgreenheck/ez-tree@1.1.0/build/ez-tree.es.js"
+} }</script>
+<style>
+:root{--night:#121329;--paper:#f6efe2;--gold:#e2b65e;--glass:rgba(18,19,41,.68)}
+html,body{margin:0;height:100%;overflow:hidden;background:#121329;color:var(--paper);font:13px/1.4 system-ui,"Malgun Gothic",sans-serif}
+#c{width:100vw;height:100vh;display:block}
+#hud{position:fixed;left:12px;bottom:12px;background:var(--glass);border:1px solid rgba(246,239,226,.18);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:8px;backdrop-filter:blur(6px);z-index:10}
+#hud.hide{display:none}
+#hud .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#hud button{background:rgba(246,239,226,.1);color:var(--paper);border:1px solid rgba(246,239,226,.25);border-radius:6px;padding:4px 10px;cursor:pointer;font:inherit}
+#hud button.on{background:var(--gold);color:#1d2140;border-color:var(--gold);font-weight:bold}
+#stat{font-variant-numeric:tabular-nums;opacity:.85;white-space:pre}
+#load{position:fixed;inset:0;display:grid;place-items:center;font-size:16px;pointer-events:none;color:var(--paper);text-shadow:0 1px 3px #000;z-index:20}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="load">장면을 짓는 중…</div>
+<div id="hud">
+  <div class="row"><b>실사 2단계: 큰 집 장소 (Estate) 검증</b></div>
+  <div class="row" id="sets">
+    <button data-k="england" data-a="britain" data-y="1329" class="on">잉글랜드 (manor)</button>
+    <button data-k="southasia" data-a="india" data-y="1300">남아시아 (haveli)</button>
+    <button data-k="eastasia" data-a="korea" data-y="1700">동아시아 한국 (courtyard)</button>
+    <button data-k="eastasia" data-a="china" data-y="1100">동아시아 중국 (courtyard)</button>
+    <button data-k="mudbrick" data-a="mesopotamia" data-y="1100">흙벽돌 (palace_mb)</button>
+  </div>
+  <div class="row" id="roles">
+    <button data-h="elite" class="on">귀족 (elite)</button>
+    <button data-h="serve">하인 (serve)</button>
+  </div>
+  <div class="row" id="views">
+    <button data-v="wide">전경 (wide)</button>
+    <button data-v="close" class="on">인물 가까이 (close)</button>
+  </div>
+  <div id="stat"></div>
+</div>
+<script type="module">
+import { createStage } from './realscene.js';
+
+const canvas = document.getElementById('c');
+const stage = createStage(canvas);
+window.__stage = stage;
+stage.fast = true;
+
+const Q = new URLSearchParams(location.search);
+let curSet = Q.get('kit') || 'england';
+let curArea = Q.get('area') || 'britain';
+let curYear = +(Q.get('year') || 1329);
+let curHousehold = Q.get('household') || 'elite';
+let curView = Q.get('view') || 'close';
+
+async function updateLife() {
+  const load = document.getElementById('load');
+  if (load) load.style.display = 'grid';
+  stage.setLife({
+    year: curYear,
+    region: curSet === 'england' ? 'england' : curArea,
+    area: curArea,
+    household: curHousehold,
+    sex: 'm',
+    seed: 1329,
+  });
+  stage.setAge(30, curYear);
+  await stage.whenReady();
+  stage.debugView(curView);
+  if (load) load.style.display = 'none';
+  window.__ready = true;
+}
+
+const $ = (s) => document.querySelector(s);
+document.querySelectorAll('#sets button').forEach((b) => {
+  b.onclick = async () => {
+    document.querySelectorAll('#sets button').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+    curSet = b.dataset.k;
+    curArea = b.dataset.a;
+    curYear = +b.dataset.y;
+    await updateLife();
+  };
+});
+
+document.querySelectorAll('#roles button').forEach((b) => {
+  b.onclick = async () => {
+    document.querySelectorAll('#roles button').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+    curHousehold = b.dataset.h;
+    await updateLife();
+  };
+});
+
+document.querySelectorAll('#views button').forEach((b) => {
+  b.onclick = () => {
+    document.querySelectorAll('#views button').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+    curView = b.dataset.v;
+    stage.debugView(curView);
+  };
+});
+
+// URL 초기 버튼 활성화
+document.querySelectorAll('#sets button').forEach((b) => {
+  if (b.dataset.k === curSet && b.dataset.a === curArea) {
+    document.querySelectorAll('#sets button').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+  }
+});
+document.querySelectorAll('#roles button').forEach((b) => {
+  if (b.dataset.h === curHousehold) {
+    document.querySelectorAll('#roles button').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+  }
+});
+document.querySelectorAll('#views button').forEach((b) => {
+  if (b.dataset.v === curView) {
+    document.querySelectorAll('#views button').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+  }
+});
+
+let frame = 0;
+function tick() {
+  requestAnimationFrame(tick);
+  stage.tick();
+  if (++frame % 30 === 0) {
+    const info = stage.info();
+    const stat = $('#stat');
+    if (stat && info) {
+      stat.textContent = `모드: ${info.mode} | 행동: ${info.act?.key} (${info.act?.action})`;
+    }
+  }
+}
+tick();
+
+await updateLife();
+</script>
+</body>
+</html>
