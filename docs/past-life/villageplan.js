@@ -1389,9 +1389,19 @@ export function makeEnv(morphology = 'england') {
   }
   const hedgeOn = (i, j, dir) => hash2(i, j, 20 + dir) < 0.86;   // 칸 (i,j) 의 아래(0)/왼쪽(1) 변에 산울타리
   const fieldAt = (x, z) => { const c = findCell(x, z); return c ? { type: fieldType(c.i, c.j), edge: c.edge } : null; };
+  // 60x60 칸 정보 사전 계산 (스플랫 맵 생성 시 수십만 회 반복 호출 제거)
+  const cellType = new Uint8Array(FN * FN), cellTint = new Float32Array(FN * FN), cellAng = new Float32Array(FN * FN);
+  for (let j = 0; j < FN; j++) for (let i = 0; i < FN; i++) {
+    const idx = j * FN + i;
+    cellType[idx] = fieldType(i, j);
+    cellTint[idx] = hash2(i, j, 14);
+    const a = gp[j][i], b = gp[j][i + 1];
+    cellAng[idx] = ((Math.atan2(b[1] - a[1], b[0] - a[0]) + (hash2(i, j, 15) < 0.5 ? 0 : Math.PI / 2)) / Math.PI + 2) % 1;
+  }
   return {
     morphology,
     riverIdx, roadIdx, roadLines, FS, FN, FOFF, gp, fieldType, findCell, hedgeOn, fieldAt,
+    cellType, cellTint, cellAng,
     riverPts, roads, lanes: M.lanes || LANES, farms: M.farms || FARMS, vc, bridge: M.bridge, overview: M.overview,
     riverHw,
     roadEdge: (x, z) => roadIdx.edge(x, z), riverEdge: (x, z) => riverIdx.edge(x, z),

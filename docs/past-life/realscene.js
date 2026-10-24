@@ -135,8 +135,8 @@ const QUALITY = {
 
 // 텍스처는 그리개마다 한 번만 받는다 (게임에서 생이 바뀌어 장면을 다시 지어도 같은 텍스처를 쓴다)
 const texCaches = new WeakMap();
-// 시드와 상관없는 무거운 계산 (지형 정점, 먼 땅 그림, 강·길·밭 색인): 한 번 만들어 장면 사이에 함께 쓴다
-const SHARED = { envs: new Map(), far: null, terrain: null };
+// 시드와 상관없는 무거운 계산 (지형 정점, 먼 땅 그림, 강·길·밭 색인): 골격별로 한 번 만들어 장면 사이에 함께 쓴다
+const SHARED = { envs: new Map(), fars: new Map(), terrains: new Map() };
 const sharedEnv = (morph = 'england') => {
   let e = SHARED.envs.get(morph);
   if (!e) SHARED.envs.set(morph, e = makeEnv(morph));
@@ -556,6 +556,7 @@ export function createRealScene(canvas, opts = {}) {
   const P = landPreset(PRESETS[presetKey(opts.era, opts.region, KIT)], opts.land), LD = P.land;
   const QL = QUALITY[opts.quality] || QUALITY.high;
   const state = { time: opts.timeOfDay ?? 7, post: opts.post ?? true, ao: opts.ao ?? QL.ao, bloom: opts.bloom ?? true, orbit: false, disposed: false, view: opts.view || 'overview', quality: QUALITY[opts.quality] ? opts.quality : 'high' };
+  const quality = state.quality;
 
   const ownRenderer = !opts.renderer;
   const renderer = opts.renderer || new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
@@ -644,7 +645,7 @@ export function createRealScene(canvas, opts = {}) {
   const TB = performance.now(), times = {};
   const morph = morphologyOf({ kit: KIT, era: opts.era, setting: opts.setting, area: opts.area });
   const ENV = sharedEnv(morph);
-  const { riverIdx, roadIdx, roadLines, FS, FN, FOFF, gp, fieldType, findCell, hedgeOn, fieldAt } = ENV;
+  const { riverIdx, roadIdx, roadLines, FS, FN, FOFF, gp, fieldType, findCell, hedgeOn, fieldAt, cellType, cellTint, cellAng } = ENV;
   function baseHeight(x, z) {
     const d = Math.hypot(x - VC.x, z - VC.z);
     let h = 0.9 + 0.9 * fbm(x / 60, z / 60, 3, 4);
@@ -688,10 +689,10 @@ export function createRealScene(canvas, opts = {}) {
     let soil = 0, wheat = 0, path = 0, ang = 0, tint = 0.5, hedge = 0;
     const cell = findCell(x, z);
     if (cell) {
-      const ty = fieldType(cell.i, cell.j);
-      tint = hash2(cell.i, cell.j, 14);
-      const a = gp[cell.j][cell.i], b = gp[cell.j][cell.i + 1];
-      ang = ((Math.atan2(b[1] - a[1], b[0] - a[0]) + (hash2(cell.i, cell.j, 15) < 0.5 ? 0 : Math.PI / 2)) / Math.PI + 2) % 1;
+      const idx = cell.j * FN + cell.i;
+      const ty = cellType ? cellType[idx] : fieldType(cell.i, cell.j);
+      tint = cellTint ? cellTint[idx] : hash2(cell.i, cell.j, 14);
+      ang = cellAng ? cellAng[idx] : 0;
       const inner = smooth(2.5, 6, cell.edge);       // 밭 가장자리는 풀 (두렁)
       if (ty === 2) wheat = inner; else if (ty === 3) soil = inner; else if (ty === 4) { wheat = 0.35 * inner; tint = 0.1 + tint * 0.2; }
       if (ty !== 0) hedge = 1 - smooth(1.5, 6.5, cell.edge);
@@ -727,17 +728,21 @@ export function createRealScene(canvas, opts = {}) {
   }
   const buildSplat = (cx, cz, size, N) => splatTex(splatData(cx, cz, size, N));
   const T0 = performance.now();
-  const near = buildSplat(VC.x, VC.z, 700, 1024);
-  // 먼 땅 그림(7 km)은 시드와 상관없다 (텃밭·밟힌 흙은 가까운 그림에만): 한 번 만든 값을 생 사이에 함께 쓴다
-  const far = SHARED.far ? splatTex(SHARED.far) : splatTex(SHARED.far = splatData(VC.x, VC.z, 7000, 1536));
+  const nearN = quality === 'normal' ? 384 : 512;
+  const near = buildSplat(VC.x, VC.z, 700, nearN);
+  // 먼 땅 그림(7 km)은 시드와 상관없다 (텃밭·밟힌 흙은 가까운 그림에만): 골격마다 한 번 만든 값을 생 사이에 함께 쓴다
+  let farData = SHARED.fars.get(morph);
+  if (!farData) SHARED.fars.set(morph, farData = splatData(VC.x, VC.z, 7000, 512));
+  const far = splatTex(farData);
   const splatMs = performance.now() - T0;
   disposables.push(near.splat, near.info, far.splat, far.info);
 
   // ── 지형 메시 (가운데가 촘촘한 격자) ──
   const TL = 9000, TN = 460;
   function buildTerrainGeo() {
-    // 지형 높이는 시드와 상관없다: 정점·노멀·색인을 한 번 만들어 생 사이에 함께 쓴다 (지오메트리는 장면마다 새로, 배열만 나눔)
-    if (SHARED.terrain) { const t = SHARED.terrain, g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(t.pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(t.nrm, 3)); g.setIndex(new THREE.BufferAttribute(t.idx, 1)); return g; }
+    // 지형 높이는 시드와 상관없다: 골격별로 정점·노멀·색인을 한 번 만들어 생 사이에 함께 쓴다 (지오메트리는 장면마다 새로, 배열만 나눔)
+    const cachedT = SHARED.terrains.get(morph);
+    if (cachedT) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(cachedT.pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(cachedT.nrm, 3)); g.setIndex(new THREE.BufferAttribute(cachedT.idx, 1)); return g; }
     const warp = (s) => TL * (0.034 * s + 0.966 * s * s * s * s * s);
     const xs = []; for (let i = 0; i <= TN; i++) xs.push(warp(-1 + 2 * i / TN));
     const pos = new Float32Array((TN + 1) * (TN + 1) * 3);
@@ -751,7 +756,7 @@ export function createRealScene(canvas, opts = {}) {
       idx[n++] = a; idx[n++] = c; idx[n++] = b; idx[n++] = b; idx[n++] = c; idx[n++] = d;
     }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setIndex(new THREE.BufferAttribute(idx, 1)); g.computeVertexNormals();
-    SHARED.terrain = { pos, idx, nrm: g.attributes.normal.array };
+    SHARED.terrains.set(morph, { pos, idx, nrm: g.attributes.normal.array });
     return g;
   }
   times.splat = Math.round(splatMs);
@@ -1157,19 +1162,24 @@ export function createRealScene(canvas, opts = {}) {
           transformed.x += sin(uTime * 1.7 + ph) * 0.08 * uv.y; transformed.z += cos(uTime * 1.3 + ph) * 0.06 * uv.y;`);
       sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', THREE.ShaderChunk.normal_fragment_begin.replace('normal *= faceDirection;', ''));
     })(mat.onBeforeCompile);
-    const BASE = Math.round(140000 * Math.min(1.3, LD.tufts)), COUNT = BASE + 26000, im = new THREE.InstancedMesh(geo, mat, COUNT), r = rng(4), m4 = new THREE.Matrix4(), c = new THREE.Color();
-    let n = 0, tries = 0;
-    while (n < BASE && tries < BASE * 4) {
+    const isNormal = quality === 'normal';
+    const baseTarget = isNormal ? 45000 : 75000;
+    const BASE = Math.round(baseTarget * Math.min(1.3, LD.tufts)), COUNT = BASE + (isNormal ? 15000 : 25000);
+    const scaleMul = isNormal ? 1.35 : 1.25;
+    const im = new THREE.InstancedMesh(geo, mat, COUNT), r = rng(4), m4 = new THREE.Matrix4(), c = new THREE.Color();
+    let n = 0, tries = 0, maxTries = BASE * 3;
+    while (n < BASE && tries < maxTries) {
       tries++;
       // 절반 남짓은 마을·풀밭 가까이(95 m 안)에 촘촘히
       const ang = r() * Math.PI * 2, rad = r() < 0.55 ? Math.sqrt(r()) * 95 : Math.sqrt(r()) * 190, x = VC.x - 30 + Math.cos(ang) * rad * 1.15, z = VC.z + 40 + Math.sin(ang) * rad;
-      if (roadIdx.edge(x, z) < 0.6 || riverIdx.edge(x, z) < RIVER_HW - 0.5) continue;
+      if (riverIdx.edge(x, z) < RIVER_HW - 0.5) continue;
+      if (roadIdx.edge(x, z) < 0.6) continue;
       if (occHit(x, z, -2)) continue;
-      const cell = findCell(x, z); if (cell && fieldType(cell.i, cell.j) === 3 && cell.edge > 5) continue;
+      const cell = findCell(x, z); if (cell && (cellType ? cellType[cell.j * FN + cell.i] : fieldType(cell.i, cell.j)) === 3 && cell.edge > 5) continue;
       // 풀 밀도를 잡음으로 묶는다: 고르게 흩어진 점박이 대신 덤불진 곳과 성긴 곳
       const dens = 0.5 + 0.5 * fbm(x / 13, z / 13, 3, 21);
       if (r() > 0.25 + 0.75 * smooth(0.3, 0.7, dens)) continue;
-      const s = (0.13 + r() * 0.22) * (0.75 + 0.6 * dens);   // 작고 촘촘한 포기 (뭉친 곳은 크게)
+      const s = (0.13 + r() * 0.22) * (0.75 + 0.6 * dens) * scaleMul;   // 작고 촘촘한 포기 (뭉친 곳은 크게)
       m4.compose(_v1.set(x, heightAt(x, z) - 0.04, z), _q.setFromAxisAngle(_v2.set(0, 1, 0), r() * 6.28), _s.set(s * 1.3, s, s * 1.3));
       im.setMatrixAt(n, m4); c.setRGB(0.85 + r() * 0.25, 0.9 + r() * 0.2, 0.75 + r() * 0.25); im.setColorAt(n, c); n++;
     }
@@ -1179,7 +1189,7 @@ export function createRealScene(canvas, opts = {}) {
       for (let q = 0; q < k && n < COUNT; q++) {
         const a = r() * Math.PI * 2, d = Math.sqrt(r()) * cr, x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
         if (roadIdx.edge(x, z) < 0.3) continue;
-        const s = (0.5 + r() * 0.45) * (1 - 0.35 * d / cr);
+        const s = (0.5 + r() * 0.45) * (1 - 0.35 * d / cr) * scaleMul;
         m4.compose(_v1.set(x, heightAt(x, z) - 0.04, z), _q.setFromAxisAngle(_v2.set(0, 1, 0), r() * 6.28), _s.set(s * 1.1, s * 1.45, s * 1.1));
         im.setMatrixAt(n, m4); c.setRGB(0.88 + r() * 0.3, 0.86 + r() * 0.2, 0.55 + r() * 0.25); im.setColorAt(n, c); n++;
       }
@@ -1188,19 +1198,19 @@ export function createRealScene(canvas, opts = {}) {
     // 들꽃 포기: 키 큰 풀 무더기 둘레와 풀밭 군데군데 (잡음이 높은 곳에 무리 지어)
     const ftex = flowerTex(); disposables.push(ftex);
     const fmat = mat.clone(); fmat.map = ftex; fmat.color = new THREE.Color(1, 1, 1); fmat.onBeforeCompile = mat.onBeforeCompile; fmat.customProgramCacheKey = mat.customProgramCacheKey; disposables.push(fmat);
-    const FC = Math.max(200, Math.round(16000 * LD.flowers)), fl = new THREE.InstancedMesh(geo, fmat, FC); let fn = 0;
-    const flower = (x, z, s) => { if (fn >= FC || roadIdx.edge(x, z) < 0.4 || riverIdx.edge(x, z) < RIVER_HW) return;
+    const FC = Math.max(200, Math.round((isNormal ? 8000 : 14000) * LD.flowers)), fl = new THREE.InstancedMesh(geo, fmat, FC); let fn = 0;
+    const flower = (x, z, s) => { if (fn >= FC || riverIdx.edge(x, z) < RIVER_HW || roadIdx.edge(x, z) < 0.4) return;
       m4.compose(_v1.set(x, heightAt(x, z) - 0.03, z), _q.setFromAxisAngle(_v2.set(0, 1, 0), r() * 6.28), _s.set(s * 1.1, s, s * 1.1)); fl.setMatrixAt(fn++, m4); };
     for (const [cx, cz, cr] of dressing.tall) if (r() < 0.55) for (let q = 0, k = 4 + Math.floor(r() * 9); q < k; q++) { const a = r() * 6.28, d = cr * (0.6 + r() * 0.8); flower(cx + Math.cos(a) * d, cz + Math.sin(a) * d, 0.32 + r() * 0.3); }
-    for (let t = 0; t < 60000 && fn < FC; t++) {
+    for (let t = 0; t < 15000 && fn < FC; t++) {
       const ang = r() * Math.PI * 2, rad = Math.sqrt(r()) * 200, x = VC.x - 30 + Math.cos(ang) * rad * 1.15, z = VC.z + 40 + Math.sin(ang) * rad;
       if (fbm(x / 22, z / 22, 2, 33) < 0.18 || occHit(x, z, -1)) continue;
-      const cell = findCell(x, z); if (cell && fieldType(cell.i, cell.j) > 1 && cell.edge > 5) continue;
+      const cell = findCell(x, z); if (cell && (cellType ? cellType[cell.j * FN + cell.i] : fieldType(cell.i, cell.j)) > 1 && cell.edge > 5) continue;
       flower(x, z, 0.26 + r() * 0.26);
     }
     fl.count = fn; fl.receiveShadow = true; fl.layers.set(1); scene.add(fl);
     // 갈대: 물가를 따라 키 큰 포기
-    const reedN = 7000, reeds = new THREE.InstancedMesh(geo, mat, reedN); let rn = 0;
+    const reedN = isNormal ? 3500 : 5000, reeds = new THREE.InstancedMesh(geo, mat, reedN); let rn = 0;
     for (let k = 0; k < RIVER.length - 1 && rn < reedN; k++) {
       const [x0, z0] = RIVER[k]; if (Math.hypot(x0 - VC.x, z0 - VC.z) > 650) continue;
       const [x1, z1] = RIVER[k + 1], Lg = Math.hypot(x1 - x0, z1 - z0) || 1;
