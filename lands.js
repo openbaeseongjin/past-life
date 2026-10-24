@@ -7,7 +7,7 @@
 //   variant: 같은 세트 안의 지붕·벽·옷 물감 차이를 고를 열쇠 (지금은 땅 이름 그대로)
 // 시대는 엔진과 같은 값만 쓴다: 집안(households.js)도 같은 묶음에서 뽑히므로 {era, setting} 이 서로 어긋나지 않는다.
 //   수렵 시대 → 야영지 세트(steppe) + camp, 1950년부터(modern) → modern 세트, 그 사이는 땅의 문화 세트(+ 시대별 바꿈).
-// 지은 세트(BUILT_KITS): england(1단계), southasia(2단계 작업 1), eastasia(2단계 작업 2: 중국·한국·일본 갈래). 무대(realscene.js)는 없는 세트를 england 로 대신 쓰고, 땅 모습(LAND_LOOK)만 바꾼다.
+// 지은 세트(BUILT_KITS): england(1단계), southasia(2단계 작업 1), eastasia(2단계 작업 2), mudbrick(2단계 작업 3). 무대(realscene.js)는 없는 세트를 england 로 대신 쓰고, 땅 모습(LAND_LOOK)만 바꾼다.
 // 2단계에서 setting 은 문화 세트 위의 배치 요리법으로 짓는다 (수수한 집·읍내 집·큰 집 + 천막을 어떻게 늘어놓을지).
 // stageSeed(birth) → 마을 배치·꾸미기·사람 고르기에 쓰는 32비트 정수 (출생 시드 문자열에서, 결정적)
 import { AREAS } from './places.js';
@@ -18,7 +18,7 @@ export const LANDS = ['temperate', 'dry', 'monsoon', 'steppe', 'cold', 'tropical
 export const KITS = ['england', 'mudbrick', 'eastasia', 'southasia', 'africa', 'steppe', 'earlymodern', 'modern'];
 export const ERAS = ['forager', 'ancient', 'medieval', 'early', 'industrial', 'modern'];   // births.js groupOf 의 묶음과 같은 이름
 export const SETTINGS = ['village', 'camp', 'street', 'estate', 'shore', 'factory'];
-export const BUILT_KITS = ['england', 'southasia', 'eastasia'];
+export const BUILT_KITS = ['england', 'southasia', 'eastasia', 'mudbrick'];
 
 // 집안(households.js 의 id) → 사는 자리. serve 는 큰 집의 하인이라 estate
 export const HOUSEHOLD_SETTING = {

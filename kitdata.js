@@ -6,6 +6,7 @@
 export const KIT_DIMS = {
   cottage_a: [7.97, 5.55], cottage_b: [10.44, 5.79], cottage_c: [7.0, 5.41], house_jetty: [7.97, 6.28], longhouse: [15.04, 6.63],
   barn: [14.1, 8.3], smithy: [7.01, 6.97], church: [30.7, 12.6], mill: [9.15, 8.7], well: [2.96, 2.96], market_stall: [3.4, 2.41],
+  manor: [16.16, 9.53],
 };
 // 프로토타입 집 종류 → 고를 수 있는 조각 (시드로 섞은 뒤 앞에서부터, 길·강에 걸리면 다음 것)
 export const KIT_POOL = {
@@ -53,6 +54,7 @@ export const BUSHES_SA = [
 export const KIT_DIMS_SA = {
   hut_mud_a: [6.27, 5.97], hut_mud_b: [6.65, 6.87], house_courtyard: [12.71, 12.02], house_town: [6.51, 9.28], temple_small: [6.3, 9.9],
   shrine_tree: [5.34, 5.72], well_step: [6.14, 6.52], well_kuan: [4.49, 4.48], granary: [3.94, 4.0], market_stall_sa: [3.5, 2.72], smithy_sa: [7.22, 6.89],
+  haveli: [16.9, 14.55],
 };
 // 고르기 주머니 (마을 서민 집 · 큰 집 마당 · 거리)
 export const KIT_POOL_SA = {
@@ -109,14 +111,17 @@ export const KIT_SETS = {
 export const KIT_DIMS_EA = {
   house_thatch_ea: [8.18, 5.69], house_tile_ea: [10.6, 8.39], house_town_ea: [8.75, 7.82], temple_ea: [13.8, 13.45], pagoda_small: [5.2, 5.8], gate_ea: [4.45, 2.6],
   well_ea: [3, 3], granary_ea: [3.54, 3.73], smithy_ea: [7.21, 7.03], shrine_ea: [3.2, 5], stall_ea: [3.7, 2.81], pit_house_ea: [6.04, 6.5], camp_hearth: [5.4, 3.6],
+  courtyard_estate: [16.12, 14.05],
 };
 export const KIT_DIMS_EA_KR = {
   house_thatch_ea: [8.86, 6.61], house_tile_ea: [12.88, 9.52], house_town_ea: [11.24, 7.64], temple_ea: [13.92, 13.66], pagoda_small: [3.16, 3.16], gate_ea: [4.52, 3.1],
   well_ea: [3, 3], granary_ea: [4.39, 3.96], smithy_ea: [7.21, 7.03], shrine_ea: [5.58, 3.86], stall_ea: [3.7, 2.81], pit_house_ea: [6.04, 6.5], camp_hearth: [5.4, 3.6],
+  courtyard_estate: [17.73, 14.66],
 };
 export const KIT_DIMS_EA_JP = {
   house_thatch_ea: [10.5, 7.7], house_tile_ea: [12.1, 8.2], house_town_ea: [7.76, 8.9], temple_ea: [13.7, 12.88], pagoda_small: [7.2, 7.2], gate_ea: [4.16, 2.5],
   well_ea: [3, 3], granary_ea: [4.51, 4.25], smithy_ea: [7.26, 7.2], shrine_ea: [3.2, 5.34], stall_ea: [3.7, 2.81], pit_house_ea: [6.04, 6.5], camp_hearth: [5.4, 3.6],
+  courtyard_estate: [17.1, 14.25],
 };
 // 고르기 주머니: 초가(서민) · 기와집 · 가게 딸린 집 · 움집(신석기~고대·농사 전) · 곳간 — 몫은 villageplan.js HOUSE_MIX.eastasia (땅·해마다)
 export const KIT_POOL_EA = {
@@ -171,3 +176,75 @@ KIT_SETS.eastasia = {
     japan: { kit: 'eastasia_japan', dims: KIT_DIMS_EA_JP, people: 'villagers_japan', palette: 'japan', treeMix: TREE_MIX_EA.japan },
   },
 };
+
+// ───────────────────────── 흙벽돌 세트 (서아시아·북아프리카·나일·이란) ─────────────────────────
+export const KIT_DIMS_MB = {
+  house_flat_a: [7.85, 6.1],
+  house_flat_b: [8.99, 6.84],
+  house_courtyard_mb: [13.3, 12.69],
+  tower_wind: [7.6, 6.24],
+  mosque_small: [9.45, 9.45],
+  shrine_mb: [8.0, 8.0],
+  well_mb: [4.7, 4.4],
+  market_arcade: [8.0, 5.6],
+  granary_mb: [4.8, 4.8],
+  smithy_mb: [7.6, 7.44],
+  gate_mb: [5.2, 2.7],
+  palace_mb: [16.2, 15.14],
+};
+
+export const KIT_POOL_MB = {
+  mud: ['house_flat_a', 'house_flat_b', 'house_flat_a'],
+  courtyard: ['house_courtyard_mb'],
+  town: ['tower_wind', 'house_flat_b'],
+  store: ['granary_mb'],
+};
+
+export const PROP_DIMS_MB = {
+  camel: [3.43, 1.04, 2.52],
+  donkey_mb: [2.1, 1.11, 1.8],
+  goat_mb: [1.37, 0.48, 1.21],
+  carpet_mb: [2.56, 1.6, 0.03],
+  loom_mb: [1.9, 0.8, 2.1],
+  pottery_mb: [1.74, 1.47, 0.95],
+  cart_mb: [3.53, 2.45, 1.25],
+  tent_bedouin: [5.4, 3.8, 1.9],
+  clay_oven: [1.3, 1.3, 0.93],
+  wall_mud: [2.1, 0.44, 1.62],
+  trough_mb: [1.8, 0.9, 0.52],
+};
+
+export const TREE_DIMS_MB = {
+  palm_date_tall: [9.37, 7.24, 8.81],
+  palm_date_medium: [10.21, 5.47, 6.0],
+  olive_tree_mb: [3.7, 3.7, 4.5],
+  bush_desert_mb: [1.8, 1.7, 1.3],
+  reed_oasis: [1.83, 1.83, 2.1],
+};
+
+export const TREE_SWAP_MB = {
+  oak: 'olive_tree_mb',
+  ash: 'palm_date_tall',
+  willow: 'reed_oasis',
+  birch: 'palm_date_medium',
+  hawthorn: 'bush_desert_mb',
+  apple: 'olive_tree_mb',
+};
+
+export const TREE_MIX_MB = {
+  dry: { palm_date_tall: 2.0, palm_date_medium: 1.5, olive_tree_mb: 1.0, bush_desert_mb: 1.2, reed_oasis: 0.6 },
+};
+
+KIT_SETS.mudbrick = {
+  kit: 'mudbrick',
+  props: 'props_mudbrick',
+  trees: 'trees_mudbrick',
+  people: 'villagers_mudbrick',
+  dims: KIT_DIMS_MB,
+  pool: KIT_POOL_MB,
+  propDims: PROP_DIMS_MB,
+  treeDims: TREE_DIMS_MB,
+  treeSwap: TREE_SWAP_MB,
+  treeMix: TREE_MIX_MB,
+};
+

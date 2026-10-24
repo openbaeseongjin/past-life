@@ -92,6 +92,20 @@ PRESETS.eastasia = {
   trees: [...TREES_EA, ...TREE_GLB_EA.map((d, k) => ({ ...d, url: EA_GLB, seed: k + 1 }))],
   bushes: [...BUSHES_EA, { glb: 'grass_silver', url: EA_GLB, bush: true, seed: 6 }, { glb: 'reed_ea', url: EA_GLB, bush: true, seed: 7 }],
 };
+// 서아시아·흙벽돌 세트: 대추야자·올리브(trees_mudbrick.glb), 사막 덤불·오아시스 갈대
+const MB_GLB = ASSET + 'kits/trees_mudbrick.glb';
+PRESETS.mudbrick = {
+  ...PRESETS['england-1329'], leafTint: 0x8a9955,
+  trees: [
+    { sp: 'palm_date_tall', glb: 'palm_date_tall', url: MB_GLB, seed: 1 },
+    { sp: 'palm_date_medium', glb: 'palm_date_medium', url: MB_GLB, seed: 2 },
+    { sp: 'olive_tree_mb', glb: 'olive_tree_mb', url: MB_GLB, seed: 3 },
+  ],
+  bushes: [
+    { sp: 'bush_desert_mb', glb: 'bush_desert_mb', url: MB_GLB, bush: true, seed: 4 },
+    { sp: 'reed_oasis', glb: 'reed_oasis', url: MB_GLB, bush: true, seed: 5 },
+  ],
+};
 function presetKey(era, region, kit) { return PRESETS[kit] ? kit : 'england-1329'; }   // 다른 시대·지역은 아직 없음 → 세트마다 하나 (세트 이름의 프리셋, 없으면 잉글랜드)
 
 // 땅 모습 (lands.js LAND_LOOK) 을 잉글랜드 바탕 위에 덮는다. 빠진 값은 바탕 그대로 (temperate = 바탕)
@@ -510,7 +524,7 @@ export function createRealScene(canvas, opts = {}) {
   patchFog();
   // 세트 묶음 (kitdata.js KIT_SETS) + 마을 요리법 (villageplan.js RECIPES): 건물·소품·나무·사람 glb, 크기 표, 정한 자리
   // 요리법은 세트 + {태어난 해(opts.era), 땅(opts.area)} 로 (villageplan.js recipeFor: 시대·땅에 맞지 않는 조각을 거른다). 갈래(flavor)는 같은 세트 안의 다른 사람 옷·물감 (동남아)
-  const KIT = KIT_SETS[opts.kit] ? opts.kit : 'england', KS = KIT_SETS[KIT], RC = recipeFor(KIT, { year: opts.era, area: opts.area }), KD = RC.dims || KS.dims, PD = KS.propDims;
+  const KIT = KIT_SETS[opts.kit] ? opts.kit : 'england', KS = KIT_SETS[KIT], RC = recipeFor(KIT, { year: opts.era, area: opts.area, setting: opts.setting }), KD = RC.dims || KS.dims, PD = KS.propDims;
   const FL = flavorOf(KIT, opts.area), FLV = (FL && KS.flavors && KS.flavors[FL]) || null, PEOPLE = (FLV && FLV.people) || KS.people;
   const peopleUrl = opts.peopleUrl || ASSET + 'people/' + PEOPLE + '.glb';
   // 동아시아 갈래(한국·일본)는 건물 glb 가 따로다 (같은 조각 이름, 크기 표는 요리법 RC.dims)
@@ -905,7 +919,7 @@ export function createRealScene(canvas, opts = {}) {
   // ── 건물 자리 (세트 조각): 땅 높이·행렬은 지금 정하고, 메시는 세트를 불러온 뒤 붙인다 ──
   const placements = [];
   function place(piece, x, z, rot, s = 1, fixedBase = null) {
-    const [L, D] = KD[piece], c = Math.cos(rot), sn = Math.sin(rot);
+    const [L, D] = KD[piece] || PD[piece] || [4, 4], c = Math.cos(rot), sn = Math.sin(rot);
     let lo = Infinity, hi = -Infinity;
     for (const [u, v] of [[-L / 2, -D / 2], [L / 2, -D / 2], [L / 2, D / 2], [-L / 2, D / 2], [0, 0], [0, -D / 2], [0, D / 2]]) {
       const h = heightAt(x + (u * c + v * sn) * s, z + (-u * sn + v * c) * s); lo = Math.min(lo, h); hi = Math.max(hi, h);
@@ -931,7 +945,8 @@ export function createRealScene(canvas, opts = {}) {
   // 대장간 화덕 불빛: 처음엔 세트 값으로 어림, 세트가 오면 smithy_forge 자리로 옮긴다 (빛 개수가 안 바뀌어 셰이더를 다시 짜지 않는다)
   const forgeLight = new THREE.PointLight(0xff7a30, 40, 16, 2);
   let forgeBase = 40;            // 시각이 정하는 기준 세기 (깜박임은 이 둘레에서만)
-  forgeLight.position.set(-1.25, 1.5, -1.4).applyMatrix4(smithy.M); scene.add(forgeLight);
+  if (smithy && smithy.M) { forgeLight.position.set(-1.25, 1.5, -1.4).applyMatrix4(smithy.M); } else { forgeBase = 0; forgeLight.intensity = 0; }
+  scene.add(forgeLight);
 
   // 묘지 비석 (교회 둘레, 코드 도형). 돌담은 소품 세트 stone_wall 조각 (dressVillage)
   function buildGraveyard() {
@@ -1220,7 +1235,7 @@ export function createRealScene(canvas, opts = {}) {
       if (!mixList || !mixSum || ((MIX[sp] || 0) >= 1 && rr() < 0.5)) return sp;
       let x = rr() * mixSum; for (const [s, w] of mixList) { x -= w; if (x < 0) return s; } return mixList[0][0];
     };
-    const pick = (sp) => { const a = bySp[landSp(sp)] || bySp[swap(sp)] || bySp.oak || bySp.mango || bySp.zelkova; return a[Math.floor(rr() * a.length)]; };
+    const pick = (sp) => { const a = bySp[landSp(sp)] || bySp[swap(sp)] || bySp.oak || bySp.mango || bySp.zelkova || bySp.palm_date_tall || Object.values(bySp)[0]; return a ? a[Math.floor(rr() * a.length)] : 0; };
     const dens = LD.trees, keep = () => dens >= 1 || rr() < dens;   // 땅 모습의 나무 수 배수
     // 자리: [x, z, 크기, 돌림, 변형, 기울기x, 기울기z]
     const spots = [];
@@ -1772,7 +1787,7 @@ export function createRealScene(canvas, opts = {}) {
     snapshot() { renderOnce(0); return canvas.toDataURL('image/png'); },
     // 게임 무대(createStage)용: 바깥 고리에서 한 프레임 그리기 (autoStart: false 일 때), 땅 높이, 마을 배치, 화질
     renderFrame(dt) { if (state.disposed) return; dt = Math.min(dt, 0.1); tAcc += dt; renderOnce(dt); },
-    heightAt, groundAt, layout, dressing, state, sunDir, fogify, skyColorsAt, kit: KIT, kitDims: KD, propDims: PD, recipe: RC, flavor: FL, peopleUrl,
+    heightAt, groundAt, layout, dressing, state, sunDir, fogify, skyColorsAt, kit: KIT, kitDims: KD, propDims: PD, recipe: RC, flavor: FL, peopleUrl, setting: opts.setting || RC.setting || 'village', household: opts.household || null,
     skyColors() { return { fogC: fogC.clone(), sunSide: sunSideC.clone() }; },
     setQuality(q) {
       const Q2 = QUALITY[q]; if (!Q2) return;
@@ -1889,6 +1904,7 @@ export function createStage(canvas) {
 
   // ── 가림 검사: 두 점 사이에 집·큰 건물·천막(바닥 OBB × 높이)이 있나 ──
   const FIXED_TOP = { church: 22, smithy: 7, mill: 9, temple_small: 13, smithy_sa: 5, well_step: 4, house_courtyard: 4.2, granary: 4.3,
+    manor: 8.6, haveli: 10.6, courtyard_estate: 6.8, palace_mb: 8.4,
     temple_ea: 9, pagoda_small: 15, gate_ea: 4.5, smithy_ea: 4.8, well_ea: 2.2, shrine_ea: 3, house_tile_ea: 5.8, house_thatch_ea: 5, granary_ea: 4.8, camp_hearth: 1.6 };
   function blockersOf(sc, market = false) {
     const list = [...sc.layout.houses, ...sc.layout.farms].map((h) => ({ o: h.foot, top: 8.5 }));
@@ -2027,6 +2043,23 @@ export function createStage(canvas) {
     // 골목 (전경 카메라에서도 보이는 길)
     S.lane = { path: w.path, x: w.path[0][0], z: w.path[0][1], face: 0, bg: [SITE.church.x, SITE.church.z] };
     S.green = { x: GREEN.x - 3, z: GREEN.z + GREEN.r + 1.5, face: Math.PI, bg: A.greenBg === 'shrine' ? [SITE.shrine.x, SITE.shrine.z] : [CHURCH.x, CHURCH.z] };
+    // 큰 집 (estate) 자리들: 앞마당, 대청/테라스, 뒤뜰 화덕, 우물가 빨래터, 마구간
+    const est = L.estate || (L.fixed && L.fixed.find((f) => f.role === 'estate'));
+    if (est) {
+      const eD = est.D || 14, eL = est.L || 16, eFoot = est.foot || obb(est.x, est.z, est.rot, eL / 2, eD / 2);
+      const [fx, fz] = obbLocal(eFoot, 0, eD / 2 + 3.2);
+      S.estate_front = { x: fx, z: fz, face: est.rot, bg: [est.x, est.z] };
+      const [tx, tz] = obbLocal(eFoot, 0, eD / 2 - 0.8);
+      S.estate_terrace = { x: tx, z: tz, face: est.rot, bg: [est.x, est.z] };
+      const [hx, hz] = obbLocal(eFoot, -eL / 4, -eD / 2 - 2.2);
+      S.estate_hearth = { x: hx, z: hz, face: est.rot + Math.PI, bg: [est.x, est.z] };
+      const well = (L.fixed && L.fixed.find((f) => f.role === 'well')) || { x: 2, z: -14, rot: 0.3 };
+      const [wx, wz] = [well.x + 1.8, well.z + 0.8];
+      S.estate_wash = { x: wx, z: wz, face: toward(wx, wz, well.x, well.z), bg: [est.x, est.z] };
+      const store = (L.fixed && L.fixed.find((f) => f.role === 'store')) || { x: 26, z: -20, rot: -Math.PI / 2 };
+      const [sx, sz] = [store.x - 2.5, store.z];
+      S.estate_stable = { x: sx, z: sz, face: toward(sx, sz, store.x, store.z), bg: [store.x, store.z] };
+    }
     return S;
   }
 
@@ -2051,6 +2084,32 @@ export function createStage(canvas) {
     const fam = () => (stage === 'child' ? [['f_apron', 'talk'], [m ? 'm_field' : 'm_tunic', 'talk'], ['child', 'stand']]
       : stage === 'grown' ? (a < 22 ? [['f_apron', 'talk'], ['elder', 'talk']] : [[m ? 'f_apron' : 'm_tunic', 'talk'], ['child', 'stand'], ['elder', 'talk']])
         : [[m ? 'f_cloak' : 'elder', 'talk'], [m ? 'm_tunic' : 'f_apron', 'talk'], ['child', 'stand']]);
+    // 큰 집 (estate) 환경의 귀족(elite)과 하인(serve)
+    if ((W.sc.setting === 'estate' || W.sc.recipe.setting === 'estate') && S.estate_front) {
+      if (h === 'elite') {
+        if (f === 'family') return { key: 'estate_front', spot: S.estate_front, action: a < 3 ? 'stand' : 'talk', mates: fam() };
+        if (f === 'learn') return { key: 'estate_terrace', spot: S.estate_terrace, action: 'talk', mates: a < 13 ? [['m_hood', 'talk'], ['child', 'stand']] : [['m_hood', 'talk']] };
+        if (f === 'rest') return { key: 'estate_terrace', spot: S.estate_terrace, action: a < 13 ? 'stand' : 'sit' };
+        if (f === 'body') return { key: 'estate_front', spot: S.estate_front, action: 'walk' };
+        return { key: 'estate_front', spot: S.estate_front, action: 'talk', mates: [['m_tunic', 'talk']] };
+      }
+      if (h === 'serve') {
+        if (f === 'family') return { key: 'family', spot: S.home, action: a < 3 ? 'stand' : 'talk', mates: fam() };
+        if (f === 'rest') return S.bench.tree || a < 13 ? { key: 'tree', spot: S.bench, action: 'stand' } : { key: 'bench', spot: S.bench, action: 'sit' };
+        if (f === 'body') return { key: 'lane', spot: S.lane, action: 'carry' };
+        if (f === 'learn') return { key: 'garden', spot: S.estate_hearth || S.garden, action: 'kneel' };
+        if (stage !== 'grown') return { key: 'garden', spot: S.estate_hearth || S.garden, action: 'kneel' };
+        if (m) {
+          return (a % 2 === 0)
+            ? { key: 'stable', spot: S.estate_stable || S.lane, action: 'kneel' }
+            : { key: 'carry', spot: S.lane, action: 'carry' };
+        } else {
+          return (a % 2 === 0)
+            ? { key: 'hearth', spot: S.estate_hearth || S.garden, action: 'kneel' }
+            : { key: 'wash', spot: S.estate_wash || S.shore, action: 'kneel' };
+        }
+      }
+    }
     if (f === 'family') return { key: 'family', spot: S.home, action: a < 3 ? 'stand' : 'talk', mates: fam() };
     if (f === 'body') return { key: 'lane', spot: S.lane, action: 'walk' };   // 노인은 굽은 등·지팡이로 천천히
     if (f === 'rest') return S.bench.tree || a < 13 ? { key: 'tree', spot: S.bench, action: 'stand' } : { key: 'bench', spot: S.bench, action: 'sit' };
@@ -2216,7 +2275,7 @@ export function createStage(canvas) {
   }
   function buildInto(birth, made) {
     const stage = stageOf(birth), seed = stageSeed(birth);
-    const sc = createRealScene(canvas, { renderer, seed, land: stage.land, quality, kit: sceneKitOf(stage), autoStart: false, pixelRatio: 1, timeOfDay: st.time, view: 'overview', era: birth.year, region: birth.region, area: stage.variant });
+    const sc = createRealScene(canvas, { renderer, seed, land: stage.land, quality, kit: sceneKitOf(stage), autoStart: false, pixelRatio: 1, timeOfDay: st.time, view: 'overview', era: birth.year, region: birth.region, area: stage.variant, setting: stage.setting, household: birth.household });
     made(sc);
     if (st.failNext) { st.failNext = false; throw new Error('확인용: 장면 짓기를 일부러 실패시킴 (debugFailNext)'); }
     const w = { sc, stage, seed, meReady: false };

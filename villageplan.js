@@ -7,7 +7,7 @@
 // 모든 난수는 시드에서 나온다: 같은 시드면 같은 마을이다.
 // 마을 배치 상수(강·길·교회·대장간·물레방앗간·우물·장터 빈터·풀밭·LANES·FARMS)도 여기 있다. planDressing 은 이 상수를
 // 직접 읽는다 (layout 인자만으로는 재현되지 않는다: 같은 모듈의 상수와 함께 한 벌이다).
-import { KIT_DIMS, KIT_POOL, KIT_DIMS_SA, KIT_POOL_SA, KIT_DIMS_EA, KIT_DIMS_EA_KR, KIT_DIMS_EA_JP, KIT_POOL_EA } from './kitdata.js';
+import { KIT_DIMS, KIT_POOL, KIT_DIMS_SA, KIT_POOL_SA, KIT_DIMS_EA, KIT_DIMS_EA_KR, KIT_DIMS_EA_JP, KIT_POOL_EA, KIT_DIMS_MB, KIT_POOL_MB } from './kitdata.js';
 import { FARM_FROM } from './context_data.js';
 
 // ───────────────────────── 작은 도구 ─────────────────────────
@@ -227,6 +227,27 @@ const eaFixed = [
   { role: 'store', piece: 'granary_ea', ...E_.GRANARY },
 ].map(({ x, z, rot, ...o }) => ({ x, z, rot, ...o }));
 
+// 서아시아·북아프리카 흙벽돌 정한 자리: 모스크(이슬람 전엔 배화신전/사당)는 교회 언덕 위, 마을 관문은 다리 어귀,
+//   궁전/큰 안뜰집과 곡간은 언덕 비탈, 우물은 잉글랜드 우물 자리
+export const MB_SITES = {
+  MOSQUE: { x: 96, z: -62, rot: 0 },
+  MOSQUE_YARD: { x0: 84, x1: 108, z0: -74, z1: -50 },
+  WELL: { x: 10, z: -13, rot: 0.35 },
+  GATE: { x: -28, z: 23, rot: -0.75 },
+  BIGHOUSE: { x: 70, z: 6, rot: 0 },
+  BIGYARD: { x0: 58, x1: 82, z0: -3, z1: 15 },
+  GRANARY: { x: 84, z: 2, rot: 0.2 },
+};
+const M_ = MB_SITES;
+const mbFixed = [
+  { role: 'church', piece: 'mosque_small', ...M_.MOSQUE },
+  { role: 'smithy', piece: 'smithy_mb', x: SMITHY.x, z: SMITHY.z, rot: SMITHY.rot },
+  { role: 'well', piece: 'well_mb', ...M_.WELL },
+  { role: 'gate', piece: 'gate_mb', ...M_.GATE },
+  { role: 'bighouse', piece: 'palace_mb', ...M_.BIGHOUSE },
+  { role: 'store', piece: 'granary_mb', ...M_.GRANARY },
+].map(({ x, z, rot, ...o }) => ({ x, z, rot, ...o }));
+
 export const RECIPES = {
   england: {
     kit: 'england', dims: KIT_DIMS, pool: KIT_POOL,
@@ -244,6 +265,7 @@ export const RECIPES = {
     // 내 사람 활동 자리 (realscene.js planSpots): 텃밭·걸상 소품, 장터 좌판 앞에 서기, 큰 소품 가림, 교회/사원 앞 자리, 빈터 배경, 내 살빛 범위
     activity: { bed: 'vegetable_bed', seat: 'bench', seatH: 0.45, marketFront: false, tallBlock: 0, templeFront: null, greenBg: 'church', meSkin: [0.92, 0.12] },
     hedge: null, dress: null, graveyard: true,
+    estatePiece: 'manor', estateServants: ['cottage_a', 'cottage_c'],
   },
   southasia: {
     kit: 'southasia', dims: KIT_DIMS_SA, pool: KIT_POOL_SA,
@@ -262,6 +284,7 @@ export const RECIPES = {
     // 밭 가장자리: 산울타리 띠 없이 두렁 나무만 (가장자리의 40%), 종은 야자·망고·바불·님
     hedge: { keep: 0.4, strips: false, pick: (r) => (r < 0.42 ? 'coconut' : r < 0.58 ? 'areca' : r < 0.8 ? 'mango' : r < 0.92 ? 'babul' : 'neem') },
     dress: planDressingSA, graveyard: false,
+    estatePiece: 'haveli', estateServants: ['hut_mud_a', 'hut_mud_b'],
   },
   // 동아시아: 개울을 따라 늘어선 마을 — 비탈 위 절(법당·탑), 한가운데 마을 나무 신당, 담 두른 기와 큰 집, 집마다 뒤뜰(텃밭·장독·볏가리·감나무),
   //   나무다리 + 개울 디딤돌, 땅 그림의 논은 비탈에서 등고선 두렁(계단 논)으로 (terrace). 땅(중국·한국·일본)마다 건물 glb·담·독·사람 옷이 다르다 (recipeFor)
@@ -282,6 +305,25 @@ export const RECIPES = {
     // 밭 가장자리: 산울타리 띠 없이 두렁 나무만 (가장자리의 35%), 종은 감나무·소나무·느티·버들
     hedge: { keep: 0.35, strips: false, pick: (r) => (r < 0.35 ? 'persimmon' : r < 0.62 ? 'pine' : r < 0.82 ? 'zelkova' : 'willow') },
     dress: planDressingEA, graveyard: false, bridge: 'timber', terrace: 1.3, variant: 'china',
+    estatePiece: 'courtyard_estate', estateServants: ['house_thatch_ea'],
+  },
+  mudbrick: {
+    kit: 'mudbrick', dims: KIT_DIMS_MB, pool: KIT_POOL_MB,
+    kindOf: (r) => (r < 0.1 ? 'courtyard' : r < 0.25 ? 'town' : 'mud'), farmKind: (k) => (k === 'barn' ? 'store' : 'mud'),
+    noGable: ['house_flat_a', 'house_flat_b', 'house_courtyard_mb', 'tower_wind', 'market_arcade', 'granary_mb', 'palace_mb', 'mosque_small', 'shrine_mb', 'well_mb', 'smithy_mb', 'gate_mb'],
+    gableP: 0.0, gap: [1.2, 2.4], setback: [0.5, 1.4], croftK: 0.72,
+    reserved: (x, z, pad) => Math.hypot(x - GREEN.x, z - GREEN.z) < GREEN.r + 3 + pad || inRect(M_.MOSQUE_YARD, x, z, 2 + pad) || inRect(PASTURE, x, z, pad)
+      || inRect(MEADOW, x, z, pad) || forgeYard(x, z, pad) || Math.hypot(x - SMITHY.x, z - SMITHY.z) < 12 + pad
+      || Math.hypot(x - M_.WELL.x, z - M_.WELL.z) < 5 + pad || Math.hypot(x - BRIDGE.x, z - BRIDGE.z) < 15 + pad || inRect(M_.BIGYARD, x, z, 1.5 + pad)
+      || Math.hypot(x - M_.GRANARY.x, z - M_.GRANARY.z) < 5 + pad || Math.hypot(x - M_.GATE.x, z - M_.GATE.z) < 7 + pad,
+    fixed: mbFixed,
+    fixedFoot: mbFixed.map((f) => { const [L, D] = KIT_DIMS_MB[f.piece]; return obb(f.x, f.z, f.rot, L / 2, D / 2); }),
+    stall: 'market_arcade', awning: null,
+    sites: { church: M_.MOSQUE, well: M_.WELL, temple: M_.MOSQUE, shrine: M_.MOSQUE },
+    activity: { bed: 'clay_oven', seat: 'carpet_mb', seatH: 0.1, marketFront: true, tallBlock: 0.9, templeFront: [0, 6.5], greenBg: 'church', meSkin: [0.82, 0.18] },
+    hedge: { keep: 0.35, strips: false, pick: (r) => (r < 0.45 ? 'palm_date_tall' : r < 0.75 ? 'palm_date_medium' : r < 0.9 ? 'olive_tree_mb' : 'bush_desert_mb') },
+    dress: planDressingMB, graveyard: false, bridge: 'stone', terrace: 0,
+    estatePiece: 'palace_mb', estateServants: ['house_flat_a', 'house_flat_b'],
   },
 };
 export const recipeOf = (kit) => RECIPES[kit] || RECIPES.england;
@@ -322,6 +364,12 @@ export const PIECE_GATES = {
     jars_ea: { area: { korea: [-Infinity, 300], japan: [-Infinity, 1300] } },
     taru_ea: { from: 1300, area: { china: null, korea: null } },
   },
+  mudbrick: {
+    mosque_small: { from: 630 },
+    tower_wind: { from: -500 },
+    gate_mb: { from: -2000 },
+    cart_mb: { from: -3000 },
+  },
 };
 // 집 종류 섞기 (해 → 안뜰집·읍내 집 몫, 나머지는 흙집). 600년부터가 원래 값 (중세 인도 생의 마을은 수정 전과 같다)
 export const HOUSE_MIX = { southasia: [[-Infinity, { courtyard: 0.03, town: 0 }], [-300, { courtyard: 0.04, town: 0.05 }], [600, { courtyard: 0.05, town: 0.1 }]],
@@ -334,6 +382,11 @@ export const HOUSE_MIX = { southasia: [[-Infinity, { courtyard: 0.03, town: 0 }]
     japan: [[-Infinity, { pit: 1, tile: 0, town: 0 }], [-300, { pit: 0.9, tile: 0, town: 0 }], [700, { pit: 0.45, tile: 0.02, town: 0 }],
       [1100, { pit: 0.05, tile: 0.03, town: 0 }], [1300, { pit: 0.02, tile: 0.05, town: 0.06 }], [1600, { pit: 0, tile: 0.08, town: 0.1 }]],
   },
+  mudbrick: [
+    [-Infinity, { courtyard: 0.05, town: 0 }],
+    [-500, { courtyard: 0.08, town: 0.1 }],
+    [630, { courtyard: 0.12, town: 0.15 }],
+  ],
 };
 export function pieceAllowed(kit, piece, year, area) {
   const g = PIECE_GATES[kit] && PIECE_GATES[kit][piece]; if (!g) return true;
@@ -343,27 +396,71 @@ export function pieceAllowed(kit, piece, year, area) {
   if (g.area && area in g.area) span = g.area[area];
   return span !== null && year >= span[0] && year < span[1];
 }
-const recipeMemo = new Map();
-// 세트 + {해, 땅} → 마을 요리법. 거를 것이 없으면 RECIPES[kit] 그 객체를 그대로 (잉글랜드·중세 인도는 수정 전과 같은 계획)
-export function recipeFor(kit, { year = 1329, area = null } = {}) {
-  const base = recipeOf(kit), gates = PIECE_GATES[base.kit], mixes = HOUSE_MIX[base.kit];
-  if (!gates) return base;
-  const y = Number.isFinite(year) ? year : 1329;
-  if (base.kit === 'eastasia') return recipeEA(base, y, area);
-  const mix = mixes ? mixes.filter(([from]) => y >= from).pop()[1] : null;
-  const without = Object.keys(gates).filter((p) => !pieceAllowed(base.kit, p, y, area)).sort();
-  const key = base.kit + '|' + without.join(',') + '|' + (mix ? mix.courtyard + ',' + mix.town : '');
-  if (!without.length && (!mix || mixes[mixes.length - 1][1] === mix)) return base;
-  if (recipeMemo.has(key)) return recipeMemo.get(key);
-  const swap = (f) => (without.includes(f.piece) && f.piece === 'temple_small' ? { ...f, piece: 'shrine_tree' } : f);
-  const fixed = base.fixed.map(swap);
-  const RC = {
-    ...base, fixed, without,
-    fixedFoot: fixed.map((f) => { const [L, D] = base.dims[f.piece]; return obb(f.x, f.z, f.rot, L / 2, D / 2); }),
-    kindOf: mix ? (r) => (r < mix.courtyard ? 'courtyard' : r < mix.courtyard + mix.town ? 'town' : 'mud') : base.kindOf,
+// 큰 집 (estate) 장소 요리법: 중심에 문화권별 큰 집, 주변에 우물·곳간·사당, 장터 없음
+export const ESTATE_SITE = { x: 12, z: -28, rot: 0.1 };
+function makeEstateRecipe(base, area, year) {
+  const dims = base.dims;
+  const ep = base.estatePiece || 'manor';
+  const fixed = [];
+  fixed.push({ role: 'estate', piece: ep, ...ESTATE_SITE });
+  const well = base.fixed.find((f) => f.role === 'well');
+  if (well) fixed.push({ role: 'well', piece: well.piece, x: 2, z: -14, rot: 0.3 });
+  const store = base.fixed.find((f) => f.role === 'store') || base.fixed.find((f) => f.piece && /granary|barn/.test(f.piece));
+  if (store) fixed.push({ role: 'store', piece: store.piece, x: 26, z: -20, rot: -Math.PI / 2 });
+  const smithy = base.fixed.find((f) => f.role === 'smithy');
+  if (smithy) fixed.push({ role: 'smithy', piece: smithy.piece, x: 26, z: -8, rot: -0.45 });
+  const shrine = base.fixed.find((f) => f.role === 'shrine');
+  if (shrine) fixed.push({ role: 'shrine', piece: shrine.piece, x: 24, z: -40, rot: 0.3 });
+
+  return {
+    ...base,
+    setting: 'estate',
+    fixed,
+    fixedFoot: fixed.map((f) => { const [L, D] = dims[f.piece] || [12, 12]; return obb(f.x, f.z, f.rot, L / 2, D / 2); }),
+    noMarket: true,
+    sites: {
+      ...base.sites,
+      estate: ESTATE_SITE,
+      well: { x: 2, z: -14, rot: 0.3 },
+    },
   };
-  recipeMemo.set(key, RC);
-  return RC;
+}
+
+const recipeMemo = new Map();
+// 세트 + {해, 땅, 자리} → 마을 요리법. 거를 것이 없으면 RECIPES[kit] 그 객체를 그대로 (잉글랜드·중세 인도는 수정 전과 같은 계획)
+export function recipeFor(kit, { year = 1329, area = null, setting = 'village' } = {}) {
+  const base = recipeOf(kit), gates = PIECE_GATES[base.kit], mixes = HOUSE_MIX[base.kit];
+  const y = Number.isFinite(year) ? year : 1329;
+  let res;
+  if (!gates) res = base;
+  else if (base.kit === 'eastasia') res = recipeEA(base, y, area);
+  else if (base.kit === 'mudbrick') res = recipeMB(base, y, area);
+  else {
+    const mix = mixes ? mixes.filter(([from]) => y >= from).pop()[1] : null;
+    const without = Object.keys(gates).filter((p) => !pieceAllowed(base.kit, p, y, area)).sort();
+    const key = base.kit + '|' + without.join(',') + '|' + (mix ? mix.courtyard + ',' + mix.town : '');
+    if (!without.length && (!mix || mixes[mixes.length - 1][1] === mix)) res = base;
+    else if (recipeMemo.has(key)) res = recipeMemo.get(key);
+    else {
+      const swap = (f) => (without.includes(f.piece) && f.piece === 'temple_small' ? { ...f, piece: 'shrine_tree' } : f);
+      const fixed = base.fixed.map(swap);
+      const RC = {
+        ...base, fixed, without,
+        fixedFoot: fixed.map((f) => { const [L, D] = base.dims[f.piece]; return obb(f.x, f.z, f.rot, L / 2, D / 2); }),
+        kindOf: mix ? (r) => (r < mix.courtyard ? 'courtyard' : r < mix.courtyard + mix.town ? 'town' : 'mud') : base.kindOf,
+      };
+      recipeMemo.set(key, RC);
+      res = RC;
+    }
+  }
+  if (setting === 'estate') {
+    const estateKey = kit + '|estate|' + y + '|' + area;
+    if (recipeMemo.has(estateKey)) return recipeMemo.get(estateKey);
+    const estRC = makeEstateRecipe(res, area, y);
+    recipeMemo.set(estateKey, estRC);
+    return estRC;
+  }
+  return res;
 }
 
 // 동아시아 요리법: 땅 갈래(중국·한국·일본)의 건물 크기 표 + 시대 거름 + 집 섞기 + 농사 전 야영 (FARM_FROM 전: 움집·야영 화덕만, 장터·논 없음)
@@ -402,6 +499,43 @@ function recipeEA(base, y, area) {
     terrace: camp ? 0 : base.terrace,
   };
   if (!temple) RC.sites = { ...base.sites, temple: E_.TEMPLE, church: E_.TEMPLE };
+  recipeMemo.set(key, RC);
+  return RC;
+}
+
+// 서아시아·북아프리카 흙벽돌 요리법: 이슬람 이전(<630)엔 모스크 대신 배화신전/사당, 기원전 500년 이전엔 바람탑 제외
+function recipeMB(base, y, area) {
+  const gates = PIECE_GATES.mudbrick;
+  const without = Object.keys(gates).filter((p) => !pieceAllowed('mudbrick', p, y, area)).sort();
+  const list = HOUSE_MIX.mudbrick;
+  const mix = list.filter(([from]) => y >= from).pop()[1];
+  const key = ['mudbrick', without.join(','), mix.courtyard, mix.town].join('|');
+  if (recipeMemo.has(key)) return recipeMemo.get(key);
+  const dims = base.dims, gone = new Set(without);
+  const fixed = [];
+  for (const f of base.fixed) {
+    if (f.role === 'church') {
+      if (gone.has('mosque_small')) {
+        fixed.push({ ...f, piece: 'shrine_mb' });
+      } else {
+        fixed.push(f);
+      }
+      continue;
+    }
+    if (f.role === 'gate' && gone.has('gate_mb')) continue;
+    fixed.push(f);
+  }
+  const pool = {
+    ...base.pool,
+    town: gone.has('tower_wind') ? ['house_flat_b'] : base.pool.town,
+  };
+  const C = mix.courtyard, T = C + mix.town;
+  const RC = {
+    ...base, dims, pool, fixed, without,
+    fixedFoot: fixed.map((f) => { const [L, D] = dims[f.piece]; return obb(f.x, f.z, f.rot, L / 2, D / 2); }),
+    kindOf: (r) => (r < C ? 'courtyard' : r < T ? 'town' : 'mud'),
+  };
+  if (gone.has('mosque_small')) RC.sites = { ...base.sites, temple: M_.MOSQUE, church: M_.MOSQUE, shrine: M_.MOSQUE };
   recipeMemo.set(key, RC);
   return RC;
 }
@@ -881,6 +1015,218 @@ export function planDressingEA(rng, kit, props, layout) {
   return { items, gardens, worn, trees, tall, bushes };
 }
 
+// ───────────────────────── 서아시아·흙벽돌 꾸미기 (시드) ─────────────────────────
+// planDressing 과 같은 꼴: { items, gardens, worn, trees, tall, bushes }
+//   trees[].sp: palm_date_tall, palm_date_medium, olive_tree_mb, bush_desert_mb, reed_oasis
+//   items[].p : props_mudbrick.glb (camel, donkey_mb, goat_mb, carpet_mb, loom_mb, pottery_mb, cart_mb, tent_bedouin, clay_oven, wall_mud, trough_mb)
+export const YARD_PIECES_MB = ['clay_oven', 'carpet_mb', 'loom_mb', 'pottery_mb', 'trough_mb', 'wall_mud'];
+export function planDressingMB(rng, kit, props, layout) {
+  const R = rng, PD = props.dims, { roadEdge, riverEdge, fieldAt } = layout;
+  const items = [], gardens = [], worn = [], trees = [], tall = [], bushes = [];
+  const TAU = Math.PI * 2, rr = (a, b) => a + (b - a) * R();
+  const builds = [...layout.houses, ...layout.farms].map((h) => h.foot);
+  const KD = kit.dims || KIT_DIMS_MB;
+  const fixedFoot = [...(layout.fixed || []).map((f) => { const [L, D] = KD[f.piece] || [4, 4]; return obb(f.x, f.z, f.rot, L / 2, D / 2); }),
+    ...layout.stalls.map((q) => obb(q.x, q.z, q.rot, 1.8, 1.4)), ...layout.awnings.map((q) => obb(q.x, q.z, q.rot, 1.8, 1.4))];
+  const radius = (p, s = 1) => { const d = PD[p]; return d ? Math.hypot(d[0], d[1]) / 2 * s : 0.5; };
+  const TC = 8, tgrid = new Map(); let tmax = 0;
+  const takenAdd = (x, z, r) => { const k = Math.floor(x / TC) * 100003 + Math.floor(z / TC); let a = tgrid.get(k); if (!a) tgrid.set(k, a = []); a.push([x, z, r]); if (r > tmax) tmax = r; };
+  const takenHit = (x, z, r) => {
+    const reach = (r + tmax) * 0.75, g0 = Math.floor((x - reach) / TC), g1 = Math.floor((x + reach) / TC), h0 = Math.floor((z - reach) / TC), h1 = Math.floor((z + reach) / TC);
+    for (let gx = g0; gx <= g1; gx++) for (let gz = h0; gz <= h1; gz++) {
+      const a = tgrid.get(gx * 100003 + gz); if (!a) continue;
+      for (const [tx, tz, tr] of a) if ((x - tx) ** 2 + (z - tz) ** 2 < (r * 0.75 + tr * 0.75) ** 2) return true;
+    }
+    return false;
+  };
+  const clear = (x, z, r, own) => roadEdge(x, z) > r * 0.55 + 0.15 && riverEdge(x, z) > RIVER_HW + r * 0.5
+    && !builds.some((o) => (o === own ? obbHas(o, x, z, -0.05) : obbHas(o, x, z, r * 0.6))) && !fixedFoot.some((o) => obbHas(o, x, z, r * 0.6))
+    && !takenHit(x, z, r);
+  const WITHOUT = new Set(kit.without || []);
+  const put = (p, x, z, rot, o = {}) => {
+    if (WITHOUT.has(p)) return false;
+    const s = o.s ?? 1, r = o.r ?? radius(p, s);
+    if (!o.force && !clear(x, z, r, o.own)) return false;
+    const it = { p, x, z, rot, s }; for (const k of ['sx', 'y', 'tint', 'yard', 'flock']) if (o[k] != null) it[k] = o[k];
+    items.push(it); if (!o.notake) takenAdd(x, z, r); return true;
+  };
+  const fence = (p, ax, az, bx, bz, o = {}) => {
+    const seg = 2.1, L = Math.hypot(bx - ax, bz - az); if (L < 1.2) return 0;
+    const n = Math.max(1, Math.round(L / seg)), sx = L / (n * seg), dx = (bx - ax) / L, dz = (bz - az) / L, rot = Math.atan2(-dz, dx);
+    let c = 0;
+    for (let k = 0; k < n; k++) {
+      if (o.gap != null && k === o.gap) continue;
+      const t = (k + 0.5) / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t;
+      if (roadEdge(x, z) < 0.4 || riverEdge(x, z) < RIVER_HW + 0.6 || builds.some((b) => obbHas(b, x, z, 0.2)) || (!o.inFixed && fixedFoot.some((b) => obbHas(b, x, z, 0.2)))) continue;
+      items.push({ p, x, z, rot, s: 1, sx }); c++;
+      if (R() < 0.25) tall.push([x + rr(-0.8, 0.8) * dx, z + rr(-0.8, 0.8) * dz, rr(0.4, 0.8)]);
+    }
+    const m = Math.ceil(L / 3); for (let k = 0; k < m; k++) takenAdd(ax + (bx - ax) * (k + 0.5) / m, az + (bz - az) * (k + 0.5) / m, 0.4);
+    return c;
+  };
+  const tree = (sp, x, z, s, r = 2.5, lean = [rr(-0.04, 0.04), rr(-0.04, 0.04)]) => {
+    if (!clear(x, z, r) || Math.hypot(x - GREEN.x, z - GREEN.z) < GREEN.r + 2.5 || inRect(VIEW_CLEAR, x, z)) return false;
+    trees.push({ sp, x, z, s, lean }); takenAdd(x, z, r); return true;
+  };
+  const goatTint = () => [[1, 1, 1], [0.35, 0.3, 0.25], [1.4, 1.2, 0.9], [0.8, 0.7, 0.6], [0.2, 0.18, 0.18]][Math.floor(R() * 5)];
+  const camelTint = () => [[1, 1, 1], [1.15, 1.05, 0.9], [0.85, 0.8, 0.75], [1.25, 1.15, 0.95]][Math.floor(R() * 4)];
+
+  takenAdd(M_.WELL.x - 2.5, M_.WELL.z + 1.2, 1.0); takenAdd(M_.WELL.x + 1.4, M_.WELL.z + 2.8, 1.0);
+  for (const a of layout.awnings) takenAdd(a.x, a.z, 2.0);
+
+  // ── 집마다: 화덕(clay_oven), 물항아리(pottery_mb), 양탄자(carpet_mb), 베틀(loom_mb), 염소·당나귀, 흙담(wall_mud), 대추야자·올리브 ──
+  layout.houses.forEach((h, hi) => {
+    const { L, D, rot: th, foot: own } = h, loc = (u, v) => obbLocal(own, u, v);
+    const c = h.croft, cl = (u, v) => obbLocal(c, u, v), cr = h.face;
+    const want = 2 + Math.floor(R() * 3);
+    let got = 0;
+    const yard = (p, x, z, rot, o = {}) => (got < want && put(p, x, z, rot, { ...o, yard: hi }) ? (got++, true) : false);
+    const sg = R() < 0.5 ? 1 : -1;
+    const wishes = [
+      () => { for (const v of [0, rr(-0.3, 0.3) * D]) { const [x, z] = loc(sg * (L / 2 + 0.6), v); if (yard('pottery_mb', x, z, R() * TAU, { own, r: 0.5 })) return; } },
+      () => { for (const u of [(R() - 0.5) * Math.max(0, L - 3), 0]) { const [x, z] = loc(u, D / 2 + 1.2); if (yard('carpet_mb', x, z, th + (R() - 0.5) * 0.4, { own, r: 0.9 })) return; } },
+      () => { const [x, z] = cl(rr(-0.5, 0.5) * Math.max(0.2, c.hx - 1.2), rr(-0.5, 0.5) * Math.max(0.2, c.hz - 1.0)); yard('clay_oven', x, z, R() * TAU, { r: 0.65 }); },
+      () => { if (R() < 0.4) { const [x, z] = loc(-sg * (L / 2 + 0.8), rr(-0.2, 0.2) * D); yard('loom_mb', x, z, th + Math.PI / 2, { own, r: 0.8 }); } },
+    ];
+    for (let i = wishes.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [wishes[i], wishes[j]] = [wishes[j], wishes[i]]; }
+    for (const w of wishes) { if (got >= want) break; w(); }
+    for (let gv = 0; got < 2 && gv < 4; gv++) for (let gu = 0; got < 2 && gu < 5; gu++) {
+      const u = (-1 + 2 * (gu + 0.5) / 5) * Math.max(0.2, c.hx - 0.6), v = (-1 + 2 * (gv + 0.5) / 4) * Math.max(0.2, c.hz - 0.5), [x, z] = cl(u, v);
+      yard('pottery_mb', x, z, R() * TAU, { r: 0.45 });
+    }
+    // 염소 또는 당나귀
+    if (R() < 0.5) {
+      const isDonkey = R() < 0.35, [x, z] = cl(rr(-0.4, 0.4) * Math.max(0.3, c.hx - 1.5), rr(-0.3, 0.3) * Math.max(0.3, c.hz - 1.2));
+      if (put(isDonkey ? 'donkey_mb' : 'goat_mb', x, z, cr + Math.PI / 2 + rr(-0.6, 0.6), { r: isDonkey ? 1.0 : 0.6, tint: isDonkey ? [1, 1, 1] : goatTint() })) {
+        const [tx, tz] = cl(Math.max(-c.hx + 0.9, Math.min(c.hx - 0.9, (x - c.x) * c.c - (z - c.z) * c.s + 1.5)), (x - c.x) * c.s + (z - c.z) * c.c - 1.0);
+        put('trough_mb', tx, tz, cr, { r: 0.7 });
+      }
+    }
+    // 흙바닥
+    worn.push(obb(...loc(0, D / 2 + 0.8), th, L / 2 + 0.3, 1.1));
+    worn.push(obb(c.x, c.z, cr, Math.max(0.5, c.hx - 0.5), Math.max(0.5, c.hz - 0.5)));
+    // 뒤뜰 흙벽돌 담장
+    const K = [cl(-c.hx, c.hz), cl(-c.hx, -c.hz), cl(c.hx, -c.hz), cl(c.hx, c.hz)];
+    if (R() < 0.75) fence('wall_mud', ...K[1], ...K[2], { gap: R() < 0.5 ? 1 : null });
+    if (R() < 0.35) fence('wall_mud', ...K[0], ...K[1]);
+    if (R() < 0.35) fence('wall_mud', ...K[2], ...K[3]);
+    // 뒤뜰 야자나무나 올리브
+    if (R() < 0.75) {
+      const [x, z] = cl((R() - 0.5) * 2 * Math.max(0, c.hx - 1.5), -c.hz + 1.4 + R() * Math.max(0.2, c.hz - 2.6));
+      const sp = R() < 0.6 ? 'palm_date_medium' : 'olive_tree_mb';
+      tree(sp, x, z, rr(0.85, 1.15), 2.2);
+    }
+  });
+
+  // ── 외딴 농가/오아시스: 베두인 천막, 수레, 당나귀, 낙타 ──
+  for (const f of layout.farms) {
+    const loc = (u, v) => obbLocal(f.foot, u, v), side = R() < 0.5 ? 1 : -1;
+    if (R() < 0.7) { const [x, z] = loc(side * (f.L / 2 + 4.5), rr(-2, 2)); put('tent_bedouin', x, z, f.rot + rr(-0.4, 0.4), { r: 2.2 }); }
+    if (R() < 0.6) { const [x, z] = loc(-side * (f.L / 2 + 3.5), f.D / 2 + 2.5); put('cart_mb', x, z, f.rot + rr(-0.5, 0.5), { r: 1.5 }); }
+    if (R() < 0.6) { const [x, z] = loc(-side * (f.L / 2 + 2.5), -f.D / 2 - 2); put(R() < 0.5 ? 'camel' : 'donkey_mb', x, z, R() * TAU, { r: 1.3, tint: camelTint() }); }
+  }
+
+  // ── 수크/바자르 (빈터 GREEN): 양탄자, 항아리, 베두인 천막, 낙타 매어두기, 흙수레 ──
+  worn.push(obb(GREEN.x, GREEN.z, 0.3, GREEN.r + 1, GREEN.r - 1));
+  for (let k = 0; k < 12; k++) {
+    const a = R() * TAU, d = rr(3.0, 9.5), x = GREEN.x + Math.cos(a) * d, z = GREEN.z + Math.sin(a) * d;
+    const pk = ['carpet_mb', 'pottery_mb', 'pottery_mb', 'carpet_mb', 'loom_mb', 'trough_mb'][k % 6];
+    put(pk, x, z, R() * TAU, { r: pk === 'carpet_mb' ? 0.9 : 0.5 });
+  }
+  { const a = R() * TAU; put('cart_mb', GREEN.x + Math.cos(a) * 11.0, GREEN.z + Math.sin(a) * 11.0, a + Math.PI / 2, { r: 2.0 }); }
+  { const a = R() * TAU; put('camel', GREEN.x + Math.cos(a) * 12.0, GREEN.z + Math.sin(a) * 12.0, R() * TAU, { r: 1.6, tint: camelTint() }); }
+
+  // ── 대장간 마당: 물통, 항아리, 당나귀, 수레 ──
+  { const o = obb(SMITHY.x, SMITHY.z, SMITHY.rot, 3.5, 3.5), loc = (u, v) => obbLocal(o, u, v), th = SMITHY.rot;
+    put('trough_mb', ...loc(5.0, 2.6), th + Math.PI / 2, { force: true });
+    put('pottery_mb', ...loc(4.4, -1.6), 0.4, { force: true });
+    put('pottery_mb', ...loc(-4.6, 0.8), 0.0, { force: true });
+    put('cart_mb', ...loc(7.2, 5.4), th + 0.35, { force: true });
+    put('donkey_mb', ...loc(9.2, 2.2), th + 1.2, { force: true });
+    worn.push(obb(...loc(0.5, 6.2), th, 6.5, 3.2)); }
+
+  // ── 우물가: 항아리들, 여물통, 당나귀 ──
+  { const W = M_.WELL, o = obb(W.x, W.z, W.rot, 1.5, 1.5), loc = (u, v) => obbLocal(o, u, v);
+    put('pottery_mb', ...loc(2.8, 0.6), 0.3, { r: 0.5 }); put('pottery_mb', ...loc(-2.9, -0.8), 1.4, { r: 0.5 });
+    put('trough_mb', ...loc(0.0, -3.3), W.rot, { r: 0.8 });
+    put('donkey_mb', ...loc(3.5, -2.5), W.rot + 0.8, { r: 1.0 });
+    worn.push(obb(W.x, W.z, W.rot, 3.8, 3.8)); }
+
+  // ── 모스크 마당 / 사당: 대추야자 2~3그루, 흙담, 양탄자, 물항아리 ──
+  { const Y = M_.MOSQUE_YARD, T = M_.MOSQUE;
+    fence('wall_mud', Y.x0, Y.z0, Y.x1, Y.z0); fence('wall_mud', Y.x0, Y.z1, Y.x1, Y.z1); fence('wall_mud', Y.x0, Y.z0, Y.x0, Y.z1);
+    fence('wall_mud', Y.x1, Y.z0, Y.x1, T.z - 3.5); fence('wall_mud', Y.x1, T.z + 3.5, Y.x1, Y.z1);
+    for (const [x, z] of [[Y.x0 + 3.5, Y.z0 + 3.5], [Y.x0 + 4, Y.z1 - 3.5], [Y.x1 - 3.5, Y.z0 + 3.5]]) {
+      trees.push({ sp: 'palm_date_tall', x, z, s: rr(0.95, 1.1), lean: [0, 0] }); takenAdd(x, z, 3.2);
+    }
+    put('pottery_mb', T.x + 6.0, T.z - 2.0, 0.2, { r: 0.5 });
+    put('carpet_mb', T.x + 5.0, T.z + 1.5, T.rot + 0.4, { r: 0.8 });
+    worn.push(obb(T.x + 4, T.z, T.rot, 6, 4.0)); }
+
+  // ── 성문 둘레: 흙담 연결 ──
+  { const G = M_.GATE;
+    put('donkey_mb', G.x + 3.5, G.z - 1.5, G.rot, { r: 1.0 });
+    worn.push(obb(G.x, G.z, G.rot, 4.0, 3.0)); }
+
+  // ── 큰 집/궁전 마당: 대추야자, 낙타, 양탄자, 항아리 ──
+  { const B = M_.BIGHOUSE, o = obb(B.x, B.z, B.rot, 1, 1), loc = (u, v) => obbLocal(o, u, v);
+    put('carpet_mb', ...loc(6.5, 7.5), B.rot);
+    put('pottery_mb', ...loc(5.2, 8.5), 0.3);
+    put('camel', ...loc(-8.5, 8.5), B.rot + 0.8, { r: 1.5, tint: camelTint() });
+    put('palm_date_tall', ...loc(-8.5, -6.5), 0, { r: 2.5 });
+    worn.push(obb(...loc(0, 8.5), B.rot, 6.5, 3.0)); }
+
+  // ── 길가: 사막 덤불, 세워 둔 수레, 대추야자 ──
+  const lanePts = LANES.map((lp) => { const pts = smoothLine(lp, 3); return { pts, cum: polyCum(pts) }; });
+  let carts = 0;
+  for (let t = 0; t < 50 && carts < 3; t++) {
+    const { pts, cum } = lanePts[Math.floor(R() * lanePts.length)], p = polyAt(pts, cum, 4 + R() * (cum[cum.length - 1] - 8)), side = R() < 0.5 ? 1 : -1, off = rr(3.2, 4.0);
+    if (put('cart_mb', p.x - p.tz * side * off, p.z + p.tx * side * off, Math.atan2(-p.tz, p.tx) + (R() < 0.5 ? 0 : Math.PI) + rr(-0.25, 0.25), { r: 1.8 })) carts++;
+  }
+  for (const { pts, cum } of lanePts) for (let s = 1; s < cum[cum.length - 1]; s += rr(3.5, 6.5)) {
+    const p = polyAt(pts, cum, s), side = R() < 0.5 ? 1 : -1, off = rr(2.2, 3.2), x = p.x - p.tz * side * off, z = p.z + p.tx * side * off;
+    if (roadEdge(x, z) > 0.2 && !takenHit(x, z, 0.4) && !builds.some((o) => obbHas(o, x, z, 0.3))) {
+      bushes.push([x, z, rr(0.7, 1.2)]);
+    }
+  }
+  for (const { pts, cum } of lanePts) for (let s = 8; s < cum[cum.length - 1] - 6; s += rr(12, 24)) {
+    const p = polyAt(pts, cum, s), side = R() < 0.5 ? 1 : -1, off = rr(4.0, 7.0);
+    tree('palm_date_medium', p.x - p.tz * side * off, p.z + p.tx * side * off, rr(0.85, 1.15), 1.8, [rr(-0.06, 0.06), rr(-0.06, 0.06)]);
+  }
+
+  // ── 강가/오아시스 물가: 갈대(reed_oasis), 대추야자 ──
+  for (let i = 1, next = 0; i < RIVER.length - 1; i++) {
+    const [x0, z0] = RIVER[i]; if (Math.hypot(x0 - VC.x, z0 - VC.z) > 400) continue;
+    next -= Math.hypot(RIVER[i][0] - RIVER[i - 1][0], RIVER[i][1] - RIVER[i - 1][1]); if (next > 0) continue;
+    const [x1, z1] = RIVER[i + 1], L = Math.hypot(x1 - x0, z1 - z0) || 1, side = R() < 0.5 ? 1 : -1, off = RIVER_HW + rr(1.5, 3.5);
+    const nx = -(z1 - z0) / L * side, nz = (x1 - x0) / L * side;
+    if (tree('palm_date_tall', x0 + nx * off, z0 + nz * off, rr(0.9, 1.2), 2.5, [-nz * rr(0.04, 0.12), nx * rr(0.04, 0.12)])) next = rr(14, 30);
+    bushes.push([x0 + nx * (RIVER_HW + rr(0.3, 1.8)), z0 + nz * (RIVER_HW + rr(0.3, 1.8)), rr(0.8, 1.3)]);
+  }
+
+  // ── 풀밭: 낙타 떼, 당나귀, 염소 떼 ──
+  { const M = PASTURE;
+    put('trough_mb', M.x0 + 6, M.z0 + 5, 0.2);
+    for (const [sp, n] of [['camel', 3 + Math.floor(R() * 2)], ['donkey_mb', 2 + Math.floor(R() * 2)]]) {
+      for (let k = 0, tries = 0; k < n && tries < 40; tries++) {
+        const x = rr(M.x0 + 3, M.x1 - 3), z = rr(M.z0 + 3, M.z1 - 3);
+        if (riverEdge(x, z) < RIVER_HW + 4) continue;
+        if (put(sp, x, z, R() * TAU, { r: 1.4, tint: sp === 'camel' ? camelTint() : [1, 1, 1] })) k++;
+      }
+    }
+    for (let t = 0, n = 0; t < 30 && n < 3; t++) { const x = rr(M.x0, M.x1), z = R() < 0.5 ? M.z0 - 2 : M.z1 + 2; if (tree('palm_date_medium', x, z, rr(0.85, 1.1), 2.2)) n++; }
+  }
+  { const P = MEADOW, n = 8 + Math.floor(R() * 6), cx = (P.x0 + P.x1) / 2, cz = P.z0 + 8;
+    for (let k = 0, tries = 0; k < n && tries < n * 20; tries++) {
+      const x = cx + (R() + R() - 1) * 9, z = cz + (R() + R() - 1) * 6;
+      if (!inRect(P, x, z, -1.5) || riverEdge(x, z) < RIVER_HW + 2.5) continue;
+      if (put('goat_mb', x, z, R() * TAU, { r: 0.5, s: rr(0.9, 1.1), tint: goatTint(), flock: 'main' })) k++;
+    }
+  }
+
+  return { items, gardens, worn, trees, tall, bushes };
+}
+
 // ───────────────────────── 환경: 강·길 색인 + 밭 조각보 ─────────────────────────
 export function makeEnv() {
   const riverIdx = new SegIndex([{ pts: smoothLine(RIVER_PTS, 14), w: 0 }], 64, 420);
@@ -919,6 +1265,59 @@ export function makeEnv() {
   };
 }
 
+// ───────────────────────── 큰 집 짜기 (estate) ─────────────────────────
+// setting === 'estate': 중앙에 큰 집 1채 + 뒤뜰·측면에 하인들의 작은 집 3~5채 (각각 뒤뜰 croft 보유)
+export function planEstate(seed, env, RC, R) {
+  const DIMS = RC.dims;
+  const ep = RC.estatePiece || 'manor';
+  const [eL, eD] = DIMS[ep] || [16, 12];
+  const mX = ESTATE_SITE.x + (R() - 0.5) * 1.5;
+  const mZ = ESTATE_SITE.z + (R() - 0.5) * 1.5;
+  const mRot = ESTATE_SITE.rot + (R() - 0.5) * 0.04;
+  const estateFoot = obb(mX, mZ, mRot, eL / 2, eD / 2);
+  const estate = { piece: ep, x: mX, z: mZ, rot: mRot, s: 1, L: eL, D: eD, foot: estateFoot, role: 'estate' };
+
+  const boxes = [estateFoot];
+  for (const f of RC.fixedFoot || []) boxes.push(f);
+
+  // 하인들의 작은 집 3~5채 (큰 집 뒤뜰 및 측면)
+  const servantPool = RC.estateServants || ['cottage_a', 'cottage_c'];
+  const servantSpots = [
+    { x: mX - eL / 2 - 5, z: mZ - 4, rot: 0.35 },            // 서쪽 날개
+    { x: mX - eL / 4,     z: mZ - eD / 2 - 7, rot: 0.1 },     // 북서 뒤뜰
+    { x: mX + eL / 4,     z: mZ - eD / 2 - 8, rot: -0.15 },   // 북동 뒤뜰
+    { x: mX + eL / 2 + 5, z: mZ - 6, rot: -Math.PI / 2 },     // 동쪽 뒤
+    { x: mX - eL / 2 - 4, z: mZ + 6, rot: Math.PI / 3 },      // 서쪽 앞
+  ];
+  const count = 3 + Math.floor(R() * 3); // 3 ~ 5채
+  const houses = [];
+  for (let i = 0; i < count; i++) {
+    const sp = servantSpots[i];
+    const piece = servantPool[Math.floor(R() * servantPool.length)];
+    const sc = 0.95 + R() * 0.1;
+    const [L0, D0] = DIMS[piece] || [8, 6];
+    const L = L0 * sc, D = D0 * sc;
+    const rot = sp.rot + (R() - 0.5) * 0.1;
+    const cx = sp.x + (R() - 0.5) * 1.2;
+    const cz = sp.z + (R() - 0.5) * 1.2;
+    const foot = obb(cx, cz, rot, L / 2, D / 2);
+    // 뒤뜰 croft (집 뒤쪽으로 마당 OBB 생성)
+    const croftD = 6 + R() * 4;
+    const croft = obb(cx - Math.sin(rot) * (D / 2 + croftD / 2), cz - Math.cos(rot) * (D / 2 + croftD / 2), rot, L / 2 + 1, croftD / 2);
+    boxes.push(foot, croft);
+    houses.push({
+      piece, kind: 'servant', x: cx, z: cz, rot, s: sc, L, D, foot, croft,
+      n: [Math.sin(rot), Math.cos(rot)], t: [Math.cos(rot), -Math.sin(rot)],
+      face: rot, lane: 0, gable: false, set: 2,
+    });
+  }
+
+  return {
+    houses, farms: [], stalls: [], awnings: [], boxes,
+    fixed: RC.fixed, kit: RC.kit, estate,
+  };
+}
+
 // ───────────────────────── 마을 짜기 (시드) ─────────────────────────
 // env = makeEnv() (roadEdge·riverEdge 만 쓴다), recipe = RECIPES[세트] (없으면 잉글랜드). 돌려주는 것:
 //   houses: [{ piece, kind, x, z, rot, s, L, D, foot(OBB), croft(OBB, 늘 있다), n:[x,z](집→뒤뜰), t:[x,z](길 방향), face, lane, gable, set }]
@@ -928,6 +1327,7 @@ export function makeEnv() {
 export function planVillage(seed, env, recipe = RECIPES.england) {
   const RC = recipe, POOL = RC.pool, DIMS = RC.dims;
   const R = rng(Math.imul(seed, 2654435761) >>> 0);
+  if (RC.setting === 'estate') return planEstate(seed, env, RC, R);
   const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const bags = Object.fromEntries(Object.entries(POOL).map(([k, v]) => [k, shuffle([...v])]));
   const take = (kind) => { let b = bags[kind]; if (!b.length) b = bags[kind] = shuffle([...POOL[kind]]); return b.shift(); };
