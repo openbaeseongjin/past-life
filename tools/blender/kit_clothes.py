@@ -50,12 +50,12 @@ NOEXPORT = os.environ.get('KIT_NOEXPORT') == '1' or bool(ONLY)
 CULTURE = os.environ.get('KIT_CULTURE', 'england')
 SEA = CULTURE == 'seasia'
 SA = CULTURE in ('southasia', 'seasia')
-# 작업 2-2: KIT_CULTURE=china|korea|japan 이면 동아시아 옷 (villagers_china/korea/japan.glb). 잉글랜드·남아시아는 아래 EA 갈래를 타지 않는다.
 EA = CULTURE in ('china', 'korea', 'japan')
-if SA or EA:
+MB = CULTURE == 'mudbrick'
+if SA or EA or MB:
     OUT = os.path.join(PEOPLE, 'villagers_%s.glb' % CULTURE)
     ANIMS_OUT = os.path.join(K.BUILD, 'anims_%s_check.glb' % CULTURE)
-PV = ('people_%s_' % CULTURE) if (SA or EA) else 'people_'
+PV = ('people_%s_' % CULTURE) if (SA or EA or MB) else 'people_'
 TAU = math.tau
 
 # 장면에서 쓰는 동작 (UAL Standard 안의 실제 동작 이름). 브리프의 동작과 맞춤:
@@ -933,12 +933,73 @@ def straw_hat(F, name):
     return g
 
 
+def build_variant_parts_mb(v, F):
+    """서아시아·북아프리카 흙벽돌 문화권 평민 일반형:
+    남: 긴 토브/카프탄 + 터번/케피예
+    여: 긴 옷/아바야 + 머릿수건/히잡/차도르
+    """
+    zn = F.z_neck + 0.035
+    belt_z = F.z_waist - 0.055
+    parts, hair = [], []
+    if v == 'm_tunic':        # 발목 토브 + 머리 터번
+        t = torso_garment(F, v + '_thobe', zn, F.z_ankle + 0.08, fabric='linen', slot='prim', flare=0.08)
+        parts += [t, *sleeves(F, v, fabric='linen', slot='prim'), turban(F, v + '_turban', h=0.09, bulge=0.04, slot='sec'), shoes(F, v)]
+        hair = ['Hair_Buzzed']
+    elif v == 'm_hood':       # 카프탄 겉옷 + 케피예(머리수건) + 수염
+        t = torso_garment(F, v + '_kaftan', zn, F.z_ankle + 0.06, fabric='wool', slot='sec', flare=0.09)
+        hd = head_garment(F, v + '_keffiyeh', 0.02, F.z_chest + 0.04, ease=0.025, ease_bot=0.06,
+                          face=(F.brow_z - 0.05, 0.10, 1.15), fabric='linen', slot='prim')
+        parts += [t, *sleeves(F, v, fabric='wool', slot='sec'), hd, shoes(F, v)]
+        hair = ['Hair_Beard']
+    elif v == 'm_smith':      # 대장장이: 무릎 튜닉 + 가죽 앞치마 + 머리 수건
+        t = torso_garment(F, v + '_shirt', zn, F.z_knee - 0.06, fabric='linen', slot='nat', flare=0.06)
+        ap = torso_garment(F, v + '_apron', F.z_chest + 0.02, F.z_knee - 0.1, ease=0.034, ease_top=0.034, blouse=0.0,
+                           fabric='leather', slot='nat', flare=0.02, fold_amp=0.004, folds=5, sector=FRONT(0.98))
+        parts += [t, *sleeves(F, v, frac=0.45, roll=True, fabric='linen', slot='nat'), ap,
+                  turban(F, v + '_turban', h=0.065, bulge=0.032, slot='sec', nb=4), shoes(F, v)]
+        hair = ['Hair_Buzzed', 'Hair_Beard']
+    elif v == 'm_field':      # 밭일꾼: 짧은 튜닉 + 허리띠 + 머리 수건
+        t = torso_garment(F, v + '_tunic', zn, F.z_knee + 0.06, belt=belt_z, fabric='linen', slot='nat', flare=0.05)
+        parts += [t, *sleeves(F, v, frac=0.35, roll=True, fabric='linen', slot='nat'),
+                  turban(F, v + '_turban', h=0.065, bulge=0.03, slot='prim', nb=4, cross=False), shoes(F, v)]
+        hair = ['Hair_Buzzed']
+    elif v == 'child':        # 아이: 무릎 튜닉
+        t = torso_garment(F, v + '_tunic', zn, F.z_knee + 0.06, fabric='linen', slot='prim', flare=0.06)
+        parts += [t, *sleeves(F, v, frac=0.5, fabric='linen', slot='prim'), shoes(F, v)]
+        hair = ['Hair_BuzzedFemale']
+    elif v == 'elder':        # 노인: 긴 토브 + 흰 터번 + 수염
+        t = torso_garment(F, v + '_thobe', zn, F.z_ankle + 0.04, fabric='linen', slot='nat', flare=0.09)
+        parts += [t, *sleeves(F, v, fabric='linen', slot='nat'),
+                  turban(F, v + '_turban', h=0.10, bulge=0.048, slot='nat'), shoes(F, v)]
+        hair = ['Hair_Beard']
+    elif v == 'f_apron':      # 여인 1: 긴 옷 + 앞치마 + 머릿수건
+        ch = torso_garment(F, v + '_dress', zn, F.z_ankle + 0.03, fabric='linen', slot='prim', flare=0.12)
+        ap = apron_of(ch, F, F.z_waist, F.z_knee - 0.05, 0.95, v + '_apron')
+        hd = head_garment(F, v + '_veil', 0.02, F.z_chest + 0.04, ease=0.02, ease_bot=0.05,
+                          face=(F.brow_z - 0.05, 0.09, 1.15), fabric='linen', slot='sec')
+        parts += [ch, *sleeves(F, v, fabric='linen', slot='prim'), ap, hd, shoes(F, v)]
+        hair = ['Hair_Buns']
+    elif v == 'f_cloak':      # 여인 2: 긴 아바야/차도르
+        t = torso_garment(F, v + '_abaya', zn, F.z_ankle + 0.02, fabric='wool', slot='sec', flare=0.13)
+        hd = head_garment(F, v + '_chador', 0.025, F.z_chest - 0.04, ease=0.03, ease_bot=0.08,
+                          face=(F.brow_z - 0.04, 0.09, 1.15), fabric='wool', slot='prim')
+        parts += [t, *sleeves(F, v, fabric='wool', slot='sec'), hd, shoes(F, v)]
+        hair = ['Hair_Buns']
+
+    for g in parts:
+        if g.obj is None:
+            grid_object(g)
+    return parts, hair
+
+
 def build_variant_parts(v, F):
     """변형마다 옷 짓기. 돌려주는 것: (옷 격자들, 머리카락 이름들)."""
     if SA:
         return build_variant_parts_sa(v, F)
     if EA:
         return build_variant_parts_ea(v, F)
+    if MB:
+        return build_variant_parts_mb(v, F)
     zn = F.z_neck + 0.035                 # 목 둘레 (목 밑동 위, 단면에 목만 남는 곳)
     hem_knee = F.z_knee + 0.03
     belt_z = F.z_waist - 0.055

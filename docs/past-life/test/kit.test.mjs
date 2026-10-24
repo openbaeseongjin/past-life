@@ -25,7 +25,7 @@ test('PROP_DIMS 가 Blender 소품 세트 크기(props_england.dims.json)와 0.1
 });
 
 // ───────────────────────── 남아시아 세트 (작업 2-1) ─────────────────────────
-import { KIT_DIMS_SA, KIT_POOL_SA, PROP_DIMS_SA, TREE_DIMS_SA, TREES_SA, BUSHES_SA, PROP_SWAP_SA, TREE_SWAP_SA, TREE_GLB_SA, TREE_MIX_SA, KIT_SETS } from '../kitdata.js';
+import { KIT_DIMS_SA, KIT_POOL_SA, PROP_DIMS_SA, TREE_DIMS_SA, TREES_SA, BUSHES_SA, PROP_SWAP_SA, TREE_SWAP_SA, TREE_GLB_SA, TREE_MIX_SA, KIT_SETS, KIT_DIMS_MB, KIT_POOL_MB, PROP_DIMS_MB, TREE_DIMS_MB, TREE_SWAP_MB, TREE_MIX_MB } from '../kitdata.js';
 
 const readJson = (rel) => JSON.parse(fs.readFileSync(new URL(rel, import.meta.url), 'utf8'));
 // glb 의 JSON 덩어리 (meshopt 로 눌러도 accessor 개수·노드 이름은 JSON 에 있다)
@@ -209,4 +209,40 @@ for (const who of ['villagers_china', 'villagers_korea', 'villagers_japan']) tes
     const t = triCount({ meshes: [b.meshes[n.mesh]], accessors: b.accessors });
     assert.ok(/_lod0$/.test(n.name) ? t <= 11000 : t <= 2600, `${n.name}: ${t} 삼각형`);
   }
+});
+
+// ───────────────────────── 흙벽돌 세트 (실사 2단계 작업 3) ─────────────────────────
+test('흙벽돌 건물 KIT_DIMS_MB 가 mudbrick.dims.json 과 0.15 m 안에서 같고, 주머니의 조각이 모두 세트에 있다', () => {
+  const pieces = sameDims(KIT_DIMS_MB, '../assets/real/kits/mudbrick.dims.json', 2);
+  for (const name of ['house_flat_a', 'house_flat_b', 'house_courtyard_mb', 'tower_wind', 'mosque_small', 'shrine_mb', 'well_mb', 'market_arcade', 'granary_mb', 'smithy_mb', 'gate_mb', 'palace_mb']) assert.ok(name in pieces, `${name} 가 없다`);
+  for (const list of Object.values(KIT_POOL_MB)) for (const p of list) assert.ok(p in pieces, `주머니의 ${p} 가 세트에 없다`);
+});
+
+test('흙벽돌 소품 PROP_DIMS_MB·식생 TREE_DIMS_MB 가 Blender dims.json 과 0.15 m 안에서 같다', () => {
+  const props = sameDims(PROP_DIMS_MB, '../assets/real/kits/props_mudbrick.dims.json', 3);
+  for (const name of ['camel', 'donkey_mb', 'goat_mb', 'carpet_mb', 'loom_mb', 'pottery_mb', 'cart_mb', 'tent_bedouin', 'clay_oven', 'wall_mud', 'trough_mb']) assert.ok(name in props, `${name} 가 없다`);
+  const trees = sameDims(TREE_DIMS_MB, '../assets/real/kits/trees_mudbrick.dims.json', 3);
+  for (const name of ['palm_date_tall', 'palm_date_medium', 'olive_tree_mb', 'bush_desert_mb', 'reed_oasis']) assert.ok(name in trees, `${name} 가 없다`);
+});
+
+test('흙벽돌 glb 가 크기 예산 안이다 (세트마다 5 MB·삼각형 15만 이하, 노드 이름이 크기 표와 같다)', () => {
+  for (const [file, table] of [['mudbrick', KIT_DIMS_MB], ['props_mudbrick', PROP_DIMS_MB], ['trees_mudbrick', TREE_DIMS_MB]]) {
+    const { json, bytes } = glbJson(`../assets/real/kits/${file}.glb`);
+    assert.ok(bytes <= 5 * 1024 * 1024, `${file}.glb ${(bytes / 1048576).toFixed(2)} MB > 5 MB`);
+    const tris = triCount(json);
+    assert.ok(tris <= 150000, `${file}.glb 삼각형 ${tris} > 150000`);
+    const roots = json.scenes[json.scene ?? 0].nodes.map((i) => json.nodes[i].name).sort();
+    assert.deepEqual(roots, Object.keys(table).sort(), `${file}.glb 뿌리 노드`);
+  }
+});
+
+test('villagers_mudbrick.glb 는 villagers.glb 와 변형·소품 노드, 뼈 이름, LOD 짜임이 같다', () => {
+  const a = glbJson('../assets/real/people/villagers.glb').json, { json: b, bytes } = glbJson('../assets/real/people/villagers_mudbrick.glb');
+  const roots = (j) => j.scenes[j.scene ?? 0].nodes.map((i) => j.nodes[i].name).sort();
+  assert.deepEqual(roots(b), roots(a));
+  const lods = (j) => j.nodes.map((n) => n.name).filter((n) => /_lod[01]$/.test(n)).sort();
+  assert.deepEqual(lods(b), lods(a));
+  const joints = (j) => j.skins.map((s) => s.joints.map((i) => j.nodes[i].name).join(','));
+  assert.deepEqual(joints(b), joints(a));
+  assert.ok(bytes <= 5 * 1024 * 1024);
 });

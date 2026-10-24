@@ -171,3 +171,75 @@ KIT_SETS.eastasia = {
     japan: { kit: 'eastasia_japan', dims: KIT_DIMS_EA_JP, people: 'villagers_japan', palette: 'japan', treeMix: TREE_MIX_EA.japan },
   },
 };
+
+// ───────────────────────── 흙벽돌 세트 (서아시아·북아프리카·나일·이란) ─────────────────────────
+export const KIT_DIMS_MB = {
+  house_flat_a: [7.85, 6.1],
+  house_flat_b: [8.99, 6.84],
+  house_courtyard_mb: [13.3, 12.69],
+  tower_wind: [7.6, 6.24],
+  mosque_small: [9.45, 9.45],
+  shrine_mb: [8.0, 8.0],
+  well_mb: [4.7, 4.4],
+  market_arcade: [8.0, 5.6],
+  granary_mb: [4.8, 4.8],
+  smithy_mb: [7.6, 7.44],
+  gate_mb: [5.2, 2.7],
+  palace_mb: [16.2, 15.14],
+};
+
+export const KIT_POOL_MB = {
+  mud: ['house_flat_a', 'house_flat_b', 'house_flat_a'],
+  courtyard: ['house_courtyard_mb'],
+  town: ['tower_wind', 'house_flat_b'],
+  store: ['granary_mb'],
+};
+
+export const PROP_DIMS_MB = {
+  camel: [3.43, 1.04, 2.52],
+  donkey_mb: [2.1, 1.11, 1.8],
+  goat_mb: [1.37, 0.48, 1.21],
+  carpet_mb: [2.56, 1.6, 0.03],
+  loom_mb: [1.9, 0.8, 2.1],
+  pottery_mb: [1.74, 1.47, 0.95],
+  cart_mb: [3.53, 2.45, 1.25],
+  tent_bedouin: [5.4, 3.8, 1.9],
+  clay_oven: [1.3, 1.3, 0.93],
+  wall_mud: [2.1, 0.44, 1.62],
+  trough_mb: [1.8, 0.9, 0.52],
+};
+
+export const TREE_DIMS_MB = {
+  palm_date_tall: [9.37, 7.24, 8.81],
+  palm_date_medium: [10.21, 5.47, 6.0],
+  olive_tree_mb: [3.7, 3.7, 4.5],
+  bush_desert_mb: [1.8, 1.7, 1.3],
+  reed_oasis: [1.83, 1.83, 2.1],
+};
+
+export const TREE_SWAP_MB = {
+  oak: 'olive_tree_mb',
+  ash: 'palm_date_tall',
+  willow: 'reed_oasis',
+  birch: 'palm_date_medium',
+  hawthorn: 'bush_desert_mb',
+  apple: 'olive_tree_mb',
+};
+
+export const TREE_MIX_MB = {
+  dry: { palm_date_tall: 2.0, palm_date_medium: 1.5, olive_tree_mb: 1.0, bush_desert_mb: 1.2, reed_oasis: 0.6 },
+};
+
+KIT_SETS.mudbrick = {
+  kit: 'mudbrick',
+  props: 'props_mudbrick',
+  trees: 'trees_mudbrick',
+  people: 'villagers_mudbrick',
+  dims: KIT_DIMS_MB,
+  pool: KIT_POOL_MB,
+  propDims: PROP_DIMS_MB,
+  treeDims: TREE_DIMS_MB,
+  treeSwap: TREE_SWAP_MB,
+  treeMix: TREE_MIX_MB,
+};
+

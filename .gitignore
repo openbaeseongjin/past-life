@@ -3,3 +3,4 @@ node_modules/
 __pycache__/
 *.blend1
 _site/
+tools/blender/_src/

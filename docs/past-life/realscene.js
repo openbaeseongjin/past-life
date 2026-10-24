@@ -92,6 +92,20 @@ PRESETS.eastasia = {
   trees: [...TREES_EA, ...TREE_GLB_EA.map((d, k) => ({ ...d, url: EA_GLB, seed: k + 1 }))],
   bushes: [...BUSHES_EA, { glb: 'grass_silver', url: EA_GLB, bush: true, seed: 6 }, { glb: 'reed_ea', url: EA_GLB, bush: true, seed: 7 }],
 };
+// 서아시아·흙벽돌 세트: 대추야자·올리브(trees_mudbrick.glb), 사막 덤불·오아시스 갈대
+const MB_GLB = ASSET + 'kits/trees_mudbrick.glb';
+PRESETS.mudbrick = {
+  ...PRESETS['england-1329'], leafTint: 0x8a9955,
+  trees: [
+    { sp: 'palm_date_tall', glb: 'palm_date_tall', url: MB_GLB, seed: 1 },
+    { sp: 'palm_date_medium', glb: 'palm_date_medium', url: MB_GLB, seed: 2 },
+    { sp: 'olive_tree_mb', glb: 'olive_tree_mb', url: MB_GLB, seed: 3 },
+  ],
+  bushes: [
+    { sp: 'bush_desert_mb', glb: 'bush_desert_mb', url: MB_GLB, bush: true, seed: 4 },
+    { sp: 'reed_oasis', glb: 'reed_oasis', url: MB_GLB, bush: true, seed: 5 },
+  ],
+};
 function presetKey(era, region, kit) { return PRESETS[kit] ? kit : 'england-1329'; }   // 다른 시대·지역은 아직 없음 → 세트마다 하나 (세트 이름의 프리셋, 없으면 잉글랜드)
 
 // 땅 모습 (lands.js LAND_LOOK) 을 잉글랜드 바탕 위에 덮는다. 빠진 값은 바탕 그대로 (temperate = 바탕)
@@ -905,7 +919,7 @@ export function createRealScene(canvas, opts = {}) {
   // ── 건물 자리 (세트 조각): 땅 높이·행렬은 지금 정하고, 메시는 세트를 불러온 뒤 붙인다 ──
   const placements = [];
   function place(piece, x, z, rot, s = 1, fixedBase = null) {
-    const [L, D] = KD[piece], c = Math.cos(rot), sn = Math.sin(rot);
+    const [L, D] = KD[piece] || PD[piece] || [4, 4], c = Math.cos(rot), sn = Math.sin(rot);
     let lo = Infinity, hi = -Infinity;
     for (const [u, v] of [[-L / 2, -D / 2], [L / 2, -D / 2], [L / 2, D / 2], [-L / 2, D / 2], [0, 0], [0, -D / 2], [0, D / 2]]) {
       const h = heightAt(x + (u * c + v * sn) * s, z + (-u * sn + v * c) * s); lo = Math.min(lo, h); hi = Math.max(hi, h);
@@ -1220,7 +1234,7 @@ export function createRealScene(canvas, opts = {}) {
       if (!mixList || !mixSum || ((MIX[sp] || 0) >= 1 && rr() < 0.5)) return sp;
       let x = rr() * mixSum; for (const [s, w] of mixList) { x -= w; if (x < 0) return s; } return mixList[0][0];
     };
-    const pick = (sp) => { const a = bySp[landSp(sp)] || bySp[swap(sp)] || bySp.oak || bySp.mango || bySp.zelkova; return a[Math.floor(rr() * a.length)]; };
+    const pick = (sp) => { const a = bySp[landSp(sp)] || bySp[swap(sp)] || bySp.oak || bySp.mango || bySp.zelkova || bySp.palm_date_tall || Object.values(bySp)[0]; return a ? a[Math.floor(rr() * a.length)] : 0; };
     const dens = LD.trees, keep = () => dens >= 1 || rr() < dens;   // 땅 모습의 나무 수 배수
     // 자리: [x, z, 크기, 돌림, 변형, 기울기x, 기울기z]
     const spots = [];

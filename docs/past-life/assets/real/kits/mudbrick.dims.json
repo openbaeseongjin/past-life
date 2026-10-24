@@ -1,0 +1,66 @@
+{
+  "source": "tools/blender/kit_mudbrick.py",
+  "units": "m, [x 길이, 앞뒤 깊이, 높이]",
+  "pieces": {
+    "gate_mb": [
+      5.2,
+      2.7,
+      5.6
+    ],
+    "granary_mb": [
+      4.8,
+      4.8,
+      3.05
+    ],
+    "house_courtyard_mb": [
+      13.3,
+      12.69,
+      6.28
+    ],
+    "house_flat_a": [
+      7.85,
+      6.1,
+      4.97
+    ],
+    "house_flat_b": [
+      8.99,
+      6.84,
+      6.19
+    ],
+    "market_arcade": [
+      8,
+      5.6,
+      4.3
+    ],
+    "mosque_small": [
+      9.45,
+      9.45,
+      11.2
+    ],
+    "palace_mb": [
+      16.2,
+      15.14,
+      8.41
+    ],
+    "shrine_mb": [
+      8,
+      8,
+      6.35
+    ],
+    "smithy_mb": [
+      7.6,
+      7.44,
+      4.45
+    ],
+    "tower_wind": [
+      7.6,
+      6.24,
+      8
+    ],
+    "well_mb": [
+      4.7,
+      4.4,
+      2.45
+    ]
+  }
+}
