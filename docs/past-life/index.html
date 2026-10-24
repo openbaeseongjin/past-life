@@ -359,6 +359,12 @@ h3{margin:0 0 8px;font-size:15px}
 .life{display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:center;position:relative}
 .life::before{content:'';position:absolute;left:-20px;top:50%;width:10px;height:10px;border-radius:50%;background:var(--gold);transform:translateY(-50%)}
 .life img{width:160px;border-radius:8px;display:block}
+/* 운명의 제단 (Altar of Destiny) */
+.ember-pip{width:14px;height:14px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold-glow);transition:all .2s ease}
+.ember-pip.empty{background:var(--line);box-shadow:none;transform:scale(0.85);opacity:0.5}
+.btn-preset:hover{border-color:var(--gold2)!important;color:var(--gold2)!important;background:rgba(226,182,94,.08)!important}
+.stepper-btn:hover:not(:disabled){background:var(--gold)!important;color:#121329!important;border-color:var(--gold)!important}
+.stepper-btn:disabled{opacity:0.3;cursor:not-allowed!important}
 /* 족보 위 영혼의 염주: 생마다 실 한 가닥, 모닥불에서 꿴 기억 구슬은 크게. 메달은 그 생의 마을 그림 (없으면 땅 이름) */
 .rosary-box{position:relative;width:100%;aspect-ratio:2.35;margin:0 auto;border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--gold-line),0 8px 24px var(--shadow)}
 .rosary-box canvas{position:absolute;inset:0;width:100%;height:100%;display:block}

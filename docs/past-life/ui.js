@@ -1,3 +1,4 @@
+import { drawBirth } from './birth.js';
 // 화면 (설계 8·12장, 화면 다시 기획 3장): 시작 → 탄생 장면 → 출생 서류 → 해가 흐르는 화면(섬 마을 + 가장자리 HUD) → 갈림길·모닥불 → 마지막 해 → 사망 서류
 // 기다리는 일은 모두 Promise. robot(?auto=1)이면 단추를 저절로 누른다
 import { t, fmtYear, birthLine, traceText, deathLine, causeName, focusName, birthsThatYear, fmtBig, obituary, peerLine, spanText, lifeEnd, epilogueText, ageWord } from './i18n.js';
@@ -401,6 +402,202 @@ export function createUI({ lang, robot = false, fast = false }) {
       };
       requestAnimationFrame(step);
       intro.addEventListener('click', finish);
+    });
+  }
+
+  // 운명의 제단: 출생 리롤 & 환생의 불씨 능력치 투자
+  function destinySetup({ birth: initialBirth, n, prev, traces, soul }) {
+    app.hidden = true; modal.hidden = true; screen.className = '';
+    let curBirth = initialBirth;
+    let fateHistory = [];
+    let rerollsLeft = 3;
+    const totalEmbers = 5;
+    let investments = { luck: 0, charm: 0, know: 0, skill: 0, health: 0, wealth: 0 };
+    const STAT_STEPS = { luck: 10, charm: 10, know: 8, skill: 10, health: 8, wealth: 8 };
+
+    function render() {
+      const b = curBirth;
+      const sh = shapeFor(b.era, b.region), e0 = Math.round(lifeStats(sh).e0), u5 = Math.round((1 - survivalTo(sh, 5)) * 100);
+      const h = householdOf(b.group, b.household);
+      const yearStr = fmtYear(b.year, L);
+      const eraName = eraOf(b.year)[L];
+      const areaName = AREAS[b.area][L];
+      const houseName = h[L];
+      const roleName = t(L, 'childOf', b.order, b.sex);
+
+      let used = 0;
+      for (const k in investments) used += investments[k];
+      const left = totalEmbers - used;
+
+      const baseStats = {
+        luck: 50,
+        charm: 50,
+        know: b.household === 'noble' || b.household === 'royal' || b.household === 'scholar' ? 30 : 15,
+        skill: 40,
+        health: 50,
+        wealth: Math.round(b.wealth || 35)
+      };
+
+      const pipsHtml = Array.from({ length: totalEmbers }, (_, i) => `<div class="ember-pip ${i < left ? '' : 'empty'}"></div>`).join('');
+
+      show(screen, `<article class="doc" style="max-width:760px"><header class="doc-head"><span>${esc(L === 'ko' ? '운명의 제단' : 'Altar of Destiny')}</span><span class="mono">No. ${esc(b.seed)}</span></header>
+        <div class="doc-body" style="padding:22px 24px;display:grid;gap:18px">
+          <p class="eyebrow">${esc(n ? t(L, 'nth', n) : t(L, 'practice'))} · ${esc(L === 'ko' ? '새 생으로 들어가기 전, 운명을 다시 굴리거나 불씨를 배분할 수 있습니다' : 'Reroll fate or invest embers before beginning your life')}</p>
+
+          <!-- 점지된 운명 카드 -->
+          <div class="card-destiny" style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 20px;display:grid;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+              <div>
+                <h2 style="font:700 22px/1.3 var(--serif);margin:0;color:var(--ink)">${esc(yearStr)} · ${esc(eraName)} ${esc(areaName)}</h2>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+                  <span class="tag" style="background:rgba(226,182,94,.16);color:var(--gold2);border:1px solid rgba(226,182,94,.4);padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600">${esc(houseName)}</span>
+                  <span class="tag" style="background:rgba(226,182,94,.16);color:var(--gold2);border:1px solid rgba(226,182,94,.4);padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600">${esc(roleName)}</span>
+                  <span class="tag hazard" style="background:rgba(184,60,60,.1);color:#a42c2c;border:1px solid rgba(184,60,60,.3);padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600">${esc(L === 'ko' ? '5세 미만 사망률' : 'Under-5 mortality')} ${u5}%</span>
+                  <span class="tag" style="background:rgba(226,182,94,.16);color:var(--gold2);border:1px solid rgba(226,182,94,.4);padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600">${esc(L === 'ko' ? '기대수명' : 'Life expectancy')} ${e0}${esc(t(L, 'age', e0).replace(/^[0-9]+/, ''))}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 리롤 컨트롤 -->
+            <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(226,182,94,.1);border:1px dashed var(--gold);border-radius:10px;padding:10px 14px;flex-wrap:wrap;gap:10px">
+              <div style="font-size:13px;color:var(--ink-soft)">
+                ${esc(L === 'ko' ? '운명 다시 굴리기 기회' : 'Rerolls available')}: <b style="color:var(--gold2);font-size:14.5px">${rerollsLeft} / 3</b>
+                <span style="display:block;font-size:11.5px;color:#8d7959">${esc(L === 'ko' ? '원하는 시대나 지역이 나올 때까지 다시 뽑을 수 있습니다.' : 'Reroll until you find your desired era or region.')}</span>
+              </div>
+              <div style="display:flex;gap:6px">
+                <button type="button" id="btnUndo" class="quiet" ${fateHistory.length ? '' : 'disabled'} style="padding:6px 12px;font-size:12.5px">${esc(L === 'ko' ? '↩ 이전' : '↩ Undo')}</button>
+                <button type="button" id="btnReroll" class="primary" ${rerollsLeft > 0 ? '' : 'disabled'} style="min-height:36px;padding:6px 14px;font:700 13.5px var(--serif);background:linear-gradient(135deg,var(--ink),#2c325e);border:1px solid var(--gold);color:var(--gold)">🎲 ${esc(L === 'ko' ? '운명 다시 굴리기' : 'Reroll Fate')}</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 환생의 불씨 (스탯 투자) -->
+          <div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:grid;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border-bottom:1px solid var(--line);padding-bottom:12px">
+              <div>
+                <h3 style="font:700 18px/1.3 var(--serif);margin:0">${esc(L === 'ko' ? '환생의 불씨' : 'Embers of Rebirth')}</h3>
+                <span style="font-size:12.5px;color:var(--ink-soft)">${esc(L === 'ko' ? '남은 불씨를 원하는 재능이나 생존력에 나누어 담으세요.' : 'Distribute remaining embers into attributes or survival guards.')}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="display:flex;gap:4px">${pipsHtml}</div>
+                <span style="font:700 15px var(--serif);color:var(--gold2)">${left} pt</span>
+              </div>
+            </div>
+
+            <!-- 프리셋 -->
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px">
+              <span style="font-weight:600;color:var(--ink-soft)">${esc(L === 'ko' ? '추천' : 'Presets')}:</span>
+              <button type="button" class="btn-preset" data-p="survive" style="padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer">🛡️ ${esc(L === 'ko' ? '생존형' : 'Survival')}</button>
+              <button type="button" class="btn-preset" data-p="scholar" style="padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer">📜 ${esc(L === 'ko' ? '학자형' : 'Scholar')}</button>
+              <button type="button" class="btn-preset" data-p="craft" style="padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer">🔨 ${esc(L === 'ko' ? '장인형' : 'Craft')}</button>
+              <button type="button" class="btn-preset" data-p="reset" style="padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer">↺ ${esc(L === 'ko' ? '초기화' : 'Reset')}</button>
+            </div>
+
+            <!-- 스탯 그리드 -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px">
+              ${renderStatRow('luck', L === 'ko' ? '🍀 행운 (Luck)' : '🍀 Luck', L === 'ko' ? '질병·사고 회피율 증가, 갈림길 위험 선택 성공률 보정' : 'Avoid accidents and boost risky choice success', baseStats.luck, investments.luck, STAT_STEPS.luck, left)}
+              ${renderStatRow('charm', L === 'ko' ? '🤝 친화력 (Charm)' : '🤝 Charm', L === 'ko' ? '혼인·자녀 확률 증가, 가족·이웃 초점 시 행복 회복 상승' : 'Higher marriage & kids chance, family happiness boost', baseStats.charm, investments.charm, STAT_STEPS.charm, left)}
+              ${renderStatRow('know', L === 'ko' ? '📖 지식 (Knowledge)' : '📖 Knowledge', L === 'ko' ? '배움 성장 가속, 60점 도달 시 글 읽기(문해력) 조기 해금' : 'Faster learning, early literacy unlock at 60', baseStats.know, investments.know, STAT_STEPS.know, left)}
+              ${renderStatRow('skill', L === 'ko' ? '🛠️ 손재주 (Skill)' : '🛠️ Skill', L === 'ko' ? '노동 품삯 배율 증가, 장인·기술 관련 이벤트 성공률 상승' : 'Higher wage multiplier and craft event success', baseStats.skill, investments.skill, STAT_STEPS.skill, left)}
+              ${renderStatRow('health', L === 'ko' ? '❤️ 강인한 숨결 (Health)' : '❤️ Vitality Guard', L === 'ko' ? '유아기(0~4세) 열병·역병 저항력 강화 (영아 사망 극복)' : 'Resist infant fevers (crucial for under-5 survival)', baseStats.health, investments.health, STAT_STEPS.health, left)}
+              ${renderStatRow('wealth', L === 'ko' ? '🪙 숨겨둔 복채 (Wealth)' : '🪙 Hidden Wealth', L === 'ko' ? '가난한 집안에서 태어나도 초기 식량과 궁핍을 완화하는 비상금' : 'Extra starting savings even in poor households', baseStats.wealth, investments.wealth, STAT_STEPS.wealth, left)}
+            </div>
+          </div>
+
+          <!-- 하단 시작 CTA -->
+          <div class="btns" style="margin-top:4px">
+            <button class="primary" data-v="go" style="min-height:50px;font:700 17px var(--serif);letter-spacing:.04em;background:linear-gradient(135deg,var(--gold),#caa049);color:#121329;border:1.5px solid #fff;border-radius:14px;box-shadow:0 6px 20px var(--gold-glow)">${esc(L === 'ko' ? '이 운명으로 삶 시작하기 ➔' : 'Begin Life with this Destiny ➔')}</button>
+            <span class="hint-kbd">${esc(L === 'ko' ? 'Space 또는 Enter 키로 시작할 수 있습니다' : 'Press Space or Enter to begin')}</span>
+          </div>
+        </div></article>`);
+
+      bindEvents();
+    }
+
+    function renderStatRow(k, label, desc, base, inv, step, left) {
+      const added = inv * step;
+      const total = Math.min(100, base + added);
+      return `<div class="stat-row" data-stat="${k}" style="border:1px solid var(--line);border-radius:10px;padding:10px 14px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;background:#fff">
+        <div style="font-weight:700;font-size:13.5px">${label}</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button type="button" class="stepper-btn minus" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:var(--bg);font-weight:bold;cursor:pointer" ${inv <= 0 ? 'disabled' : ''}>−</button>
+          <div style="min-width:62px;text-align:right;font-family:ui-monospace,monospace;font-size:13px">
+            <span style="color:var(--ink-soft)">${base}</span>
+            ${inv > 0 ? `<b style="color:#2e7d32;font-size:12px">+${added}</b>` : ''}
+          </div>
+          <button type="button" class="stepper-btn plus" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:var(--bg);font-weight:bold;cursor:pointer" ${left <= 0 || total >= 100 ? 'disabled' : ''}>+</button>
+        </div>
+        <div style="grid-column:1/-1;font-size:11.5px;color:var(--ink-soft);margin-top:-4px">${desc}</div>
+        <div style="grid-column:1/-1;height:5px;background:#f0ebe1;border-radius:3px;overflow:hidden;position:relative">
+          <div style="height:100%;background:var(--gold2);width:${base}%;border-radius:3px"></div>
+          ${inv > 0 ? `<div style="position:absolute;top:0;height:100%;background:#4caf50;left:${base}%;width:${Math.min(100 - base, added)}%;border-radius:0 3px 3px 0"></div>` : ''}
+        </div>
+      </div>`;
+    }
+
+    function bindEvents() {
+      const btnReroll = $('btnReroll');
+      if (btnReroll) {
+        btnReroll.onclick = (e) => {
+          e.preventDefault(); e.stopPropagation();
+          if (rerollsLeft <= 0) return;
+          rerollsLeft--;
+          fateHistory.push(curBirth);
+          const nextSeed = `${curBirth.seed}-r${3 - rerollsLeft}`;
+          curBirth = drawBirth(nextSeed, prev ? prev.death.year : -Infinity) || drawBirth(nextSeed);
+          render();
+        };
+      }
+      const btnUndo = $('btnUndo');
+      if (btnUndo) {
+        btnUndo.onclick = (e) => {
+          e.preventDefault(); e.stopPropagation();
+          if (!fateHistory.length) return;
+          curBirth = fateHistory.pop();
+          rerollsLeft++;
+          render();
+        };
+      }
+      screen.querySelectorAll('.stat-row').forEach(row => {
+        const k = row.dataset.stat;
+        const plus = row.querySelector('.stepper-btn.plus');
+        const minus = row.querySelector('.stepper-btn.minus');
+        if (plus) {
+          plus.onclick = (e) => {
+            e.preventDefault(); e.stopPropagation();
+            let used = 0; for (const s in investments) used += investments[s];
+            if (totalEmbers - used <= 0) return;
+            investments[k]++;
+            render();
+          };
+        }
+        if (minus) {
+          minus.onclick = (e) => {
+            e.preventDefault(); e.stopPropagation();
+            if (investments[k] <= 0) return;
+            investments[k]--;
+            render();
+          };
+        }
+      });
+      screen.querySelectorAll('.btn-preset').forEach(btn => {
+        btn.onclick = (e) => {
+          e.preventDefault(); e.stopPropagation();
+          const p = btn.dataset.p;
+          if (p === 'reset') investments = { luck: 0, charm: 0, know: 0, skill: 0, health: 0, wealth: 0 };
+          else if (p === 'survive') investments = { luck: 2, charm: 1, know: 0, skill: 0, health: 2, wealth: 0 };
+          else if (p === 'scholar') investments = { luck: 1, charm: 1, know: 3, skill: 0, health: 0, wealth: 0 };
+          else if (p === 'craft') investments = { luck: 1, charm: 0, know: 0, skill: 3, health: 0, wealth: 1 };
+          render();
+        };
+      });
+    }
+
+    render();
+
+    return pick(screen).then(() => {
+      screen.hidden = true;
+      return { birth: curBirth, investments: { ...investments } };
     });
   }
 
@@ -955,7 +1152,7 @@ export function createUI({ lang, robot = false, fast = false }) {
     setHandlers: (x) => { h = x; },
     toast: say,
     setLang(l) { L = l; labels(); if (cur && !app.hidden) { shown = 0; memShown = (cur.life.memories || []).length; $('journal').innerHTML = ''; hideTip(); update(cur.life, cur.peers); } },
-    title, birthIntro, mapZoom, birthRecord, showApp, update, decision, pause, lastYear, deathRecord, lineage, dex, share,
+    title, destinySetup, birthIntro, mapZoom, birthRecord, showApp, update, decision, pause, lastYear, deathRecord, lineage, dex, share,
     settings, coach, stageLoading,
   };
 }

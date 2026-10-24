@@ -103,13 +103,52 @@ function yearWait() {
   });
 }
 
+function applyInvestments(life, inv) {
+  if (!inv) return;
+  if (inv.luck) life.attrs.luck = Math.min(100, Math.max(0, (life.attrs.luck || 50) + inv.luck * 10));
+  if (inv.charm) life.attrs.charm = Math.min(100, Math.max(0, (life.attrs.charm || 50) + inv.charm * 10));
+  if (inv.know) {
+    life.attrs.know = Math.min(100, Math.max(0, (life.attrs.know || 15) + inv.know * 8));
+    if (life.attrs.know >= 60) life.flags.literate = true;
+  }
+  if (inv.skill) life.attrs.skill = Math.min(100, Math.max(0, (life.attrs.skill || 35) + inv.skill * 10));
+  if (inv.health) life.stats.health = Math.min(100, Math.max(0, (life.stats.health || 50) + inv.health * 8));
+  if (inv.wealth) life.stats.wealth = Math.min(100, Math.max(0, (life.stats.wealth || 30) + inv.wealth * 8));
+}
 // 한 생을 끝까지. 돌려주는 값: 'next' | 'lineage' | 'title'
 async function playLife(soul) {
-  const birth = soul ? soul.next : drawBirth(practice);
+  let customDestiny = null;
+  try {
+    const raw = sessionStorage.getItem('past_life_destiny');
+    if (raw) {
+      customDestiny = JSON.parse(raw);
+      sessionStorage.removeItem('past_life_destiny');
+    }
+  } catch (e) {}
+
+  let birth = customDestiny && customDestiny.seed ? drawBirth(customDestiny.seed) : (soul ? soul.next : drawBirth(practice));
+  if (!birth && customDestiny && customDestiny.seed) birth = drawBirth(customDestiny.seed);
+  if (!birth) birth = drawBirth(practice);
   const prev = soul && soul.lives.length ? soul.lives[soul.lives.length - 1] : null;
   const traces = soul ? soul.traces : [];
   const n = soul ? soul.lives.length + 1 : 0;
+
+  let chosenInvestments = customDestiny ? customDestiny.investments : null;
+  if (!customDestiny && !robot && ui.destinySetup) {
+    const chosen = await ui.destinySetup({ birth, n, prev, traces, soul });
+    if (chosen && chosen.birth) {
+      birth = chosen.birth;
+      if (soul) { soul.next = birth; store.saveSoul(soul); }
+    }
+    if (chosen && chosen.investments) {
+      chosenInvestments = chosen.investments;
+    }
+  }
+
   const life = createLife({ birth, traces, avoid: prev && Array.isArray(prev.lines) ? prev.lines : [] });
+  if (chosenInvestments) {
+    applyInvestments(life, chosenInvestments);
+  }
   const peers = makePeers(birth);
   window.__pl.life = life; window.__pl.soul = soul;
   try { if (village && village.preload) village.preload(birth); } catch (e) {}
@@ -195,6 +234,14 @@ async function main() {
   for (;;) {
     if (practice) { await playLife(null); practice = null; history.replaceState(null, '', location.pathname); continue; }
     let soul = store.loadSoul();
+    if (Q.get('from') === 'destiny' || sessionStorage.getItem('past_life_destiny')) {
+      if (!soul || soul.ended) soul = newSoul();
+      history.replaceState(null, '', location.pathname);
+      let next = await playLife(soul);
+      while (next === 'next' && !soul.ended) next = await playLife(soul);
+      if (next === 'lineage' && (await ui.lineage(soul)) === 'newsoul') store.saveSoul(newSoul());
+      continue;
+    }
     const act = await ui.title({
       soul, dexCount: Object.keys(store.loadDex()).length, soundOn: () => S.sound,
       onLang: (l) => { S.lang = l; store.saveLang(l); document.documentElement.lang = l; ui.setLang(l); },

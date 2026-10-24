@@ -758,10 +758,19 @@
       });
     });
 
-    // 삶 시작하기 클릭
+    // 삶 시작하기 클릭: 실제 게임(index.html)으로 이동하여 출생 서류 및 3D 마을 시작
     document.getElementById('btnStart').addEventListener('click', () => {
       const f = currentFate();
-      alert(`[운명 확정]\n- 출생: ${f.year}년 ${f.areaName} (${f.house} ${f.role})\n- 투자: ${JSON.stringify(investments)}\n\n이 설정으로 출생 서류를 작성하고 3D 마을로 진입합니다!`);
+      const payload = {
+        seed: f.seed,
+        year: f.year,
+        area: f.area,
+        house: f.house,
+        role: f.role,
+        investments: { ...investments }
+      };
+      sessionStorage.setItem('past_life_destiny', JSON.stringify(payload));
+      window.location.href = 'index.html?from=destiny';
     });
 
     // 최초 렌더링
