@@ -6,7 +6,7 @@ import { AREAS } from '../places.js';
 import { HOUSEHOLDS } from '../households.js';
 import { drawBirth } from '../birth.js';
 import { groupOf } from '../births.js';
-import { stageOf, stageSeed, kitOf, eraOf, builtKit, LANDS, KITS, ERAS, SETTINGS, HOUSEHOLD_SETTING, AREA_STAGE, LAND_LOOK, BUILT_KITS } from '../lands.js';
+import { stageOf, stageSeed, kitOf, eraOf, builtKit, morphologyOf, MORPHOLOGIES, LANDS, KITS, ERAS, SETTINGS, HOUSEHOLD_SETTING, AREA_STAGE, LAND_LOOK, BUILT_KITS } from '../lands.js';
 
 test('40개 땅마다 땅 모습·세트가 정해진 이름이고, 표에 없는 땅이나 남는 땅이 없다', () => {
   assert.equal(Object.keys(AREAS).length, 40);
@@ -84,4 +84,15 @@ test('같은 출생이면 같은 무대·같은 무대 시드, 다른 시드면 
   }
   assert.ok(seen.size > 395, '무대 시드가 거의 겹치지 않는다');
   assert.equal(stageSeed({ seed: 'T4-151' }), stageSeed({ seed: 'T4-151', year: 1 }));   // 시드만 본다
+});
+
+test('morphologyOf: 문화권·시대·장소에 따라 5대 마을 구조 프로필을 올바르게 판별한다', () => {
+  assert.equal(morphologyOf({ kit: 'eastasia', era: 'early', setting: 'village' }), 'eastasia');
+  assert.equal(morphologyOf({ kit: 'eastasia', era: 'forager', setting: 'camp' }), 'steppe');
+  assert.equal(morphologyOf({ kit: 'mudbrick', era: 'ancient', setting: 'village' }), 'mudbrick');
+  assert.equal(morphologyOf({ kit: 'southasia', era: 'medieval', setting: 'village' }), 'southasia');
+  assert.equal(morphologyOf({ kit: 'england', era: 'medieval', setting: 'village' }), 'england');
+  assert.equal(morphologyOf({ kit: 'steppe', era: 'medieval', setting: 'camp' }), 'steppe');
+  assert.equal(morphologyOf(null), 'england');
+  assert.deepEqual(MORPHOLOGIES, ['england', 'eastasia', 'mudbrick', 'southasia', 'steppe']);
 });

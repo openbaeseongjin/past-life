@@ -82,3 +82,36 @@ test('큰 집 장소 (setting === "estate"): 4대 문화권 큰 집 중심 + 하
     }
   }
 });
+
+test('5대 마을 골격 (Morphologies): 문화권·시대별 수계·도로·차선·농가·카메라가 고유하게 구성되고 정상 배치된다', async () => {
+  const { MORPHOLOGIES, makeEnv, planVillage, recipeFor } = await import('../villageplan.js');
+  const morphKeys = ['england', 'eastasia', 'mudbrick', 'southasia', 'steppe'];
+  assert.deepEqual(Object.keys(MORPHOLOGIES).sort(), morphKeys.sort());
+
+  for (const m of morphKeys) {
+    const M = MORPHOLOGIES[m];
+    assert.ok(Array.isArray(M.riverPts) && M.riverPts.length >= 5, `${m} riverPts`);
+    assert.ok(Array.isArray(M.roads) && M.roads.length >= 3, `${m} roads`);
+    assert.ok(Array.isArray(M.lanes) && M.lanes.length >= 3, `${m} lanes`);
+    assert.ok(Array.isArray(M.farms), `${m} farms`);
+    assert.ok(M.vc && typeof M.vc.x === 'number' && typeof M.vc.z === 'number', `${m} vc`);
+    assert.ok(typeof M.riverHw === 'number' && M.riverHw > 0, `${m} riverHw`);
+    assert.ok(M.overview && M.overview.pos && M.overview.look, `${m} overview`);
+
+    const envM = makeEnv(m);
+    assert.equal(envM.morphology, m);
+    assert.equal(envM.riverHw, M.riverHw);
+    assert.equal(envM.lanes, M.lanes);
+    assert.equal(envM.farms, M.farms);
+
+    const kit = m === 'steppe' ? 'eastasia' : m;
+    const rc = recipeFor(kit);
+    const layout = planVillage(1329, envM, rc);
+    assert.ok(layout.houses.length > 0, `${m} houses > 0`);
+    if (m === 'steppe') {
+      assert.equal(layout.farms.length, 0, '초원/야영지는 외딴 농가 없음');
+    } else {
+      assert.equal(layout.farms.length, M.farms.length, `${m} farms match`);
+    }
+  }
+});

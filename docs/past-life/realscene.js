@@ -36,7 +36,7 @@ import { KIT_DIMS, PROP_DIMS, KIT_SETS, TREES_SA, BUSHES_SA, TREE_GLB_SA, TREES_
 import { lerp, smooth, rng, hash2, fbm, obb, obbLocal, obbHas, VC, WATER_Y, RIVER_HW, RIVER, BRIDGE, CHURCH, CHURCHYARD, SMITHY, MILL, WELL, GREEN, LANES, VIEW_CLEAR, inRect, smoothLine, polyCum, polyAt, makeEnv, planVillage, planDressing, recipeFor, flavorOf, dressSeed } from './villageplan.js';
 import { planPeople, peopleSeed, PEOPLE_DEFAULT, paletteOf, dressVariant } from './peopleplan.js';
 import { createPeople, touchPeople, sweepPeople, peopleCacheSize, preloadPeople } from './realpeople.js';
-import { stageOf, stageSeed, builtKit, sceneKitOf, LAND_LOOK } from './lands.js';
+import { stageOf, stageSeed, builtKit, sceneKitOf, LAND_LOOK, morphologyOf } from './lands.js';
 import { t as tr } from './i18n.js';
 
 const EZTREE = '@dgreenheck/ez-tree';   // importmap 이름 (look-real.html·index.html: ez-tree 1.1.0 build/ez-tree.es.js)
@@ -136,8 +136,12 @@ const QUALITY = {
 // 텍스처는 그리개마다 한 번만 받는다 (게임에서 생이 바뀌어 장면을 다시 지어도 같은 텍스처를 쓴다)
 const texCaches = new WeakMap();
 // 시드와 상관없는 무거운 계산 (지형 정점, 먼 땅 그림, 강·길·밭 색인): 한 번 만들어 장면 사이에 함께 쓴다
-const SHARED = { env: null, far: null, terrain: null };
-const sharedEnv = () => SHARED.env || (SHARED.env = makeEnv());
+const SHARED = { envs: new Map(), far: null, terrain: null };
+const sharedEnv = (morph = 'england') => {
+  let e = SHARED.envs.get(morph);
+  if (!e) SHARED.envs.set(morph, e = makeEnv(morph));
+  return e;
+};
 
 // ───────────────────────── 마을 짜기·꾸미기 (villageplan.js, three 없는 순수 모듈) ─────────────────────────
 // 집 자리 planVillage(seed, env) 와 소품·가축·나무 자리 규칙은 villageplan.js 에 있다 (Node 시험: test/villageplan.test.mjs).
@@ -638,7 +642,8 @@ export function createRealScene(canvas, opts = {}) {
 
   // ── 지형 높이 ── (강·길 거리 색인과 밭 조각보는 villageplan.makeEnv: 꾸미기 규칙·Node 시험과 같은 것)
   const TB = performance.now(), times = {};
-  const ENV = sharedEnv();
+  const morph = morphologyOf({ kit: KIT, era: opts.era, setting: opts.setting, area: opts.area });
+  const ENV = sharedEnv(morph);
   const { riverIdx, roadIdx, roadLines, FS, FN, FOFF, gp, fieldType, findCell, hedgeOn, fieldAt } = ENV;
   function baseHeight(x, z) {
     const d = Math.hypot(x - VC.x, z - VC.z);
@@ -655,7 +660,8 @@ export function createRealScene(canvas, opts = {}) {
   function heightAt(x, z) {
     let h = baseHeight(x, z);
     const dr = riverIdx.edge(x, z);                 // 강 중심선까지 (w=0)
-    const bank = dr < RIVER_HW ? lerp(-2.4, -0.1, (dr / RIVER_HW) ** 2) : -0.1 + (dr - RIVER_HW) * 0.1 + Math.max(0, dr - 60) ** 2 * 0.0025;
+    const riverHw = ENV.riverHw || RIVER_HW;
+    const bank = dr < riverHw ? lerp(-2.4, -0.1, (dr / riverHw) ** 2) : -0.1 + (dr - riverHw) * 0.1 + Math.max(0, dr - 60) ** 2 * 0.0025;
     if (dr < 419 && bank < h) h = bank;
     const dRoad = roadIdx.edge(x, z);
     if (dRoad < 1.5) h -= 0.12 * (1 - Math.max(0, dRoad) / 1.5);
@@ -1046,7 +1052,9 @@ export function createRealScene(canvas, opts = {}) {
     for (const g of geo) add('bridgeWood', g.index ? g : g, M);
     occAdd(B.x, B.z, 12);
   }
-  if (RC.bridge === 'timber') buildBridgeTimber(); else buildBridge();
+  if (ENV.bridge === null) {
+    // 다리 없음 (외나무다리/징검다리 또는 열린 평원)
+  } else if (RC.bridge === 'timber') buildBridgeTimber(); else buildBridge();
 
 
   // 재질별 합치기
@@ -1547,10 +1555,11 @@ export function createRealScene(canvas, opts = {}) {
   // 땅 높이 (다리 위는 다리 길 높이)
   function groundAt(x, z) {
     let y = heightAt(x, z);
-    if (Math.hypot(x - BRIDGE.x, z - BRIDGE.z) < BRIDGE.len / 2 + 0.6) {
-      const u = Math.abs((x - BRIDGE.x) * BRIDGE.dirx + (z - BRIDGE.z) * BRIDGE.dirz);
-      if (RC.bridge === 'timber') { const e = BRIDGE.len / 2 - 1.6; y = Math.max(y, u < e ? BRT.top : lerp(BRT.top, y, Math.min(1, (u - e) / 2.1))); }
-      else if (u < BRIDGE.len / 2) y = Math.max(y, u < BRIDGE.len / 2 - 4.5 ? 2.8 : lerp(2.8, Math.min(y, 0) - 0.4, (u - (BRIDGE.len / 2 - 4.5)) / 4.5));
+    const curBridge = ENV.bridge !== undefined ? ENV.bridge : BRIDGE;
+    if (curBridge && Math.hypot(x - curBridge.x, z - curBridge.z) < curBridge.len / 2 + 0.6) {
+      const u = Math.abs((x - curBridge.x) * curBridge.dirx + (z - curBridge.z) * curBridge.dirz);
+      if (RC.bridge === 'timber') { const e = curBridge.len / 2 - 1.6; y = Math.max(y, u < e ? BRT.top : lerp(BRT.top, y, Math.min(1, (u - e) / 2.1))); }
+      else if (u < curBridge.len / 2) y = Math.max(y, u < curBridge.len / 2 - 4.5 ? 2.8 : lerp(2.8, Math.min(y, 0) - 0.4, (u - (curBridge.len / 2 - 4.5)) / 4.5));
     }
     return y;
   }
@@ -1727,7 +1736,7 @@ export function createRealScene(canvas, opts = {}) {
   // ── 카메라 ──
   // rel: 높이(pos·look 의 y)가 그 자리 땅에서 잰 값 (마을이 비탈이라 눈높이 시점은 땅을 따른다). 없으면 절대 높이
   const VIEWS = {
-    overview: { pos: [-20, 40, 92], look: [10, -1, -26], fov: 42 },   // 목표 그림 구도: 왼쪽 아래 아치 다리(옆면)·강, 왼쪽 물레방앗간, 가운데 오르막 마을, 오른쪽 교회·대장간, 오른쪽 아래 양, 뒤에 구릉
+    overview: ENV.overview || RC.overview || { pos: [-20, 40, 92], look: [10, -1, -26], fov: 42 },   // 목표 그림 구도
     street: { pos: [-11, 1.7, 8], look: [22, 3.2, -24], fov: 40, rel: true },      // 큰길 눈높이: 양쪽 집줄·길가 풀섶·꽃, 끝에 장터·교회 탑
     dusk: { pos: [23, 7, 55], look: [42, 3, 15], rel: true },
     forge: { pos: [29, 4.5, 44], look: [41, 2, 17], rel: true },          // 대장간 마당 가까이 (화덕 불빛·물통·말·연장 걸이)
@@ -1814,7 +1823,7 @@ export function createRealScene(canvas, opts = {}) {
     snapshot() { renderOnce(0); return canvas.toDataURL('image/png'); },
     // 게임 무대(createStage)용: 바깥 고리에서 한 프레임 그리기 (autoStart: false 일 때), 땅 높이, 마을 배치, 화질
     renderFrame(dt) { if (state.disposed) return; dt = Math.min(dt, 0.1); tAcc += dt; renderOnce(dt); },
-    heightAt, groundAt, layout, dressing, state, sunDir, fogify, skyColorsAt, kit: KIT, kitDims: KD, propDims: PD, recipe: RC, flavor: FL, peopleUrl, setting: opts.setting || RC.setting || 'village', household: opts.household || null,
+    heightAt, groundAt, layout, dressing, state, sunDir, fogify, skyColorsAt, kit: KIT, kitDims: KD, propDims: PD, recipe: RC, flavor: FL, peopleUrl, setting: opts.setting || RC.setting || 'village', household: opts.household || null, env: ENV,
     skyColors() { return { fogC: fogC.clone(), sunSide: sunSideC.clone() }; },
     setQuality(q) {
       const Q2 = QUALITY[q]; if (!Q2) return;
@@ -1959,9 +1968,10 @@ export function createStage(canvas) {
   // ── 내 사람이 오가는 길: 마을 골목 가운데 전경 카메라에서 가리지 않고 보이는 18 m 남짓 (시드마다 집이 달라 그때그때 고른다) ──
   function homePath(sc, blk) {
     const cam = sc.camera, _v = new THREE.Vector3();
-    gamePose(cam.position, _v, sc, 0); cam.lookAt(_v); cam.fov = GAME_CAM.fov; cam.updateProjectionMatrix(); cam.updateMatrixWorld();
+    gamePose(cam.position, _v, sc, 0); cam.lookAt(_v); cam.fov = (sc.env && sc.env.overview && sc.env.overview.fov) || GAME_CAM.fov; cam.updateProjectionMatrix(); cam.updateMatrixWorld();
     let best = null;
-    for (const lane of LANES) {
+    const lanes = (sc.env && sc.env.lanes) || LANES;
+    for (const lane of lanes) {
       const pts = smoothLine(lane, 3), cum = polyCum(pts), total = cum[cum.length - 1], run = [];
       const flush = () => {
         if (run.length >= 6) {   // 15 m 넘게 이어 보이는 구간: 화면 가운데(0.5, 0.58)에 가깝고 길수록
@@ -1980,7 +1990,7 @@ export function createStage(canvas) {
       flush();
     }
     if (best) return best.path;
-    const lane = LANES[LANES.length - 1], pts = smoothLine(lane, 3), cum = polyCum(pts), path = [];   // 못 찾으면 다리 어귀 길
+    const fallbackLane = lanes[lanes.length - 1] || LANES[LANES.length - 1], pts = smoothLine(fallbackLane, 3), cum = polyCum(pts), path = [];   // 못 찾으면 안쪽 길
     for (let d = 6; d <= 26; d += 2.5) { const p = polyAt(pts, cum, d); path.push([p.x - p.tz * 0.8, p.z + p.tx * 0.8]); }
     return path;
   }
@@ -2373,9 +2383,10 @@ export function createStage(canvas) {
   const _p = new THREE.Vector3(), _l = new THREE.Vector3(), _t = new THREE.Vector3(), _c = new THREE.Vector3();
   function gamePose(out, look, sc = W.sc, sway = STAGE_SWAY * Math.sin(st.phi)) {
     const a = sway;
-    const lx = GAME_CAM.look[0], lz = GAME_CAM.look[2], ly = GAME_CAM.look[1] + sc.heightAt(lx, lz);
-    const dx = GAME_CAM.pos[0] - lx, dz = GAME_CAM.pos[2] - lz, c = Math.cos(a), s = Math.sin(a);
-    out.set(lx + dx * c + dz * s, GAME_CAM.pos[1] + sc.heightAt(GAME_CAM.pos[0], GAME_CAM.pos[2]), lz - dx * s + dz * c);
+    const camSpec = (sc && sc.env && sc.env.overview) || GAME_CAM;
+    const lx = camSpec.look[0], lz = camSpec.look[2], ly = camSpec.look[1] + sc.heightAt(lx, lz);
+    const dx = camSpec.pos[0] - lx, dz = camSpec.pos[2] - lz, c = Math.cos(a), s = Math.sin(a);
+    out.set(lx + dx * c + dz * s, camSpec.pos[1] + sc.heightAt(camSpec.pos[0], camSpec.pos[2]), lz - dx * s + dz * c);
     look.set(lx, ly, lz);
   }
   // 내 사람 가까이: 사람 키의 3.4배쯤 떨어져 눈높이보다 조금 위에서. 바탕(bg: 마을·교회) 쪽을 보게 사람 건너편에 선다. 벽에 막히면 당기거나 돌린다

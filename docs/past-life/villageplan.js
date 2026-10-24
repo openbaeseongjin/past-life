@@ -162,6 +162,123 @@ export const FARMS = [
   { x: 250, z: -70, rot: 1.2, kind: 'plaster' },
   { x: -180, z: 90, rot: -0.4, kind: 'timber' },
 ];
+
+// ───────────────────────── 5대 마을 구조 골격 (Morphologies) ─────────────────────────
+// 지역과 시대에 따라 마을의 수계(강·실개천), 도로망, 가옥 차선(Lanes), 외딴 농가, 카메라가 고유하게 달라진다.
+export const MORPHOLOGIES = {
+  england: {
+    riverPts: RIVER_PTS,
+    roads: ROADS,
+    lanes: LANES,
+    farms: FARMS,
+    vc: VC,
+    bridge: BRIDGE,
+    riverHw: RIVER_HW,
+    overview: { pos: [-20, 40, 92], look: [10, -1, -26], fov: 42 },
+  },
+  eastasia: {
+    riverPts: [[-450, 85], [-280, 80], [-140, 72], [-40, 65], [15, 60], [80, 64], [180, 75], [320, 88], [480, 95]],
+    roads: [
+      { w: 3.2, pts: [[-220, -25], [-140, -18], [-70, -12], [-25, -6], [15, 0], [55, 6], [105, 16], [165, 30], [250, 45]] },
+      { w: 3.5, pts: [[15, 120], [15, 60], [15, 30], [15, 0]] },
+      { w: 3.2, pts: [[15, 0], [30, -35], [55, -60], [75, -75], [96, -64], [130, -100]] },
+      { w: 2.8, pts: [[-25, -6], [-40, -30], [-50, -50], [-70, -80]] },
+      { w: 2.8, pts: [[55, 6], [65, 25], [80, 40], [110, 50]] },
+      { w: 2.8, pts: [[-70, -12], [-75, 10], [-90, 25], [-115, 35]] },
+    ],
+    lanes: [
+      [[-140, -18], [-70, -12], [-25, -6], [15, 0]],
+      [[15, 0], [55, 6], [105, 16], [165, 30]],
+      [[15, 60], [15, 30], [15, 0]],
+      [[15, 0], [30, -35], [55, -60], [75, -75]],
+      [[-25, -6], [-40, -30], [-50, -50]],
+      [[55, 6], [65, 25], [80, 40]],
+      [[-70, -12], [-75, 10], [-90, 25]],
+    ],
+    farms: [
+      { x: 120, z: -40, rot: 1.2, kind: 'barn' },
+      { x: -130, z: -50, rot: 0.4, kind: 'timber' },
+      { x: 170, z: 20, rot: -0.6, kind: 'stone' },
+      { x: -160, z: 25, rot: 0.8, kind: 'plaster' },
+    ],
+    vc: { x: 15, z: 0 },
+    bridge: null,
+    riverHw: 4.2,
+    overview: { pos: [8, 38, 92], look: [12, 1, -18], fov: 43 },
+  },
+  mudbrick: {
+    riverPts: [[-400, -10], [-180, -10], [-50, -10], [15, -10], [80, -10], [220, -10], [450, -10]],
+    roads: [
+      { w: 3.6, pts: [[-28, 60], [-15, 35], [5, 10], [15, -10], [35, -25], [70, -45], [96, -62]] },
+      { w: 2.8, pts: [[15, -10], [45, -10], [70, 0], [95, 15], [130, 30]] },
+      { w: 2.8, pts: [[5, 10], [-25, 10], [-55, 0], [-85, -10], [-120, -20]] },
+      { w: 2.6, pts: [[-15, 35], [-35, 35], [-60, 40], [-90, 45]] },
+      { w: 2.8, pts: [[35, -25], [55, -15], [70, 6], [85, 2], [115, 10]] },
+    ],
+    lanes: [
+      [[-28, 60], [-15, 35], [5, 10], [15, -10]],
+      [[15, -10], [35, -25], [70, -45], [96, -62]],
+      [[15, -10], [45, -10], [70, 0], [95, 15]],
+      [[5, 10], [-25, 10], [-55, 0], [-85, -10]],
+      [[-15, 35], [-35, 35], [-60, 40]],
+      [[35, -25], [55, -15], [70, 6]],
+    ],
+    farms: [
+      { x: 110, z: -25, rot: 1.1, kind: 'barn' },
+      { x: -100, z: -35, rot: 0.5, kind: 'timber' },
+      { x: 140, z: 30, rot: -0.4, kind: 'stone' },
+    ],
+    vc: { x: 15, z: 0 },
+    bridge: BRIDGE,
+    riverHw: 5.0,
+    overview: { pos: [-15, 38, 86], look: [30, 2, -18], fov: 42 },
+  },
+  southasia: {
+    riverPts: [[-400, 15], [-150, 15], [-30, 15], [10, 15], [50, 15], [200, 15], [450, 15]],
+    roads: [
+      { w: 3.4, pts: [[-65, -4], [-35, -8], [-10, -14], [6.5, -15.5], [35, -18], [70, -20], [120, -25]] },
+      { w: 3.4, pts: [[6.5, -15.5], [-10, -18], [-25, -20], [-36, -24], [-60, -30]] },
+      { w: 3.2, pts: [[6.5, -15.5], [30, -30], [55, -45], [80, -55], [92, -60], [130, -80]] },
+      { w: 3.0, pts: [[6.5, -15.5], [15, 10], [25, 35], [35, 60], [45, 90]] },
+      { w: 2.8, pts: [[-35, -8], [-40, 15], [-45, 40], [-50, 75]] },
+    ],
+    lanes: [
+      [[-35, -8], [-10, -14], [6.5, -15.5], [35, -18]],
+      [[6.5, -15.5], [-10, -18], [-25, -20], [-36, -24]],
+      [[6.5, -15.5], [30, -30], [55, -45], [80, -55]],
+      [[6.5, -15.5], [15, 10], [25, 35], [35, 60]],
+      [[-35, -8], [-40, 15], [-45, 40]],
+    ],
+    farms: [
+      { x: 115, z: -30, rot: 1.3, kind: 'barn' },
+      { x: -110, z: -40, rot: 0.6, kind: 'timber' },
+      { x: 130, z: 45, rot: -0.5, kind: 'stone' },
+    ],
+    vc: { x: 10, z: 5 },
+    bridge: BRIDGE,
+    riverHw: 5.5,
+    overview: { pos: [-25, 36, 82], look: [15, 1, -22], fov: 42 },
+  },
+  steppe: {
+    riverPts: [[-450, -120], [-250, -40], [-80, 30], [60, -20], [220, 50], [450, 100]],
+    roads: [
+      { w: 3.0, pts: [[-35, 10], [-20, -10], [10, -15], [35, 0], [40, 25], [20, 45], [-10, 40], [-35, 10]] },
+      { w: 2.4, pts: [[0, 45], [15, 75], [30, 110]] },
+      { w: 2.4, pts: [[-20, -10], [-45, -35], [-75, -55]] },
+    ],
+    lanes: [
+      [[25, 4], [40, 22], [42, 45]],
+      [[42, 45], [25, 58], [0, 50]],
+      [[0, 50], [-25, 35], [-35, 10]],
+      [[-35, 10], [-20, -10], [10, -15]],
+    ],
+    farms: [],
+    vc: { x: 0, z: 0 },
+    bridge: null,
+    riverHw: 4.0,
+    overview: { pos: [20, 36, 85], look: [20, 2, 20], fov: 44 },
+  },
+};
 // 전경(다리 남서쪽 물가와 비탈): 덤불·갈대·돌담·꽃으로 채운다 (overview 카메라가 내려다보는 앞쪽)
 export const FOREGROUND = { x: -36, z: 76, r: 24 };
 // 전경 시야 통로: overview 카메라와 마을 사이. 키 큰 나무는 두지 않는다 (덤불·풀·꽃·울타리는 괜찮다)
@@ -251,6 +368,7 @@ const mbFixed = [
 export const RECIPES = {
   england: {
     kit: 'england', dims: KIT_DIMS, pool: KIT_POOL,
+    morphology: 'england', lanes: MORPHOLOGIES.england.lanes, farms: MORPHOLOGIES.england.farms, overview: MORPHOLOGIES.england.overview,
     kindOf: (r) => (r < 0.45 ? 'timber' : r < 0.74 ? 'plaster' : 'stone'), farmKind: (k) => k,
     noGable: ['longhouse'], gableP: 0.14, gap: [2.6, 4.2], setback: [1.4, 2.6], croftK: 1,
     reserved: (x, z, pad) => Math.hypot(x - GREEN.x, z - GREEN.z) < GREEN.r + 3 + pad || inRect(CHURCHYARD, x, z, 3 + pad) || inRect(PASTURE, x, z, pad) || inRect(MEADOW, x, z, pad) || forgeYard(x, z, pad)
@@ -269,6 +387,7 @@ export const RECIPES = {
   },
   southasia: {
     kit: 'southasia', dims: KIT_DIMS_SA, pool: KIT_POOL_SA,
+    morphology: 'southasia', lanes: MORPHOLOGIES.southasia.lanes, farms: MORPHOLOGIES.southasia.farms, overview: MORPHOLOGIES.southasia.overview,
     kindOf: (r) => (r < 0.05 ? 'courtyard' : r < 0.15 ? 'town' : 'mud'), farmKind: (k) => (k === 'barn' ? 'store' : 'mud'),
     noGable: ['hut_mud_b', 'house_courtyard', 'granary', 'house_town'], gableP: 0.12, gap: [1.0, 2.2], setback: [0.4, 1.3], croftK: 0.72,
     reserved: (x, z, pad) => Math.hypot(x - GREEN.x, z - GREEN.z) < GREEN.r + 3 + pad || inRect(S_.TEMPLE_YARD, x, z, 1 + pad) || inRect(PASTURE, x, z, pad) || inRect(MEADOW, x, z, pad)
@@ -290,6 +409,7 @@ export const RECIPES = {
   //   나무다리 + 개울 디딤돌, 땅 그림의 논은 비탈에서 등고선 두렁(계단 논)으로 (terrace). 땅(중국·한국·일본)마다 건물 glb·담·독·사람 옷이 다르다 (recipeFor)
   eastasia: {
     kit: 'eastasia', dims: KIT_DIMS_EA, pool: KIT_POOL_EA, flavorDims: { china: KIT_DIMS_EA, korea: KIT_DIMS_EA_KR, japan: KIT_DIMS_EA_JP },
+    morphology: 'eastasia', lanes: MORPHOLOGIES.eastasia.lanes, farms: MORPHOLOGIES.eastasia.farms, overview: MORPHOLOGIES.eastasia.overview,
     kindOf: (r) => (r < 0.25 ? 'tile' : r < 0.37 ? 'town' : 'thatch'), farmKind: (k) => (k === 'barn' ? 'store' : 'thatch'),
     noGable: ['pit_house_ea', 'granary_ea', 'house_town_ea', 'house_tile_ea'], gableP: 0.12, gap: [2.0, 3.4], setback: [0.9, 1.9], croftK: 0.85,
     reserved: (x, z, pad) => Math.hypot(x - GREEN.x, z - GREEN.z) < GREEN.r + 3 + pad || inRect(E_.TEMPLE_YARD, x, z, 2 + pad) || inRect(PASTURE, x, z, pad)
@@ -309,6 +429,7 @@ export const RECIPES = {
   },
   mudbrick: {
     kit: 'mudbrick', dims: KIT_DIMS_MB, pool: KIT_POOL_MB,
+    morphology: 'mudbrick', lanes: MORPHOLOGIES.mudbrick.lanes, farms: MORPHOLOGIES.mudbrick.farms, overview: MORPHOLOGIES.mudbrick.overview,
     kindOf: (r) => (r < 0.1 ? 'courtyard' : r < 0.25 ? 'town' : 'mud'), farmKind: (k) => (k === 'barn' ? 'store' : 'mud'),
     noGable: ['house_flat_a', 'house_flat_b', 'house_courtyard_mb', 'tower_wind', 'market_arcade', 'granary_mb', 'palace_mb', 'mosque_small', 'shrine_mb', 'well_mb', 'smithy_mb', 'gate_mb'],
     gableP: 0.0, gap: [1.2, 2.4], setback: [0.5, 1.4], croftK: 0.72,
@@ -494,6 +615,10 @@ function recipeEA(base, y, area) {
     fixedFoot: fixed.map((f) => { const [L, D] = dims[f.piece]; return obb(f.x, f.z, f.rot, L / 2, D / 2); }),
     kindOf: (r) => (r < P ? 'pit' : r < T ? 'tile' : r < W ? 'town' : 'thatch'),
     farmKind: camp ? () => 'pit' : base.farmKind,
+    farms: camp ? [] : base.farms,
+    morphology: camp ? 'steppe' : 'eastasia',
+    lanes: camp ? MORPHOLOGIES.steppe.lanes : MORPHOLOGIES.eastasia.lanes,
+    overview: camp ? MORPHOLOGIES.steppe.overview : MORPHOLOGIES.eastasia.overview,
     gap: camp ? [6, 14] : base.gap, croftK: camp ? 0.6 : base.croftK,
     hedge: camp ? { keep: 0.5, strips: false, pick: (r) => (r < 0.5 ? 'pine' : r < 0.8 ? 'zelkova' : 'willow') } : base.hedge,
     terrace: camp ? 0 : base.terrace,
@@ -1228,23 +1353,28 @@ export function planDressingMB(rng, kit, props, layout) {
 }
 
 // ───────────────────────── 환경: 강·길 색인 + 밭 조각보 ─────────────────────────
-export function makeEnv() {
-  const riverIdx = new SegIndex([{ pts: smoothLine(RIVER_PTS, 14), w: 0 }], 64, 420);
-  const roadLines = ROADS.map((r) => ({ pts: smoothLine(r.pts, 4), w: r.w }));
+export function makeEnv(morphology = 'england') {
+  const M = MORPHOLOGIES[morphology] || MORPHOLOGIES.england;
+  const riverPts = M.riverPts || RIVER_PTS;
+  const roads = M.roads || ROADS;
+  const vc = M.vc || VC;
+  const riverHw = M.riverHw || RIVER_HW;
+  const riverIdx = new SegIndex([{ pts: smoothLine(riverPts, 14), w: 0 }], 64, 420);
+  const roadLines = roads.map((r) => ({ pts: smoothLine(r.pts, 4), w: r.w }));
   const roadIdx = new SegIndex(roadLines, 32, 24);
   // 밭 조각보 (지터 격자 사각형)
   const FS = 118, FN = 60, FOFF = FN / 2;          // 칸 크기, 칸 수 (±3.5km)
   const gp = [];                                   // 격자점
-  for (let j = 0; j <= FN; j++) { gp[j] = []; for (let i = 0; i <= FN; i++) { const x = (i - FOFF) * FS + VC.x, z = (j - FOFF) * FS + VC.z; gp[j][i] = [x + (hash2(i, j, 11) - 0.5) * 62, z + (hash2(i, j, 12) - 0.5) * 62]; } }
+  for (let j = 0; j <= FN; j++) { gp[j] = []; for (let i = 0; i <= FN; i++) { const x = (i - FOFF) * FS + vc.x, z = (j - FOFF) * FS + vc.z; gp[j][i] = [x + (hash2(i, j, 11) - 0.5) * 62, z + (hash2(i, j, 12) - 0.5) * 62]; } }
   const fieldType = (i, j) => {
     const cx = (gp[j][i][0] + gp[j + 1][i + 1][0]) / 2, cz = (gp[j][i][1] + gp[j + 1][i + 1][1]) / 2;
-    if (Math.hypot(cx - VC.x, cz - VC.z) < 150) return 0;   // 마을 공유지 풀밭
+    if (Math.hypot(cx - vc.x, cz - vc.z) < 150) return 0;   // 마을 공유지 풀밭
     const r = hash2(i, j, 13);
     return r < 0.42 ? 1 : r < 0.64 ? 2 : r < 0.82 ? 3 : 4;   // 1 풀밭, 2 밀, 3 갈아엎은 밭, 4 휴경(누런 풀)
   };
   const cross = (ax, az, bx, bz, px, pz) => (bx - ax) * (pz - az) - (bz - az) * (px - ax);
   function findCell(x, z) {
-    const i0 = Math.floor((x - VC.x) / FS + FOFF), j0 = Math.floor((z - VC.z) / FS + FOFF);
+    const i0 = Math.floor((x - vc.x) / FS + FOFF), j0 = Math.floor((z - vc.z) / FS + FOFF);
     for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
       const i = i0 + di, j = j0 + dj; if (i < 0 || j < 0 || i >= FN || j >= FN) continue;
       const a = gp[j][i], b = gp[j][i + 1], c = gp[j + 1][i + 1], d = gp[j + 1][i];
@@ -1260,7 +1390,10 @@ export function makeEnv() {
   const hedgeOn = (i, j, dir) => hash2(i, j, 20 + dir) < 0.86;   // 칸 (i,j) 의 아래(0)/왼쪽(1) 변에 산울타리
   const fieldAt = (x, z) => { const c = findCell(x, z); return c ? { type: fieldType(c.i, c.j), edge: c.edge } : null; };
   return {
+    morphology,
     riverIdx, roadIdx, roadLines, FS, FN, FOFF, gp, fieldType, findCell, hedgeOn, fieldAt,
+    riverPts, roads, lanes: M.lanes || LANES, farms: M.farms || FARMS, vc, bridge: M.bridge, overview: M.overview,
+    riverHw,
     roadEdge: (x, z) => roadIdx.edge(x, z), riverEdge: (x, z) => riverIdx.edge(x, z),
   };
 }
@@ -1335,16 +1468,20 @@ export function planVillage(seed, env, recipe = RECIPES.england) {
   const reserved = (x, z, pad) => RC.reserved(x, z, pad);
   const boxes = [];   // 이미 쓴 땅 (집 + 뒤뜰)
   for (const f of RC.fixedFoot || []) boxes.push(f);
-  const fitsHouse = (o) => obbRim(o).every(([x, z]) => env.roadEdge(x, z) > 0.8 && env.riverEdge(x, z) > RIVER_HW + 3 && !reserved(x, z, 0)) && !boxes.some((b) => obbOverlap(b, o, 1.2));
-  const fitsCroft = (o) => obbRim(o, 3).every(([x, z]) => env.roadEdge(x, z) > 0.4 && env.riverEdge(x, z) > RIVER_HW + 1.5 && !reserved(x, z, -1)) && !boxes.some((b) => obbOverlap(b, o, 0.4));
+  const useMorph = env && env.morphology && env.morphology !== 'england';
+  const riverHw = useMorph && env.riverHw ? env.riverHw : (RC.riverHw || RIVER_HW);
+  const fitsHouse = (o) => obbRim(o).every(([x, z]) => env.roadEdge(x, z) > 0.8 && env.riverEdge(x, z) > riverHw + 3 && !reserved(x, z, 0)) && !boxes.some((b) => obbOverlap(b, o, 1.2));
+  const fitsCroft = (o) => obbRim(o, 3).every(([x, z]) => env.roadEdge(x, z) > 0.4 && env.riverEdge(x, z) > riverHw + 1.5 && !reserved(x, z, -1)) && !boxes.some((b) => obbOverlap(b, o, 0.4));
   const houses = [], farms = [];
-  for (const f of FARMS) {
+  const farmList = useMorph && (env.farms || RC.farms) ? (env.farms || RC.farms) : FARMS;
+  for (const f of farmList) {
     const piece = take(RC.farmKind(f.kind)), s = 0.95 + R() * 0.1, [L, D] = DIMS[piece], rot = f.rot + Math.PI / 2 + (R() - 0.5) * 0.06;
     const foot = obb(f.x, f.z, rot, L * s / 2, D * s / 2);
     farms.push({ piece, x: f.x, z: f.z, rot, s, L: L * s, D: D * s, foot, croft: null, kind: f.kind }); boxes.push(foot);
   }
   const [gap0, gapR] = RC.gap, [set0, setR] = RC.setback;
-  LANES.forEach((lp, li) => {
+  const lanes = useMorph && (env.lanes || RC.lanes) ? (env.lanes || RC.lanes) : LANES;
+  lanes.forEach((lp, li) => {
     const pts = smoothLine(lp, 3), cum = polyCum(pts), total = cum[cum.length - 1];
     for (const side of [1, -1]) {
       let s = 2 + R() * 5, last = null;

@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>지역·시대별 마을 구조 다변화 기획안 — 한 영혼의 여정</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f17;
+  --panel: #161a26;
+  --panel2: #1e2436;
+  --gold: #e2b65e;
+  --gold-dim: #9e7d3b;
+  --gold-glow: rgba(226, 182, 94, 0.25);
+  --paper: #f4edd9;
+  --ink: #1b1c24;
+  --muted: #8b92a5;
+  --line: rgba(226, 182, 94, 0.25);
+  --serif: 'Noto Serif KR', serif;
+  --title-serif: 'Cinzel', 'Noto Serif KR', serif;
+  --sans: 'Noto Sans KR', system-ui, sans-serif;
+  --river: #3a7bd5;
+  --road: #c29a6b;
+  --house: #8d5b4c;
+  --fixed: #d4af37;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--paper);
+  font-family: var(--sans);
+  line-height: 1.6;
+  padding: 24px 16px 80px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+header {
+  text-align: center;
+  padding: 30px 16px 40px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 32px;
+}
+.badge {
+  display: inline-block;
+  font-family: var(--title-serif);
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  padding: 4px 14px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+  background: rgba(226, 182, 94, 0.08);
+}
+h1 {
+  font-family: var(--serif);
+  font-size: clamp(26px, 4vw, 36px);
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+h1 span { color: var(--gold); }
+.subtitle {
+  color: var(--muted);
+  font-size: 15px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* Nav Tabs */
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--paper);
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.tab-btn:hover { background: var(--panel2); border-color: var(--gold); }
+.tab-btn.active {
+  background: linear-gradient(135deg, #2b261a, #161a26);
+  border-color: var(--gold);
+  color: var(--gold);
+  font-weight: 700;
+  box-shadow: 0 4px 14px var(--gold-glow);
+}
+
+/* Main Layout: 2 Columns for interactive explorer */
+.explorer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin-bottom: 40px;
+}
+@media (max-width: 960px) {
+  .explorer-grid { grid-template-columns: 1fr; }
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+.card h2 {
+  font-family: var(--serif);
+  font-size: 20px;
+  color: var(--gold);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card h3 {
+  font-family: var(--serif);
+  font-size: 16px;
+  color: #fff;
+  margin: 18px 0 8px;
+}
+
+/* Selector buttons for the 5 archetypes */
+.archetype-pills {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.pill {
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: var(--panel2);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--paper);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+.pill:hover { border-color: var(--gold); }
+.pill.active {
+  background: var(--gold);
+  color: var(--ink);
+  font-weight: 700;
+  border-color: var(--gold);
+}
+
+/* Canvas map viewer */
+.canvas-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #090a0f;
+  border-radius: 10px;
+  border: 1px solid rgba(226,182,94,0.3);
+  overflow: hidden;
+}
+canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.canvas-legend {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-color { width: 12px; height: 12px; border-radius: 3px; }
+
+/* Detail breakdown table */
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  margin-top: 12px;
+}
+.detail-table th, .detail-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  text-align: left;
+}
+.detail-table th {
+  color: var(--gold);
+  font-weight: 600;
+  width: 25%;
+  background: rgba(226,182,94,0.04);
+}
+.detail-table td { color: #d0d4e0; }
+
+.highlight-box {
+  background: rgba(226, 182, 94, 0.08);
+  border-left: 3px solid var(--gold);
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+  margin: 14px 0;
+  font-size: 13.5px;
+}
+
+/* Before / After Section */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+@media (max-width: 768px) {
+  .compare-grid { grid-template-columns: 1fr; }
+}
+.compare-box {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+}
+.compare-box.before { border-color: #833; }
+.compare-box.after { border-color: #386; }
+.compare-title {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+}
+.compare-box.before .compare-title { color: #f77; }
+.compare-box.after .compare-title { color: #7f7; }
+
+/* Timeline roadmap */
+.roadmap-list {
+  list-style: none;
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+.roadmap-item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: var(--panel2);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13.5px;
+}
+.step-num {
+  background: var(--gold);
+  color: var(--ink);
+  font-weight: 700;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.cta-bar {
+  text-align: center;
+  margin-top: 40px;
+  padding: 24px;
+  background: var(--panel);
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+}
+.cta-bar p { font-size: 15px; margin-bottom: 14px; }
+.btn-primary {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--gold), #c99335);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 15px;
+  padding: 12px 28px;
+  border-radius: 8px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 18px var(--gold-glow);
+  transition: all 0.2s;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(226,182,94,0.4);
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="badge">SETTLEMENT MORPHOLOGY ARCHITECTURE</div>
+    <h1>지역 · 시대별 <span>마을 구조 다변화</span> 기획안</h1>
+    <p class="subtitle">
+      "어느 문화권, 어느 시대에 태어나도 똑같은 잉글랜드 S자 강과 언덕길에서 시작하던 한계를 넘어,<br>
+      각 문화권의 지형 사상과 시대상에 걸맞은 <strong>5대 고유 마을 골격(Structure)</strong>을 구축합니다."
+    </p>
+  </header>
+
+  <!-- Interactive Archetype Explorer -->
+  <div class="card">
+    <h2>🗺️ 5대 마을 구조 대화형 설계도 뷰어 (Interactive Morphology Viewer)</h2>
+    <p style="color:var(--muted); font-size:14px; margin-bottom:16px;">
+      아래 문화권/시대 버튼을 클릭하면, 수계(물), 도로망(길), 가옥 배치 군집, 핵심 랜드마크가 완전히 다르게 짜이는 설계도를 실시간 시뮬레이션으로 확인하실 수 있습니다.
+    </p>
+
+    <!-- Archetype Selector -->
+    <div class="archetype-pills" id="pills">
+      <button class="pill active" data-id="eastasia">🇰🇷 동아시아 (곡간 배산임수 집촌)</button>
+      <button class="pill" data-id="mudbrick">🏜️ 서아시아·이집트 (오아시스 중정 미로)</button>
+      <button class="pill" data-id="southasia">🇮🇳 남아시아 (가트 연못 방사형)</button>
+      <button class="pill" data-id="england">🏰 서유럽 (가로촌 & 공유지 녹지)</button>
+      <button class="pill" data-id="steppe">⛺ 초원 유목·선사 (원형 야영지)</button>
+    </div>
+
+    <div class="explorer-grid">
+      <!-- Left: Top-Down Canvas Blueprint -->
+      <div>
+        <div class="canvas-wrapper">
+          <canvas id="mapCanvas" width="600" height="600"></canvas>
+        </div>
+        <div class="canvas-legend">
+          <div class="legend-item"><div class="legend-color" style="background:#3a82ee"></div> 수계(강·실개천·연못)</div>
+          <div class="legend-item"><div class="legend-color" style="background:#d4a373"></div> 길(도로·골목길)</div>
+          <div class="legend-item"><div class="legend-color" style="background:#e06666"></div> 가옥(초가·기와·흙벽돌)</div>
+          <div class="legend-item"><div class="legend-color" style="background:#f1c232"></div> 랜드마크(사당·성당·모닥불)</div>
+          <div class="legend-item"><div class="legend-color" style="background:#45b97c"></div> 텃밭·마당·나무</div>
+        </div>
+      </div>
+
+      <!-- Right: Detailed Spec Breakdown -->
+      <div>
+        <h3 id="archTitle" style="font-size:20px; color:#fff; margin-top:0;">동아시아 (곡간 배산임수 집촌)</h3>
+        <p id="archSummary" style="color:var(--muted); font-size:14px; margin-top:4px;">
+          완만한 뒷산(북)을 등지고 앞쪽 실개천(남)을 바라보며, 마을 중앙 당산목을 축으로 굽이진 흙길 골목을 따라 초가와 기와집이 옹기종기 모여 있는 유기적 집촌 형태입니다.
+        </p>
+
+        <div class="highlight-box" id="archHighlight">
+          <strong>핵심 골격 차별점:</strong> 영국의 획일적 S자 도로 대신, <strong>중앙 당산목 신당을 중심으로 방사형 골목길</strong>이 뻗어나가며, 마을 앞 실개천에는 아치 다리 대신 <strong>정겨운 징검다리와 디딤돌</strong>이 놓입니다.
+        </div>
+
+        <table class="detail-table">
+          <tr>
+            <th>지형 & 수계</th>
+            <td id="specWater">마을 앞을 가로지르는 실개천, 징검다리, 계단식 다랑이논</td>
+          </tr>
+          <tr>
+            <th>도로망 (Roads)</th>
+            <td id="specRoads">당산목 중심 방사형 골목길 + 굽이진 돌담/흙담 샛길</td>
+          </tr>
+          <tr>
+            <th>가옥 배치</th>
+            <td id="specHouses">등고선을 따라 옹기종기 모인 군집, 남향 선호, 마당과 장독대</td>
+          </tr>
+          <tr>
+            <th>중심 랜드마크</th>
+            <td id="specLandmarks">마을 어귀 당산목(신당), 언덕 위 서당/절, 큰 기와집, 장터</td>
+          </tr>
+          <tr>
+            <th>카메라 시점</th>
+            <td id="specCamera">뒷산을 등지고 앞개울과 마을 전경을 품어 안는 정면 조망</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Before vs After Comparison -->
+  <div class="card" style="margin-top: 32px;">
+    <h2>⚖️ Before & After 구조 비교</h2>
+    <div class="compare-grid">
+      <div class="compare-box before">
+        <div class="compare-title">
+          <span>기존 (현재 상태)</span>
+          <span>단일 잉글랜드 모델</span>
+        </div>
+        <ul style="padding-left:18px; font-size:13.5px; color:#cdd; display:grid; gap:8px;">
+          <li><strong>지형/수계:</strong> 전 문화권·전 시대 동일한 잉글랜드 S자 강과 아치 석교 고정</li>
+          <li><strong>도로망:</strong> 동일한 7개 도로 및 4개 가옥 차선(Lanes) 공유</li>
+          <li><strong>랜드마크:</strong> 종교 건물이 무조건 오른쪽 언덕 (96, -64), 대장간 (40, 22), 우물 (10, -13) 고정</li>
+          <li><strong>카메라:</strong> 모든 생이 동일한 좌측 다리/물레방아 하향 앵글로 시작</li>
+          <li><strong>플레이어 체감:</strong> "건물 그래픽만 바뀌었을 뿐, 결국 맨날 똑같은 마을에서 시작한다"는 피로감 유발</li>
+        </ul>
+      </div>
+
+      <div class="compare-box after">
+        <div class="compare-title">
+          <span>개선 후 (다변화 모델)</span>
+          <span>5대 문화·시대별 고유 구조</span>
+        </div>
+        <ul style="padding-left:18px; font-size:13.5px; color:#dfd; display:grid; gap:8px;">
+          <li><strong>지형/수계:</strong> 실개천(동아시아), 오아시스 수로(흙벽돌), 거대 가트 연못(남아시아), 곡류강(유럽), 평원(유목) 5종 분기</li>
+          <li><strong>도로망:</strong> 배산임수 골목망, 미로 골목, 원형 호수 순환로, 가로촌, 도로 없는 열린 평원</li>
+          <li><strong>랜드마크:</strong> 당산목 중심, 돔 모스크 관문, 가트 계단, 교회 공유지, 중앙 모닥불 야영지</li>
+          <li><strong>카메라:</strong> 각 문화권의 지형미를 극대화하는 맞춤형 시작 앵글 자동 적용</li>
+          <li><strong>플레이어 체감:</strong> 다음 생으로 환생할 때마다 "완전히 새로운 세계, 새로운 삶의 터전에 태어났다"는 깊은 몰입감 부여</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Implementation Plan -->
+  <div class="card" style="margin-top: 32px;">
+    <h2>🛠️ 단계별 기술 구현 계획 (Implementation Roadmap)</h2>
+    <ul class="roadmap-list">
+      <li class="roadmap-item">
+        <div class="step-num">1</div>
+        <div>
+          <strong>마을 구조 프로필 분기 모듈화 (morphology.js)</strong><br>
+          <span style="color:var(--muted)">`stageOf(birth)`의 `kit`, `era`, `setting`을 기반으로 5대 구조 프로필(`valley_clustered`, `oasis_dense`, `temple_radial`, `linear_green`, `circular_camp`)을 판별하는 경량 규칙 모듈 구축.</span>
+        </div>
+      </li>
+      <li class="roadmap-item">
+        <div class="step-num">2</div>
+        <div>
+          <strong>지형 및 수계·도로 프로필 분기 (villageplan.js `makeEnv` 확장)</strong><br>
+          <span style="color:var(--muted)">기존 단일 고정 도로(`ROADS`, `RIVER_PTS`) 대신, 프로필별로 고유한 수계와 도로망, 가옥 배치 곡선을 생성하도록 확장. 연산 부하 방지를 위해 5종 프로필을 사전 캐싱(`SHARED.envs`)하여 렉 0 유지.</span>
+        </div>
+      </li>
+      <li class="roadmap-item">
+        <div class="step-num">3</div>
+        <div>
+          <strong>문화권 랜드마크 및 가옥 배치 규칙 특화 (planVillage 확장)</strong><br>
+          <span style="color:var(--muted)">동아시아 당산목 중심 골목, 흙벽돌 안뜰 밀집형, 남아시아 연못 둘레 배치, 유목민 원형 텐트 군집 등 문화권별 공간 문법에 맞춘 집 배치 로직 적용.</span>
+        </div>
+      </li>
+      <li class="roadmap-item">
+        <div class="step-num">4</div>
+        <div>
+          <strong>맞춤형 시작 카메라 앵글 연동 (realscene.js `VIEWS`)</strong><br>
+          <span style="color:var(--muted)">문화권 구조에 맞춰 첫인상이 가장 돋보이는 시작 카메라 시점(Overview)을 자동 전환. 기존 314개 전체 단위 테스트 100% 통과 유지 검증.</span>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="cta-bar">
+    <p>기획안과 대화형 설계도 뷰어를 검토해 주시고, 승인해 주시면 <strong>즉시 1단계부터 코드 적용</strong>에 착수하겠습니다.</p>
+    <button class="btn-primary" onclick="alert('기획안 검토 후 채팅창에 \'진행해\' 또는 의견을 주시면 즉시 적용을 시작하겠습니다!');">기획안 확인 완료</button>
+  </div>
+</div>
+
+<script>
+// Data for the 5 archetypes
+const ARCHETYPES = {
+  eastasia: {
+    title: "동아시아 (곡간 배산임수 집촌)",
+    summary: "완만한 뒷산(북)을 등지고 앞쪽 실개천(남)을 바라보며, 마을 중앙 당산목을 축으로 굽이진 흙길 골목을 따라 초가와 기와집이 옹기종기 모여 있는 유기적 집촌 형태입니다.",
+    highlight: "영국의 획일적 S자 도로 대신, <strong>중앙 당산목 신당을 중심으로 방사형 골목길</strong>이 뻗어나가며, 마을 앞 실개천에는 아치 다리 대신 <strong>정겨운 징검다리와 디딤돌</strong>이 놓입니다.",
+    water: "마을 앞을 가로지르는 실개천, 징검다리, 계단식 다랑이논",
+    roads: "당산목 중심 방사형 골목길 + 굽이진 돌담/흙담 샛길",
+    houses: "등고선을 따라 옹기종기 모인 군집, 남향 선호, 마당과 장독대",
+    landmarks: "마을 어귀 당산목(신당), 언덕 위 서당/절, 큰 기와집, 장터",
+    camera: "뒷산을 등지고 앞개울과 마을 전경을 품어 안는 정면 조망",
+    draw(ctx, w, h) {
+      // Background: Hills top, plains bottom
+      ctx.fillStyle = '#111612'; ctx.fillRect(0, 0, w, h);
+      // North Hills (뒷산)
+      ctx.fillStyle = '#1c281e';
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(w, 0); ctx.lineTo(w, h*0.25);
+      ctx.bezierCurveTo(w*0.7, h*0.2, w*0.3, h*0.3, 0, h*0.22);
+      ctx.fill();
+
+      // Front Creek (앞개울)
+      ctx.strokeStyle = '#3a82ee'; ctx.lineWidth = 14; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, h * 0.78);
+      ctx.bezierCurveTo(w * 0.35, h * 0.72, w * 0.65, h * 0.85, w, h * 0.75);
+      ctx.stroke();
+
+      // Stepping stones (징검다리)
+      ctx.fillStyle = '#9eabbb';
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath(); ctx.arc(w * 0.48 + i * 8, h * 0.77 + (i - 2) * 2, 3, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Center Dangsan tree (당산목 신목)
+      const cx = w * 0.5, cy = h * 0.48;
+      ctx.fillStyle = '#45b97c'; ctx.beginPath(); ctx.arc(cx, cy, 18, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fill();
+
+      // Organic Winding Alleys radiating from Dangsan Tree
+      ctx.strokeStyle = '#d4a373'; ctx.lineWidth = 6;
+      // Main path to stream
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.bezierCurveTo(cx - 20, cy + 50, cx - 10, h * 0.72, w * 0.48, h * 0.77); ctx.stroke();
+      // Path to temple
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.bezierCurveTo(cx + 40, cy - 30, w * 0.65, h * 0.3, w * 0.72, h * 0.22); ctx.stroke();
+      // Left cluster alley
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.bezierCurveTo(cx - 50, cy - 10, cx - 90, cy + 20, cx - 130, cy + 30); ctx.stroke();
+      // Right cluster alley
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.bezierCurveTo(cx + 60, cy + 10, cx + 110, cy + 40, cx + 140, cy + 60); ctx.stroke();
+
+      // Clustered houses with yards
+      const houses = [
+        [cx - 45, cy + 25, 0.2], [cx - 75, cy + 15, 0.1], [cx - 105, cy + 35, -0.3], [cx - 60, cy - 25, 0.4],
+        [cx + 45, cy + 30, -0.2], [cx + 80, cy + 25, 0.3], [cx + 115, cy + 55, 0.1], [cx + 50, cy - 15, -0.1],
+        [cx - 30, cy + 60, 0.0], [cx + 25, cy + 70, -0.2], [cx - 85, cy + 75, 0.3], [cx + 95, cy + 90, 0.1],
+        [w * 0.72, h * 0.22, 0.0], // Temple
+        [w * 0.3, h * 0.32, 0.1]   // Big Manor / Walled tile house
+      ];
+
+      houses.forEach(([hx, hy, rot], idx) => {
+        ctx.save();
+        ctx.translate(hx, hy);
+        ctx.rotate(rot);
+        if (idx === 12) {
+          // Temple
+          ctx.fillStyle = '#f1c232'; ctx.fillRect(-12, -10, 24, 20);
+          ctx.strokeStyle = '#ffd700'; ctx.strokeRect(-12, -10, 24, 20);
+        } else if (idx === 13) {
+          // Walled courtyard
+          ctx.fillStyle = '#6d5a47'; ctx.fillRect(-14, -12, 28, 24);
+          ctx.strokeStyle = '#d4af37'; ctx.strokeRect(-16, -14, 32, 28);
+        } else {
+          // Thatch house
+          ctx.fillStyle = '#8d5b4c'; ctx.fillRect(-7, -5, 14, 10);
+          ctx.fillStyle = '#3a5938'; ctx.beginPath(); ctx.arc(9, 0, 4, 0, Math.PI * 2); ctx.fill(); // Yard tree
+        }
+        ctx.restore();
+      });
+    }
+  },
+
+  mudbrick: {
+    title: "서아시아·이집트 (오아시스 중정 미로)",
+    summary: "사막 한가운데 오아시스 관개 수로를 끼고, 뜨거운 햇볕을 피하기 위해 흙벽돌 평지붕 집들이 안뜰(Courtyard)을 품은 채 미로처럼 벽을 맞대고 있는 고밀도 오아시스 촌락입니다.",
+    highlight: "영국의 넓은 녹지 대신, <strong>요새처럼 빽빽한 성벽과 아치 관문</strong>, <strong>중앙 돔 모스크</strong>, 미로형 수크(시장) 골목과 <strong>대추야자 숲</strong>이 장관을 이룹니다.",
+    water: "중앙 오아시스 샘물과 방사형 관개 수로(카나트)",
+    roads: "그늘을 만드는 좁고 굽이진 수크(시장) 미로 골목",
+    houses: "안뜰(Courtyard) 중심 평지붕 흙벽돌 주택 밀집 블록",
+    landmarks: "중앙 돔 모스크/첨탑, 마을 입구 아치 성문, 시장 바자르",
+    camera: "사막 지평선 위 대추야자 숲과 흙벽돌 평지붕들이 겹치는 구도",
+    draw(ctx, w, h) {
+      // Desert sand bg
+      ctx.fillStyle = '#1c160e'; ctx.fillRect(0, 0, w, h);
+
+      // Oasis Pool
+      const ox = w * 0.45, oy = h * 0.5;
+      ctx.fillStyle = '#2a6cb8'; ctx.beginPath(); ctx.ellipse(ox, oy, 40, 25, 0.2, 0, Math.PI * 2); ctx.fill();
+
+      // Irrigation channels
+      ctx.strokeStyle = '#3a82ee'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(ox + 35, oy); ctx.lineTo(w * 0.85, oy + 40); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ox - 35, oy); ctx.lineTo(w * 0.1, oy + 60); ctx.stroke();
+
+      // Palm trees around oasis
+      ctx.fillStyle = '#2e6b36';
+      for (let i = 0; i < 12; i++) {
+        const a = i * Math.PI / 6;
+        ctx.beginPath(); ctx.arc(ox + Math.cos(a) * 55, oy + Math.sin(a) * 35, 7, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Walled City Perimeter (성벽)
+      ctx.strokeStyle = '#8d7350'; ctx.lineWidth = 8;
+      ctx.strokeRect(w * 0.2, h * 0.15, w * 0.62, h * 0.68);
+
+      // Main Gate
+      ctx.fillStyle = '#d4af37'; ctx.fillRect(w * 0.2 - 6, h * 0.45, 12, 30);
+
+      // Mosque with Dome
+      ctx.fillStyle = '#d4af37'; ctx.beginPath(); ctx.arc(w * 0.62, h * 0.35, 16, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(w * 0.62, h * 0.35, 8, 0, Math.PI * 2); ctx.fill();
+
+      // Dense block maze houses
+      ctx.fillStyle = '#a6855b';
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 5; c++) {
+          const bx = w * 0.26 + c * 40, by = h * 0.22 + r * 38;
+          if (Math.hypot(bx - ox, by - oy) < 65 || Math.hypot(bx - w * 0.62, by - h * 0.35) < 35) continue;
+          ctx.fillRect(bx, by, 32, 28);
+          ctx.fillStyle = '#1c160e'; ctx.fillRect(bx + 10, by + 8, 12, 12); // Courtyard hole
+          ctx.fillStyle = '#a6855b';
+        }
+      }
+    }
+  },
+
+  southasia: {
+    title: "남아시아 (가트 연못 방사형 촌락)",
+    summary: "신성한 대형 계단식 목욕 연못(Ghat/Tank)과 거대한 반얀나무 신당을 중심으로, 개방형 평상과 아궁이를 갖춘 주거지가 부채꼴로 둘러앉은 인도/벵골 전통 수계 촌락입니다.",
+    highlight: "강가의 <strong>계단식 목욕터(Ghat)</strong>와 연못에 비치는 <strong>힌두 만디르(사원)</strong>, 그리고 <strong>반얀나무(보리수) 중심의 원형 순환로</strong>가 영적인 중심을 형성합니다.",
+    water: "거대한 방형 계단식 연못(Temple Tank/Ghat)과 강변",
+    roads: "연못 둘레 순환로 및 사원 정면 대로",
+    houses: "개방형 평상(Charpai)과 아궁이(Chulha)가 마당에 노출된 가옥",
+    landmarks: "만디르(돌 사원), 가트 계단, 거대 반얀 신목, 시장 바자르",
+    camera: "신성한 연못에 비친 사원과 반얀나무 중심의 원경",
+    draw(ctx, w, h) {
+      ctx.fillStyle = '#151713'; ctx.fillRect(0, 0, w, h);
+
+      // Large Stepped Temple Tank (Ghat)
+      const gx = w * 0.45, gy = h * 0.45;
+      ctx.fillStyle = '#1e3a5f'; ctx.fillRect(gx - 60, gy - 40, 120, 80);
+      ctx.strokeStyle = '#c2a649'; ctx.lineWidth = 4; ctx.strokeRect(gx - 60, gy - 40, 120, 80);
+      // Inner steps
+      ctx.strokeStyle = '#75632d'; ctx.lineWidth = 2; ctx.strokeRect(gx - 50, gy - 30, 100, 60);
+
+      // Hindu Mandir Temple (North side of Ghat)
+      ctx.fillStyle = '#f1c232'; ctx.fillRect(gx - 18, gy - 85, 36, 32);
+      ctx.fillStyle = '#ff9900'; ctx.beginPath(); ctx.arc(gx, gy - 70, 10, 0, Math.PI * 2); ctx.fill();
+
+      // Sacred Banyan Tree
+      ctx.fillStyle = '#2d6a4f'; ctx.beginPath(); ctx.arc(gx + 95, gy + 10, 24, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(gx + 95, gy + 10, 5, 0, Math.PI * 2); ctx.fill();
+
+      // Ring road around the tank
+      ctx.strokeStyle = '#d4a373'; ctx.lineWidth = 7;
+      ctx.beginPath(); ctx.ellipse(gx, gy, 85, 65, 0, 0, Math.PI * 2); ctx.stroke();
+
+      // Houses along the radial paths
+      ctx.fillStyle = '#8d5b4c';
+      const spots = [
+        [gx - 110, gy - 50], [gx - 115, gy], [gx - 110, gy + 50],
+        [gx + 120, gy - 50], [gx + 130, gy + 60],
+        [gx - 50, gy + 90], [gx, gy + 95], [gx + 50, gy + 90],
+        [gx - 70, gy - 85], [gx + 60, gy - 85]
+      ];
+      spots.forEach(([hx, hy]) => {
+        ctx.fillRect(hx - 8, hy - 6, 16, 12);
+        ctx.fillStyle = '#e2b65e'; ctx.fillRect(hx + 10, hy - 2, 4, 4); // Charpai bed
+        ctx.fillStyle = '#8d5b4c';
+      });
+    }
+  },
+
+  england: {
+    title: "서유럽 (가로촌 & 공유지 녹지)",
+    summary: "S자 곡류 강과 석조 아치 다리, 물레방아를 건너 언덕 위 고딕 교회로 이어지는 주 가로(Main Street) 양옆으로 가옥이 늘어선 중세 잉글랜드 장원형 가로촌입니다.",
+    highlight: "클래식한 <strong>곡류 강과 물레방앗간</strong>, 긴 <strong>주 가로(Lanes)</strong>를 따라 늘어선 가옥, 그리고 <strong>교회와 대장간, 잔디 공유지(Village Green)</strong>의 조화입니다.",
+    water: "좌측 S자 굽이치는 곡류 강, 아치 석교, 물레방아",
+    roads: "다리에서 언덕 위 교회로 올라가는 S자 주 도로망",
+    houses: "도로를 따라 길게 늘어선 목골조/석조 가옥과 긴 뒤뜰(Croft)",
+    landmarks: "언덕 위 고딕 교회 및 묘지, 대장간, 물레방아, 장터 잔디밭",
+    camera: "좌측 하단 아치 다리에서 시작하여 중앙 언덕 마을을 조망하는 구도",
+    draw(ctx, w, h) {
+      ctx.fillStyle = '#141712'; ctx.fillRect(0, 0, w, h);
+
+      // S-curve River on left
+      ctx.strokeStyle = '#3a82ee'; ctx.lineWidth = 26; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(w * 0.1, 0);
+      ctx.bezierCurveTo(w * 0.25, h * 0.3, w * 0.05, h * 0.7, w * 0.35, h);
+      ctx.stroke();
+
+      // Stone Bridge
+      ctx.fillStyle = '#8a95a5'; ctx.fillRect(w * 0.12, h * 0.42, 34, 12);
+
+      // Watermill
+      ctx.fillStyle = '#5c4033'; ctx.fillRect(w * 0.08, h * 0.32, 22, 16);
+
+      // Main Road from bridge to Church hill
+      ctx.strokeStyle = '#c29a6b'; ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.2, h * 0.43);
+      ctx.bezierCurveTo(w * 0.4, h * 0.45, w * 0.45, h * 0.35, w * 0.75, h * 0.25);
+      ctx.stroke();
+
+      // Village Green (공유지 잔디밭)
+      ctx.fillStyle = '#2f5233'; ctx.beginPath(); ctx.arc(w * 0.52, h * 0.38, 30, 0, Math.PI * 2); ctx.fill();
+
+      // Church on right hill
+      ctx.fillStyle = '#d4af37'; ctx.fillRect(w * 0.75, h * 0.2, 30, 20);
+      ctx.fillStyle = '#fff'; ctx.fillRect(w * 0.72, h * 0.18, 10, 24); // Tower
+
+      // Smithy & Pasture
+      ctx.fillStyle = '#8d5b4c'; ctx.fillRect(w * 0.55, h * 0.58, 20, 16);
+      ctx.fillStyle = '#3a633f'; ctx.fillRect(w * 0.65, h * 0.55, 60, 45); // Pasture
+
+      // Houses along the road
+      ctx.fillStyle = '#9e6d55';
+      const houses = [
+        [w * 0.3, h * 0.35], [w * 0.35, h * 0.32], [w * 0.4, h * 0.28],
+        [w * 0.32, h * 0.52], [w * 0.42, h * 0.52], [w * 0.62, h * 0.3], [w * 0.68, h * 0.28]
+      ];
+      houses.forEach(([hx, hy]) => {
+        ctx.fillRect(hx - 8, hy - 6, 16, 12);
+      });
+    }
+  },
+
+  steppe: {
+    title: "초원 유목 · 선사 (원형 야영지)",
+    summary: "포장 도로나 석조 건축 없이, 광활한 대초원 한가운데에 거대한 모닥불(Hearth)과 가축 우리를 중심으로 유르트/천막들이 원형이나 부채꼴로 둘러앉은 유목 야영지(Kuren)입니다.",
+    highlight: "<strong>인위적인 도로가 없는 완전 개방형 지형</strong>, 중앙의 <strong>거대 모닥불과 가축 떼</strong>, 그리고 원형으로 둘러쳐진 <strong>유르트/게르 텐트 군집</strong>의 야성미입니다.",
+    water: "초원을 유유히 가로지르는 자연 실개천 (다리 없음)",
+    roads: "지정된 도로 없음 (자연스러운 흙길 발자국)",
+    houses: "원형 유르트(Yurt/Ger) 및 가죽 텐트 군집",
+    landmarks: "중앙 대형 모닥불(Camp Hearth), 말/가축 목책 우리",
+    camera: "사방이 탁 트인 초원 지평선과 모닥불 연기를 축으로 한 파노라마",
+    draw(ctx, w, h) {
+      // Steppe plain
+      ctx.fillStyle = '#1c2117'; ctx.fillRect(0, 0, w, h);
+
+      // Meandering meandering creek
+      ctx.strokeStyle = '#3a82ee'; ctx.lineWidth = 12; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(w * 0.05, 0);
+      ctx.bezierCurveTo(w * 0.4, h * 0.15, w * 0.1, h * 0.85, w * 0.85, h);
+      ctx.stroke();
+
+      // Center Campfire
+      const cx = w * 0.52, cy = h * 0.5;
+      ctx.fillStyle = '#ff4500'; ctx.beginPath(); ctx.arc(cx, cy, 14, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI * 2); ctx.fill();
+
+      // Horse / Cattle Corral (목책 우리)
+      ctx.strokeStyle = '#8d7350'; ctx.lineWidth = 4;
+      ctx.strokeRect(cx + 45, cy - 25, 50, 45);
+
+      // Circular Yurts around campfire
+      ctx.fillStyle = '#f0e6d2'; // White felt yurts
+      ctx.strokeStyle = '#b89f80'; ctx.lineWidth = 2;
+      const count = 10;
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2;
+        const rad = 75 + (i % 2) * 15;
+        const yx = cx + Math.cos(a) * rad, yy = cy + Math.sin(a) * rad;
+        ctx.beginPath(); ctx.arc(yx, yy, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+    }
+  }
+};
+
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+
+function updateView(id) {
+  const data = ARCHETYPES[id];
+  if (!data) return;
+
+  document.getElementById('archTitle').textContent = data.title;
+  document.getElementById('archSummary').textContent = data.summary;
+  document.getElementById('archHighlight').innerHTML = '<strong>핵심 골격 차별점:</strong> ' + data.highlight;
+  document.getElementById('specWater').textContent = data.water;
+  document.getElementById('specRoads').textContent = data.roads;
+  document.getElementById('specHouses').textContent = data.houses;
+  document.getElementById('specLandmarks').textContent = data.landmarks;
+  document.getElementById('specCamera').textContent = data.camera;
+
+  data.draw(ctx, canvas.width, canvas.height);
+}
+
+// Initial draw
+updateView('eastasia');
+
+// Event listener for pills
+document.getElementById('pills').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pill');
+  if (!btn) return;
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  updateView(btn.dataset.id);
+});
+</script>
+
+</body>
+</html>
