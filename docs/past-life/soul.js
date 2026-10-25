@@ -86,6 +86,8 @@ export function makeStore(ls) {
   return {
     loadSoul, saveSoul: (s) => set('pl.soul.v1', s),
     loadDex, saveDex: (d) => set('pl.dex.v1', d),
+    loadDynasty: () => get('pl.dynasty.v1', null), saveDynasty: (d) => set('pl.dynasty.v1', d),
+    loadDynastyDex: () => get('pl.dynasty.dex', []), saveDynastyDex: (list) => set('pl.dynasty.dex', list),
     loadLang: () => get('pl.lang', null), saveLang: (l) => set('pl.lang', l),
     loadSound: () => get('pl.sound', true), saveSound: (on) => set('pl.sound', on),
     // 설정 (처음 하는 사람을 위한 다듬기): 해가 흐르는 기본 빠르기 · 화질(realscene.js 와 같은 열쇠 pl.quality) · 처음 안내를 봤는가

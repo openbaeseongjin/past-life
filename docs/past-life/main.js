@@ -1,4 +1,5 @@
 import { applyHeirloom } from './heirlooms.js';
+import { createDynasty, prepareSuccessor, applyDynastyPerks } from './dynasty.js';
 // 연결 (설계 12장): 시작 → 탄생 장면 → 출생 기록 → 해가 저절로 흐르는 한 생 → 마지막 해 → 사망 기록 → 다음 생 / 족보
 // ?seed=문자열: 그 시드로 연습 한 판 (저장 안 함) · ?auto=1: 단추·결정을 저절로 · ?fast=1: 기다림 없음
 import { phaseOf } from './phase.js';
@@ -164,6 +165,18 @@ async function playLife(soul) {
   if (chosenHeirloom) {
     applyHeirloom(life, chosenHeirloom, { buriedStash: prev && prev.buriedStash });
   }
+  if (birth.dynasty) {
+    applyDynastyPerks(life, birth.dynasty);
+    life.journal.push({
+      age: 0,
+      year: birth.year,
+      kind: 'dynasty',
+      text: {
+        ko: `[가문 계승] ${birth.dynasty.name.ko} ${birth.dynasty.gen}대 가주로서 선대의 가업과 유산 ${birth.wealth}냥을 물려받고 가문의 대를 잇습니다.`,
+        en: `[Dynasty Succession] Inherited the trade and ${birth.wealth} wealth as head of generation ${birth.dynasty.gen} of ${birth.dynasty.name.en}.`,
+      },
+    });
+  }
   const peers = makePeers(birth);
   window.__pl.life = life; window.__pl.soul = soul;
   try { if (village && village.preload) village.preload(birth); } catch (e) {}
@@ -243,9 +256,33 @@ async function playLife(soul) {
   if (soul) { finishLife(soul, life, { thumb, finalWealth: Math.round(life.stats.wealth), karmicEndowment: !!(life.flags && life.flags.karmic_endowment), buriedStash: !!(life.flags && life.flags.buried_stash), beads: encodeBeads(beadsOf(life)), memories, lines: life.linesSeen.slice() }); store.saveSoul(soul); store.saveDex(addDex(store.loadDex(), life)); }
   window.__pl.done = (window.__pl.done || 0) + 1;
   for (;;) {
-    const r = await ui.deathRecord({ life, sum, soul, peers });
+    const r = await ui.deathRecord({ life, sum, soul, peers, dynasty: store.loadDynasty() });
     if (soul && r.note) { soul.lives[soul.lives.length - 1].note = r.note; store.saveSoul(soul); }
     if (r.act === 'share') { await ui.share(life, soul, thumb); continue; }
+    if (r.act === 'dynastyTree') {
+      await ui.dynastyScreen({ dynasty: store.loadDynasty(), dex: store.loadDynastyDex() });
+      continue;
+    }
+    if (r.act === 'dynasty') {
+      let curDyn = store.loadDynasty();
+      if (!curDyn) curDyn = createDynasty(life);
+      const succ = prepareSuccessor({ parentLife: life, dynasty: curDyn });
+      store.saveDynasty(succ.dynasty);
+      if (soul) {
+        soul.next = succ.birth;
+        store.saveSoul(soul);
+      }
+      return 'next';
+    }
+    if (r.act === 'next') {
+      const curDyn = store.loadDynasty();
+      if (curDyn) {
+        const dex = store.loadDynastyDex() || [];
+        if (!dex.some((d) => d.id === curDyn.id)) dex.push(curDyn);
+        store.saveDynastyDex(dex);
+        store.saveDynasty(null);
+      }
+    }
     return r.act;
   }
 }
@@ -271,6 +308,7 @@ async function main() {
       onSettings: openSettings,
     });
     if (act === 'dex') { await ui.dex(store.loadDex()); continue; }
+    if (act === 'dynasty') { await ui.dynastyScreen({ dynasty: store.loadDynasty(), dex: store.loadDynastyDex() }); continue; }
     if (act === 'lineage') { if ((await ui.lineage(soul)) === 'newsoul') store.saveSoul(newSoul()); continue; }
     if (act === 'newsoul' || !soul || soul.ended) { soul = newSoul(); store.saveSoul(soul); }
     let next = await playLife(soul);
