@@ -38,6 +38,7 @@ import { planPeople, peopleSeed, PEOPLE_DEFAULT, paletteOf, dressVariant } from 
 import { createPeople, touchPeople, sweepPeople, peopleCacheSize, preloadPeople } from './realpeople.js';
 import { stageOf, stageSeed, builtKit, sceneKitOf, LAND_LOOK, morphologyOf } from './lands.js';
 import { cardFocusOf, cardWorkSpotOf } from './cardscene.js';
+import { createWeather, cardWeatherOf, seasonalWeatherOf } from './weather.js';
 import { t as tr } from './i18n.js';
 
 const EZTREE = '@dgreenheck/ez-tree';   // importmap 이름 (look-real.html·index.html: ez-tree 1.1.0 build/ez-tree.es.js)
@@ -323,6 +324,15 @@ function canvasTex(w, h, draw, srgb = true) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
   const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t;
 }
+let sharedGlow = null;
+function glowTex() {
+  if (!sharedGlow) sharedGlow = canvasTex(128, 128, (g, w, h) => {
+    const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.22, 'rgba(255,255,255,.55)'); gr.addColorStop(0.55, 'rgba(255,255,255,.14)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  });
+  return sharedGlow;
+}
 function macroNoiseTex() {   // 지형 큰 얼룩용 (반복 숨김), RGBA 각각 다른 잡음
   const N = 256, d = new Uint8Array(N * N * 4);
   for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
@@ -423,7 +433,10 @@ function leafMaterial(map, tint) {
               float ph = 0.0;
             #endif
             float sw = clamp(position.y / 12.0, 0.0, 1.0);
-            transformed += vec3(sin(uTime * 1.1 + ph + position.y * 0.4), 0.0, cos(uTime * 0.9 + ph + position.x * 0.4)) * 0.07 * sw;`)
+            float gust = sin(uTime * 0.45 + ph * 0.5) * 0.5 + 0.5;
+            transformed += vec3(sin(uTime * 1.3 + ph + position.y * 0.3) * (0.08 + 0.06 * gust),
+                                sin(uTime * 1.7 + ph) * 0.02 * sw,
+                                cos(uTime * 1.0 + ph + position.x * 0.3) * (0.08 + 0.06 * gust)) * sw;`)
           .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvLW = (modelMatrix * vec4(transformed,1.0)).xyz;');
         sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', THREE.ShaderChunk.normal_fragment_begin.replace('normal *= faceDirection;', ''))
           .replace('#include <common>', '#include <common>\nuniform vec3 uSunCol; uniform vec3 uLeafSun; varying vec3 vLW;')
@@ -544,6 +557,67 @@ function treeKit(renderer, landKey, P) {
 }
 
 // ───────────────────────── 본체 ─────────────────────────
+// ── 반딧불이 (여름밤·황혼 강가와 마을 수풀을 수놓는 은은한 불빛) ──
+function createFireflies(THREE, scene, groundAt) {
+  const COUNT = 36;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(COUNT * 3);
+  const phases = new Float32Array(COUNT * 3);
+  const basePos = [];
+  const r = rng(777);
+  for (let i = 0; i < COUNT; i++) {
+    const a = r() * Math.PI * 2;
+    const rad = 14 + r() * 52;
+    const x = VC.x - 20 + Math.cos(a) * rad;
+    const z = VC.z + 25 + Math.sin(a) * rad;
+    const gy = groundAt(x, z);
+    basePos.push([x, gy, z]);
+    pos[i * 3] = x; pos[i * 3 + 1] = gy + 0.8; pos[i * 3 + 2] = z;
+    phases[i * 3] = r() * Math.PI * 2;
+    phases[i * 3 + 1] = 1.8 + r() * 2.2;
+    phases[i * 3 + 2] = r() * Math.PI * 2;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({
+    map: glowTex(),
+    color: new THREE.Color(0.75, 1.0, 0.3),
+    size: 0.85,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true,
+  });
+  const points = new THREE.Points(geo, mat);
+  points.renderOrder = 4;
+  scene.add(points);
+  function step(dt, t, dusk) {
+    if (dusk < 0.1) {
+      points.visible = false;
+      mat.opacity = 0;
+      return;
+    }
+    points.visible = true;
+    mat.opacity = dusk * 0.85;
+    const pAttr = geo.attributes.position;
+    for (let i = 0; i < COUNT; i++) {
+      const bp = basePos[i];
+      const ph = phases[i * 3];
+      const x = bp[0] + Math.sin(t * 0.4 + ph) * 1.3;
+      const y = bp[1] + 0.5 + Math.sin(t * 1.6 + ph * 1.5) * 0.45;
+      const z = bp[2] + Math.cos(t * 0.35 + ph) * 1.3;
+      pAttr.setXYZ(i, x, y, z);
+    }
+    pAttr.needsUpdate = true;
+  }
+  function dispose() {
+    scene.remove(points);
+    geo.dispose();
+    mat.dispose();
+  }
+  return { points, step, dispose };
+}
+
 export function createRealScene(canvas, opts = {}) {
   patchFog();
   // 세트 묶음 (kitdata.js KIT_SETS) + 마을 요리법 (villageplan.js RECIPES): 건물·소품·나무·사람 glb, 크기 표, 정한 자리
@@ -779,6 +853,7 @@ export function createRealScene(canvas, opts = {}) {
     uLand: { value: new THREE.Vector3(LD.dry, LD.bare, RC.camp ? 0 : LD.paddy) }, uSoilTint: { value: new THREE.Vector3(...LD.soil) },
     // 동아시아: 비탈의 논을 등고선 두렁(층 높이 uTerrace m)으로 갈라 계단 논으로 · 농사 전 야영은 밭·논을 풀밭으로 (uCrops 0)
     uTerrace: { value: RC.terrace || 0 }, uCrops: { value: RC.camp ? 0 : 1 },
+    uTime: { value: 0 },
   };
   terrainMat.onBeforeCompile = ((prev) => (sh, r) => {
     prev(sh, r); Object.assign(sh.uniforms, TU);
@@ -787,7 +862,7 @@ export function createRealScene(canvas, opts = {}) {
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
       varying vec3 vWP;
       uniform sampler2D tGrass, tGrassN, tSoil, tSoilN, tWheat, tPath, tPathN, tRiver, tMacro, tSplatN, tInfoN, tSplatF, tInfoF;
-      uniform vec4 uRectN, uRectF; uniform vec3 uGrassTint, uWheatTint, uHedge, uLand, uSoilTint; uniform float uWater, uTerrace, uCrops;
+      uniform vec4 uRectN, uRectF; uniform vec3 uGrassTint, uWheatTint, uHedge, uLand, uSoilTint; uniform float uWater, uTerrace, uCrops, uTime;
       vec4 gSplat; vec4 gInfo; float gWet; float gPaddy;
       void groundSample(vec2 wp) {
         vec2 nu = (wp - uRectN.xy) / uRectN.z, fu = (wp - uRectF.xy) / uRectF.z;
@@ -830,6 +905,9 @@ export function createRealScene(canvas, opts = {}) {
       vec3 soil = texture2D(tSoil, wp / 3.5).rgb * vec3(1.05, 0.92, 0.82) * uSoilTint * mix(1.0, 0.72 + 0.4 * furrow, rowFade);
       vec3 wheat = texture2D(tWheat, wp / 3.0).rgb * uWheatTint * (0.86 + 0.28 * mac2.g);
       wheat *= mix(1.0, 0.86 + 0.2 * (0.5 + 0.5 * sin(rowc * 6.2832 / 0.35)), rowFade * 0.6);
+      float wWave = sin(dot(wp, vec2(0.28, 0.18)) - uTime * 2.2) * 0.5 + 0.5;
+      float wGust = sin(dot(wp, vec2(0.12, -0.08)) - uTime * 1.1) * 0.5 + 0.5;
+      wheat *= 1.0 + (wWave * 0.65 + wGust * 0.35) * 0.14 * (0.4 + 0.6 * rowFade);
       // 논 (uLand.z): 밀밭 자리는 다 자란 벼(물이 조금 비침), 갈아엎은 밭 자리는 물 위에 줄지어 꽂은 모 (물을 댄 논). 물은 거칠기를 낮춰 하늘을 비춘다
       gPaddy = 0.0;
       if (uLand.z > 0.0) {
@@ -1075,7 +1153,12 @@ export function createRealScene(canvas, opts = {}) {
   const hedgeMat = fogify(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }), 'hedge');
   hedgeMat.onBeforeCompile = ((prev) => (sh, r) => {
     prev(sh, r);
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vHW;').replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvHW = (modelMatrix * vec4(transformed,1.0)).xyz;');
+    sh.uniforms.uTime = TREEU.uTime;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uTime;\nvarying vec3 vHW;')
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        float sway = sin(uTime * 1.5 + position.x * 0.25 + position.z * 0.35) * clamp(position.y / 2.2, 0.0, 1.0) * 0.06;
+        transformed.x += sway * 0.7; transformed.z += sway * 0.5;`)
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvHW = (modelMatrix * vec4(transformed,1.0)).xyz;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
       varying vec3 vHW;
       float hh(vec3 p){ return fract(sin(dot(p, vec3(127.1,311.7,74.7))) * 43758.5453); }
@@ -1160,7 +1243,11 @@ export function createRealScene(canvas, opts = {}) {
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uTime;')
         .replace('#include <begin_vertex>', `#include <begin_vertex>
           float ph = instanceMatrix[3].x * 0.37 + instanceMatrix[3].z * 0.23;
-          transformed.x += sin(uTime * 1.7 + ph) * 0.08 * uv.y; transformed.z += cos(uTime * 1.3 + ph) * 0.06 * uv.y;`);
+          float wave = sin(dot(instanceMatrix[3].xz, vec2(0.24, 0.16)) - uTime * 2.2);
+          float gust = sin(uTime * 0.55 + ph * 0.3) * 0.5 + 0.5;
+          float lean = (0.07 + 0.07 * gust + 0.05 * wave) * uv.y;
+          transformed.x += (sin(uTime * 1.8 + ph) * 0.4 + 0.5 + wave * 0.5) * lean;
+          transformed.z += (cos(uTime * 1.4 + ph) * 0.4 + 0.3 + wave * 0.4) * lean;`);
       sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', THREE.ShaderChunk.normal_fragment_begin.replace('normal *= faceDirection;', ''));
     })(mat.onBeforeCompile);
     const isNormal = quality === 'normal';
@@ -1227,7 +1314,7 @@ export function createRealScene(canvas, opts = {}) {
     }
     reeds.count = rn; reeds.receiveShadow = true; reeds.layers.set(1); scene.add(reeds);
     disposables.push(geo, mat);
-    updaters.push((dt, t) => { GU.uTime.value = t; });
+    updaters.push((dt, t) => { GU.uTime.value = t; TU.uTime.value = t; });
     return { count: n, flowers: fn };
   }
   // 풀포기(16만 포기 자리 고르기, 0.5초 남짓)는 다음 일거리로 미룬다: 장면 짓기의 한 덩어리 멈춤을 줄인다 (ready 첫머리)
@@ -1250,6 +1337,15 @@ export function createRealScene(canvas, opts = {}) {
       s.material.opacity = 0.16 * Math.sin(a * Math.PI) * (1 - a * 0.5);
     }
   });
+
+  // ── 동적 날씨 파티클 (Dynamic Weather System) ──
+  const weatherSys = createWeather(THREE, scene, camera, { fogify });
+  disposables.push({ dispose: () => weatherSys.dispose() });
+  updaters.push((dt, t) => { weatherSys.step(dt, t, camera); });
+  // ── 반딧불이 (여름밤·황혼 강가와 마을 수풀을 수놓는 은은한 불빛) ──
+  const fireflies = createFireflies(THREE, scene, groundAt);
+  disposables.push({ dispose: () => fireflies.dispose() });
+  updaters.push((dt, t) => { fireflies.step(dt, t, state.dusk ?? 0); });
 
   // ── 나무 (ez-tree, MIT): 종 7가지(참나무 둘·물푸레·버드나무·자작·산사·사과) + 덤불. 가까운 것은 실제 메시 인스턴스(크기·색·기울기 변주),
   //    먼 것은 종마다 8방향에서 구운 빌보드(색 + 나무 좌표 노멀 → 해 방향으로 다시 비춘다) ──
@@ -1450,9 +1546,9 @@ export function createRealScene(canvas, opts = {}) {
     const m = src.clone(); matClones.set(src, m);   // 텍스처는 원본과 함께 쓴다 (재질 dispose 는 텍스처를 지우지 않는다)
     const t = KIT_TINT[m.name]; if (t) m.color.multiply(new THREE.Color(...t));
     for (const tx of [m.map, m.normalMap, m.aoMap]) if (tx) tx.anisotropy = aniso;
-    if (m.name === 'glass') { m.emissive.setRGB(1.0, 0.55, 0.22); m.emissiveIntensity = 0; glowMats.push(m); }
-    if (m.name === 'coals') { m.emissive.setRGB(1.0, 0.36, 0.08); coalMats.push(m); }
-    if (m.name === 'paper') { m.emissive.setRGB(1.0, 0.7, 0.4); m.emissiveIntensity = 0; paperMats.push(m); }   // 창호지·쇼지: 밤에 안쪽 불빛이 은은히 비친다
+    if (/glass|window|lantern|lamp/i.test(m.name)) { m.emissive.setRGB(1.0, 0.65, 0.28); m.emissiveIntensity = 0; glowMats.push(m); }
+    if (/coals|hearth|fire/i.test(m.name)) { m.emissive.setRGB(1.0, 0.36, 0.08); coalMats.push(m); }
+    if (/paper|shoji|screen/i.test(m.name)) { m.emissive.setRGB(1.0, 0.72, 0.4); m.emissiveIntensity = 0; paperMats.push(m); }   // 창호지·쇼지: 밤에 안쪽 불빛이 은은히 비친다
     fogify(m);
     const prev = m.onBeforeCompile;
     m.onBeforeCompile = (sh, r) => {
@@ -1465,9 +1561,10 @@ export function createRealScene(canvas, opts = {}) {
     return m;
   }
   function applyGlow() {
-    for (const m of glowMats) m.emissiveIntensity = 2.2 * (state.dusk ?? 0);
-    for (const m of coalMats) m.emissiveIntensity = 6 + 10 * (state.dusk ?? 0);
-    for (const m of paperMats) m.emissiveIntensity = 0.55 * (state.dusk ?? 0);
+    const d = state.dusk ?? 0;
+    for (const m of glowMats) m.emissiveIntensity = 2.8 * d;
+    for (const m of coalMats) m.emissiveIntensity = 8 + 14 * d;
+    for (const m of paperMats) m.emissiveIntensity = 1.35 * d;
   }
   // 합친 메시를 몇 덩어리로 나눠 화면 밖 덩어리는 그리지 않게 한다: 마을 안 네 쪽 + 먼 농가
   const chunkOf = (pl) => (Math.hypot(pl.x - VC.x, pl.z - VC.z) > 170 ? 'far' : (pl.x > 20 ? 'e' : 'w') + (pl.z > -40 ? 's' : 'n'));
@@ -1617,9 +1714,9 @@ export function createRealScene(canvas, opts = {}) {
   const grade = new ShaderPass({
     uniforms: { tDiffuse: { value: null }, uVig: { value: 0.3 }, uSat: { value: 1.16 }, uWarm: { value: new THREE.Vector3(1.04, 1.0, 0.92) }, uLift: { value: 0.01 },
       uCurve: { value: 0.22 }, uLo: { value: new THREE.Vector3(1.03, 0.98, 0.93) }, uHi: { value: new THREE.Vector3(1.04, 1.0, 0.9) },
-      uSunUV: { value: new THREE.Vector2(0.5, 2) }, uSunGlow: { value: 0 }, uSunCol: { value: new THREE.Color(1, 0.7, 0.4) }, uAspect: { value: 16 / 9 } },
+      uSunUV: { value: new THREE.Vector2(0.5, 2) }, uSunGlow: { value: 0 }, uSunCol: { value: new THREE.Color(1, 0.7, 0.4) }, uAspect: { value: 16 / 9 }, uGrain: { value: 0.02 }, uTime: { value: 0 } },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
-    fragmentShader: `uniform sampler2D tDiffuse; uniform float uVig, uSat, uLift, uCurve, uSunGlow, uAspect; uniform vec3 uWarm, uLo, uHi, uSunCol; uniform vec2 uSunUV; varying vec2 vUv;
+    fragmentShader: `uniform sampler2D tDiffuse; uniform float uVig, uSat, uLift, uCurve, uSunGlow, uAspect, uGrain, uTime; uniform vec3 uWarm, uLo, uHi, uSunCol; uniform vec2 uSunUV; varying vec2 vUv;
       void main(){ vec4 c = texture2D(tDiffuse, vUv); vec3 col = c.rgb;
         const vec3 LW = vec3(0.2126, 0.7152, 0.0722);
         float l = dot(col, LW); col = mix(vec3(l), col, uSat);
@@ -1630,6 +1727,8 @@ export function createRealScene(canvas, opts = {}) {
         vec2 d = (vUv - uSunUV) * vec2(uAspect, 1.0);
         col += uSunCol * uSunGlow * (exp(-dot(d, d) * 6.0) * 0.75 + exp(-dot(d, d) * 40.0) * 0.5) * (1.0 - 0.6 * dot(col, LW));
         vec2 q = vUv - 0.5; q.x *= 1.2; col *= 1.0 - uVig * smoothstep(0.25, 0.85, length(q));
+        float grain = (fract(sin(dot(vUv * 640.0, vec2(12.9898, 78.233)) + fract(uTime * 17.0)) * 43758.5453) - 0.5) * uGrain;
+        col += grain * (0.8 + 0.4 * l);
         gl_FragColor = vec4(col, c.a); }`,
   });
   const _sunNdc = new THREE.Vector3(), _camFwd = new THREE.Vector3();
@@ -1784,6 +1883,7 @@ export function createRealScene(canvas, opts = {}) {
     frameTimes.push(dt * 1000); if (frameTimes.length > 240) frameTimes.shift();
   }
   function renderOnce(dt) {
+    grade.uniforms.uTime.value = tAcc;
     for (const u of updaters) u(dt, tAcc);
     stepPeople(dt);
     if (wheel) wheel.rotateZ(dt * 0.6);
@@ -1837,6 +1937,8 @@ export function createRealScene(canvas, opts = {}) {
     setKitAO({ direct, map } = {}) { if (direct != null) KITU.uAODirect.value = direct; if (map != null) for (const m of kitMeshes) m.material.aoMapIntensity = map; },
     setPost(on, which = {}) { state.post = !!on; if ('ao' in which) state.ao = which.ao; if ('bloom' in which) state.bloom = which.bloom; rebuildComposer(); },
     setOrbit(on) { state.orbit = !!on; if (!on) setView(state.view); },
+    setWeather(name, intensity = 1.0) { weatherSys.setWeather(name, intensity); },
+    get weather() { return weatherSys; },
     // 지금 장면을 PNG dataURL 로
     snapshot() { renderOnce(0); return canvas.toDataURL('image/png'); },
     // 게임 무대(createStage)용: 바깥 고리에서 한 프레임 그리기 (autoStart: false 일 때), 땅 높이, 마을 배치, 화질
@@ -1893,15 +1995,6 @@ const GAME_CAM = { pos: [-44, 20, 108], look: [21, 5.5, -31], fov: 41 };   // �
 const STAGE_SWAY = 0.075;            // 전경 카메라가 오가는 각 (rad, 좌우)
 const QUALITY_KEY = 'pl.quality';
 const WIDE_HOLD = 3.2;               // 탄생 전경을 보여 주는 시간 (화면에 보인 초)
-let sharedGlow = null;
-function glowTex() {
-  if (!sharedGlow) sharedGlow = canvasTex(128, 128, (g, w, h) => {
-    const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
-    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.22, 'rgba(255,255,255,.55)'); gr.addColorStop(0.55, 'rgba(255,255,255,.14)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = gr; g.fillRect(0, 0, w, h);
-  });
-  return sharedGlow;
-}
 // 불꽃·불티 입자 (점 하나 = 둥근 빛, 더하기 섞기). 크기는 m (거리에 따라 작아진다)
 function makeParticles(n) {
   const geo = new THREE.BufferGeometry();
@@ -1934,7 +2027,7 @@ export function createStage(canvas) {
     fast: false, birth: null, errors: [], lifeErr: new Set(), failed: false,
     lift: 0, liftNow: 0, phi: 0, spin: 0,
     time: PHASE_TIME.night, tr: null, fullAt: 0,
-    age: 0, year: 0, kitNow: null, focus: null, campOn: false, ghostOn: false, meKey: '',
+    age: 0, year: 0, kitNow: null, focus: null, weather: 'clear', campOn: false, ghostOn: false, meKey: '',
     mode: 'wide', wideHold: WIDE_HOLD, rate: 1.2, wideW: 1,   // 카메라: wide(전경) · close(내 사람) · camp(모닥불)
     user: { yaw: 0, pitch: 0, zoom: 1 }, colDa: 0,
   };
@@ -2652,17 +2745,37 @@ export function createStage(canvas) {
       if (old) { try { old.dispose(); } catch (e) { console.warn('한 영혼의 여정 무대: 앞 장면을 풀다 멈춤', e); } }
       try { build(birth); showStage(true); } catch (e) { console.warn('한 영혼의 여정 무대: 장면을 짓지 못해 글로만 진행한다', e); st.errors.push('무대: ' + String((e && e.message) || e)); showStage(false); }
       st.kitNow = stageOf(birth).kit;
+      const initW = seasonalWeatherOf({ age: 0, year: birth.year, birth });
+      if (W && W.sc.setWeather) W.sc.setWeather(initW, initW === 'clear' ? 0.0 : 0.75);
     },
     // 나이·해: 내 사람 크기·옷·걸음·하는 일. 시대가 바뀌면 세트 이름을 다시 정한다 (1단계는 잉글랜드 세트 하나라 그림은 그대로)
     setAge(age, year) {
       st.age = age; if (year != null) st.year = year;
       if (st.birth) st.kitNow = stageOf({ ...st.birth, year: st.year }).kit;
       spawnMe(false);
+      if (!st.card && st.birth && W && W.sc.setWeather) {
+        const sw = seasonalWeatherOf({ age: st.age, year: st.year, birth: st.birth });
+        W.sc.setWeather(sw, sw === 'clear' ? 0.0 : 0.75);
+      }
     },
     // 올해의 패 (work·learn·family·body·rest, 고르지 않았으면 main 이 정한 저절로 값) → 내 사람이 하는 일·자리
     setFocus(id) { st.focus = id || null; st.card = null; spawnMe(false); },
-    // 카드 등장 시 카드 상황에 맞춘 현장 연출
-    setCardFocus(card) { st.card = card || null; spawnMe(false); },
+    // 카드 등장 시 카드 상황에 맞춘 현장 연출 및 특수 기후
+    setCardFocus(card) {
+      st.card = card || null;
+      spawnMe(false);
+      if (card) {
+        const cw = cardWeatherOf(card);
+        if (cw && W && W.sc.setWeather) W.sc.setWeather(cw, 1.0);
+      } else if (st.birth && W && W.sc.setWeather) {
+        const sw = seasonalWeatherOf({ age: st.age, year: st.year, birth: st.birth });
+        W.sc.setWeather(sw, sw === 'clear' ? 0.0 : 0.75);
+      }
+    },
+    setWeather(name, intensity = 1.0) {
+      st.weather = name;
+      if (W && W.sc.setWeather) W.sc.setWeather(name, intensity);
+    },
     setPhase(name) { setTimeGoal(name); },
     // 모닥불 (5·15·30·50·70살): 켜면 불 + 내 사람이 불가에 + 카메라가 사람과 불을 함께. ghost 면 건너편에 앞 생의 푸른 불씨. 끄면 되돌린다
     setCampfire(on, ghost = false) {

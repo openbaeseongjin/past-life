@@ -51,7 +51,8 @@ h3{margin:0 0 8px;font-size:15px}
 #app{--pad:16px;--top:calc(var(--pad) + env(safe-area-inset-top,0px));--left:calc(var(--pad) + env(safe-area-inset-left,0px));--right:calc(var(--pad) + env(safe-area-inset-right,0px));--bot:env(safe-area-inset-bottom,0px);color:var(--paper)}
 :where(#app) button{min-height:0;font:inherit;color:inherit}   /* :where: 아래 HUD 단추 규칙이 이기게 (특정도 0) */
 .stage{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 35%,var(--ink),var(--night))}
-#c{width:100%;height:100%;display:block}
+#c{width:100%;height:100%;display:block;transition:filter .4s cubic-bezier(0.16,1,0.3,1), transform .4s cubic-bezier(0.16,1,0.3,1)}
+body.dof-focus #c{filter:blur(3.5px) saturate(0.92) brightness(0.94);transform:scale(1.015)}
 .no3d{position:absolute;inset:0;margin:0;display:grid;place-items:center;padding:16px;text-align:center;color:var(--paper-dim);font:15px/1.7 var(--serif)}
 /* 왼쪽 위: 영혼 배지 · 흔적 구슬 · 상태 넷 */
 .hud-who{position:fixed;z-index:3;top:var(--top);left:var(--left);width:284px;padding:12px 14px 12px 12px;background:var(--glass);border:1px solid var(--gold-line);border-radius:20px;

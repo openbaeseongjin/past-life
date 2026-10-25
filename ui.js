@@ -855,7 +855,7 @@ export function createUI({ lang, robot = false, fast = false }) {
     const b = life.birth, marks = traceIdx(card, tr), trName = tr ? traceText(tr, L) : '', open = openChoices(life, card);
     const bead = tr ? `<i class="trace-bead" title="${esc(trName)}" aria-label="${esc(t(L, 'trace'))} · ${esc(trName)}" role="img"></i>` : '';
     hideTip(); setMore(false); setWind(false);
-    app.classList.add('deciding'); hudInert(true);
+    app.classList.add('deciding'); hudInert(true); document.body.classList.add('dof-focus');
     modal.className = 'cross';
     show(modal, `<div class="xcard" role="dialog" aria-modal="true" aria-labelledby="dlgT" tabindex="-1">
       <span class="emblem" aria-hidden="true">${icon('i-sign')}</span>
@@ -916,7 +916,7 @@ export function createUI({ lang, robot = false, fast = false }) {
     xc.focus({ preventScroll: true });   // 첫 길이 아니라 카드에: Tab 으로 길에 가고, 1·2·3·Enter 로 고른다
     return pick(modal, null).then((v) => {
       stop(); document.removeEventListener('keydown', key); document.removeEventListener('keyup', key);
-      modal.hidden = true; modal.className = ''; app.classList.remove('deciding'); hudInert(false);
+      modal.hidden = true; modal.className = ''; app.classList.remove('deciding'); hudInert(false); document.body.classList.remove('dof-focus');
       return Number(v);
     });
   }
