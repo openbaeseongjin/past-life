@@ -86,3 +86,90 @@ export function drawCause(rng, { age, group, sex, tags, coast, married = false, 
   };
   return rng.weighted(Object.keys(table), w);
 }
+
+// 기사회생 서사 (Tenacity Escapes): 플레이어가 치명적인 위험 굴림에 걸렸을 때 기적적으로 살아남은 기록
+export const TENACITY_ESCAPES = {
+  fever: {
+    ko: '모진 열병으로 사흘 밤낮을 앓았으나, 식구들의 간절한 간호 끝에 마침내 열이 내렸어요.',
+    en: 'A fierce fever burned for three days, but devoted care from family finally broke the fever.',
+  },
+  diarrhea: {
+    ko: '지독한 배앓이로 기운을 잃었으나, 정성껏 달인 약초물 덕에 간신히 고비를 넘겼어요.',
+    en: 'A severe stomach sickness struck, but hot herbal broth helped you pull through.',
+  },
+  hunger: {
+    ko: '굶주림에 쓰러져 위태로웠으나, 이웃이 건넨 귀한 곡식 한 줌 덕에 숨을 붙였어요.',
+    en: 'Fainting from hunger, a kind neighbor shared a handful of grain that kept you alive.',
+  },
+  weak: {
+    ko: '약하게 태어나 숨이 멎을 뻔했으나, 어머니의 따스한 품 안에서 기적처럼 고비를 넘겼어요.',
+    en: 'Born frail and near the brink, you miraculously pulled through in warm, caring arms.',
+  },
+  accident: {
+    ko: '큰 사고를 당해 위태로웠으나, 다행히 뼈는 상하지 않고 털고 일어났어요.',
+    en: 'A perilous accident nearly took you, but miraculously you escaped serious injury.',
+  },
+  fire: {
+    ko: '한밤중 번진 불길에 갇힐 뻔했으나, 누군가 문을 부수고 당신을 구해냈어요.',
+    en: 'Trapped by sudden flames in the night, someone broke through the door and pulled you out.',
+  },
+  plague: {
+    ko: '마을에 번진 역병에 걸려 앓아누웠으나, 강인한 생명력으로 끝내 병마를 이겨냈어요.',
+    en: 'Struck down by an epidemic, your resilient spirit fought off the sickness and recovered.',
+  },
+  drown: {
+    ko: '거친 물길에 휩쓸려 가라앉을 뻔했으나, 지나가던 이가 뛰어들어 건져 올렸어요.',
+    en: 'Swept away in deep waters, a passerby jumped in and dragged you to safety.',
+  },
+  fall: {
+    ko: '높은 언덕에서 굴러떨어졌으나, 다행히 무성한 덤불 덕에 목숨을 건졌어요.',
+    en: 'Falling from a height, thick shrubs broke your fall and spared your life.',
+  },
+  beast: {
+    ko: '산짐승과 마주쳐 큰 부상을 입을 뻔했으나, 기지를 발휘해 가까스로 몸을 피했어요.',
+    en: 'Cornered by a wild beast, quick wits helped you narrowly escape unharmed.',
+  },
+  war: {
+    ko: '군대가 들이닥쳐 목숨이 경각에 달했으나, 허름한 헛간에 숨어 기적처럼 살아남았어요.',
+    en: 'Soldiers swept through, but hiding in a cellar kept you safe from the blades.',
+  },
+  forced: {
+    ko: '혹독한 노역으로 쓰러졌으나, 동료들이 몰래 일손을 보태주어 간신히 버텨냈어요.',
+    en: 'Collapsing under brutal forced labour, fellow workers helped shoulder the load to keep you alive.',
+  },
+  childbirth: {
+    ko: '산고가 극심하여 숨이 넘어갈 뻔했으나, 산파와 식구들의 눈물겨운 도움으로 아기와 함께 살아났어요.',
+    en: 'Labor brought you to the brink of death, but fierce determination brought both you and baby through safely.',
+  },
+  lung: {
+    ko: '심한 기침으로 사경을 헤맸으나, 독한 탕약을 삼키며 간신히 고비를 넘겼어요.',
+    en: 'Racked by coughing that nearly took your breath, bitter medicine pulled you back from the edge.',
+  },
+  oldage: {
+    ko: '기력이 다해 깊은 잠에 빠졌으나, 다음 날 아침 다시 눈을 떴어요.',
+    en: 'Weakness nearly claimed you, but you awoke the next morning to another sunrise.',
+  },
+  heart: {
+    ko: '가슴을 쥐어짜는 통증에 쓰러졌으나, 한참 뒤 고통이 잦아들며 기적처럼 숨을 되찾았어요.',
+    en: 'Chest pains brought you down, but the agony eased and your breath slowly returned.',
+  },
+  stroke: {
+    ko: '갑자기 한쪽 몸이 마비되며 쓰러졌으나, 침을 맞고 며칠 쉬며 간신히 기운을 차렸어요.',
+    en: 'A sudden numbness struck you down, but rest and treatment gradually restored your strength.',
+  },
+  cancer: {
+    ko: '모진 앓이로 생사의 갈림길에 섰으나, 병세가 잠시 멎으며 거짓말처럼 다시 일어났어요.',
+    en: 'A grave illness pushed you to the limit, but entered remission and gave you another chance at life.',
+  },
+  traffic: {
+    ko: '달려오던 수레에 부딪힐 뻔했으나, 찰나의 순간에 몸을 날려 아슬아슬하게 피했어요.',
+    en: 'Nearly struck by a speeding vehicle, a split-second leap saved your life in the nick of time.',
+  },
+};
+
+export function tenacityEscape(cause) {
+  return TENACITY_ESCAPES[cause] || {
+    ko: '생사의 갈림길에서 모진 위기를 맞았으나, 질긴 생명력으로 기적처럼 고비를 넘겼어요.',
+    en: 'At the crossroads of life and death, sheer resilience pulled you through against all odds.',
+  };
+}

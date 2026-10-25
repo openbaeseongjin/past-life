@@ -105,14 +105,21 @@ function yearWait() {
 
 function applyInvestments(life, inv) {
   if (!inv) return;
-  if (inv.luck) life.attrs.luck = Math.min(100, Math.max(0, (life.attrs.luck || 50) + inv.luck * 10));
+  if (inv.luck) {
+    life.attrs.luck = Math.min(100, Math.max(0, (life.attrs.luck || 50) + inv.luck * 10));
+    if (inv.luck >= 3) life.tenacity = (life.tenacity || 1) + 1;
+  }
   if (inv.charm) life.attrs.charm = Math.min(100, Math.max(0, (life.attrs.charm || 50) + inv.charm * 10));
   if (inv.know) {
     life.attrs.know = Math.min(100, Math.max(0, (life.attrs.know || 15) + inv.know * 8));
     if (life.attrs.know >= 60) life.flags.literate = true;
   }
   if (inv.skill) life.attrs.skill = Math.min(100, Math.max(0, (life.attrs.skill || 35) + inv.skill * 10));
-  if (inv.health) life.stats.health = Math.min(100, Math.max(0, (life.stats.health || 50) + inv.health * 8));
+  if (inv.health) {
+    life.stats.health = Math.min(100, Math.max(0, (life.stats.health || 50) + inv.health * 8));
+    if (inv.health >= 2) life.tenacity = (life.tenacity || 1) + 1;
+    if (inv.health >= 4) life.tenacity = (life.tenacity || 1) + 1;
+  }
   if (inv.wealth) life.stats.wealth = Math.min(100, Math.max(0, (life.stats.wealth || 30) + inv.wealth * 8));
 }
 // 한 생을 끝까지. 돌려주는 값: 'next' | 'lineage' | 'title'
@@ -145,7 +152,7 @@ async function playLife(soul) {
     }
   }
 
-  const life = createLife({ birth, traces, avoid: prev && Array.isArray(prev.lines) ? prev.lines : [] });
+  const life = createLife({ birth, traces, player: true, avoid: prev && Array.isArray(prev.lines) ? prev.lines : [] });
   if (chosenInvestments) {
     applyInvestments(life, chosenInvestments);
   }
@@ -175,6 +182,11 @@ async function playLife(soul) {
   for (;;) {
     if (S.exit) { cur = null; return 'title'; }
     const ev = advance(life, DECK, { lines: LINES, yearly: true });
+    if (life.justTenacity) {
+      life.justTenacity = null;
+      sound.chime();
+      ui.toast(S.lang === 'ko' ? '✨ 기사회생! 죽음의 고비를 넘기고 살아남았습니다.' : '✨ Miraculous Recovery! Overcame a fatal crisis.', 3500);
+    }
     village.setAge(life.age, life.year); village.setPhase(phaseOf(life.age)); showFocus(life);
     refresh();
     if (ev.type === 'death') break;

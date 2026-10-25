@@ -6,7 +6,7 @@ import { setLifeRoute } from './routes.js';
 import { eraOf, groupOf } from './births.js';
 import { shapeFor, yearHazard, healthMul } from './lifetable.js';
 import { activeEvents } from './events.js';
-import { drawCause } from './deaths.js';
+import { drawCause, tenacityEscape } from './deaths.js';
 import { pickCard, stageOf, slotAges, choiceOpen, condOk } from './cards.js';
 import { AREAS } from './places.js';
 import { chanceBonus, riskPenalty, startMods, echoEffects, echoCardKey, traceWeight, skillGain, talentYear, attrMods } from './traces.js';
@@ -49,7 +49,7 @@ function startAttrs(birth, traces, ctx) {
 }
 
 // avoid: 바로 앞 생에 나온 작은 일 줄 id (영혼 기록 soul.lives[].lines). 이 생에서는 그 줄의 가중치를 AVOID_MUL 로 낮춘다 (생마다 같은 줄이 이어지지 않게)
-export function createLife({ birth, traces = [], noDeath = false, quiet = false, avoid = [] }) {
+export function createLife({ birth, traces = [], noDeath = false, quiet = false, avoid = [], player = false, tenacity = 0 }) {
   const r = sub(birth.seed, 'start');
   const stats = {
     health: Math.round(50 + r.range(-8, 8)),
@@ -58,7 +58,7 @@ export function createLife({ birth, traces = [], noDeath = false, quiet = false,
     happy: Math.round(clamp(50 + startMods(traces).happy + r.range(-5, 5))),
   };
   const life = {
-    birth, traces, noDeath, quiet, age: 0, year: birth.year, step: 0, stats, base: { wealth: birth.wealth },
+    birth, traces, noDeath, quiet, player: !!player, tenacity: player ? Math.max(1, tenacity) : tenacity, age: 0, year: birth.year, step: 0, stats, base: { wealth: birth.wealth },
     focus: null, focusYears: {}, flags: {}, route: null, kids: 0, wedWait: 0, skills: {}, dream: null, fulfilled: [], bond: null,
     slots: slotAges(birth.seed), seen: [], linesSeen: [], eventsSeen: [], eventsStarted: [], pausesDone: [],
     log: [], journal: [], history: [{ age: 0, ...stats }], pending: null, death: null,
@@ -182,18 +182,50 @@ function endYear(life, lines) {
     if (line) { life.linesSeen.push(line.id); jot(life, 'line', line.text); }
   }
   // 죽음 굴림: 그해 달력 연도의 시대·지역 생명표 × 건강 배율 + 사건 위험률
-  const base = yearHazard(shapeFor(eraOf(life.year).id, life.birth.region), a) * healthMul(s.health);
+  let base = yearHazard(shapeFor(eraOf(life.year).id, life.birth.region), a) * healthMul(s.health);
   const evs = activeEvents(life.year, life.birth.region, life.birth.area).filter((e) => e.hazard > 0);
   const extra = evs.reduce((t, e) => t + e.hazard, 0);
+
+  if (life.player) {
+    // 플레이어 조기 사망 완화 (Infant & Early Child Grace / Stat Protection)
+    if (a === 0) {
+      base *= 0.15; // 0세 영아 사망률 85% 감쇄 (첫돌 맞이 기회 보장)
+    } else if (a < 5) {
+      const lk = Math.max(0.7, 1 - ((life.attrs?.luck ?? 50) - 50) / 200);
+      base *= 0.35 * lk; // 1~4세 유아기 사망률 65% 감쇄 + 행운 보정
+    } else if (a < 15) {
+      const lk = Math.max(0.7, 1 - ((life.attrs?.luck ?? 50) - 50) / 200);
+      base *= 0.50 * lk; // 5~14세 아동기 사망률 50% 감쇄
+    } else {
+      // 성인기: 플레이어 건강과 행운의 위험 방어율 현실화
+      if (s.health > 50) {
+        base *= Math.max(0.4, 1 - (s.health - 50) / 100 * 0.5);
+      }
+      if (life.attrs?.luck && life.attrs.luck > 50) {
+        base *= Math.max(0.75, 1 - (life.attrs.luck - 50) / 250);
+      }
+    }
+  }
+
   const r = sub(seed, a, 'death');
   const roll = r.next();
   if (a >= 119 || (!life.noDeath && roll < 1 - Math.exp(-(base + extra)))) {
     const cause = r.next() < extra / (base + extra)
       ? r.weighted(evs, (e) => e.hazard).cause
       : drawCause(r, { age: a, group: groupOf(life.year), sex: life.birth.sex, tags: life.birth.tags, coast: !!AREAS[life.birth.area].coast, married: !!life.flags.married, kids: life.kids });
-    life.death = { age: a, year: life.year, cause, line: r.int(2) };
-    jot(life, 'death', null);
-    return true;
+
+    // 기사회생 (Tenacity / Second Chance): 노환(65세) 전 치명적 위기 시 1회 이상 극복
+    if (life.player && life.tenacity > 0 && a < 65) {
+      life.tenacity--;
+      s.health = Math.max(25, s.health - 12);
+      const escape = tenacityEscape(cause);
+      life.justTenacity = { cause, age: a };
+      jot(life, 'tenacity', escape, { cause, age: a });
+    } else {
+      life.death = { age: a, year: life.year, cause, line: r.int(2) };
+      jot(life, 'death', null);
+      return true;
+    }
   }
   if (life.year >= PRESENT) {   // 지금에 닿았다: 사인 없이 멈추고, 죽음 줄 대신 맺는 줄을 남긴다
     life.death = { age: a, year: life.year, cause: null, line: 0, present: true };

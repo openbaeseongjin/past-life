@@ -32,7 +32,7 @@ const ATTR_ICON = { charm: 'i-smile', luck: 'i-clover', know: 'i-book', skill: '
 const DECK_BY_ID = new Map(DECK.map((c) => [c.id, c]));
 const FOCUS_ICON = { work: 'i-hammer', learn: 'i-book', family: 'i-house', body: 'i-leaf', rest: 'i-moon' };
 // 기억 구슬 그림 (memory.js 의 icon) → <symbol>. 메아리(ember)는 푸른 구슬 안의 불씨
-const ORB_ICON = { cradle: 'i-cradle', rings: 'i-rings', flame: 'i-flame', scroll: 'i-scroll', sign: 'i-sign', ember: 'i-flame' };
+const ORB_ICON = { cradle: 'i-cradle', rings: 'i-rings', flame: 'i-flame', scroll: 'i-scroll', sign: 'i-sign', ember: 'i-flame', spark: 'i-flame' };
 // 저장된 기억 구슬 (soul.lives[i].memories) 은 손으로 고친 값일 수 있어 모양을 본다
 const okMem = (m) => !!m && typeof m === 'object' && Number.isInteger(m.age) && m.age >= 0 && m.age <= 130;
 const icon = (id) => `<svg class="ic" aria-hidden="true" focusable="false"><use href="#${id}"/></svg>`;
@@ -500,7 +500,7 @@ export function createUI({ lang, robot = false, fast = false }) {
               ${renderStatRow('charm', L === 'ko' ? '🤝 친화력 (Charm)' : '🤝 Charm', L === 'ko' ? '혼인·자녀 확률 증가, 가족·이웃 초점 시 행복 회복 상승' : 'Higher marriage & kids chance, family happiness boost', baseStats.charm, investments.charm, STAT_STEPS.charm, left)}
               ${renderStatRow('know', L === 'ko' ? '📖 지식 (Knowledge)' : '📖 Knowledge', L === 'ko' ? '배움 성장 가속, 60점 도달 시 글 읽기(문해력) 조기 해금' : 'Faster learning, early literacy unlock at 60', baseStats.know, investments.know, STAT_STEPS.know, left)}
               ${renderStatRow('skill', L === 'ko' ? '🛠️ 손재주 (Skill)' : '🛠️ Skill', L === 'ko' ? '노동 품삯 배율 증가, 장인·기술 관련 이벤트 성공률 상승' : 'Higher wage multiplier and craft event success', baseStats.skill, investments.skill, STAT_STEPS.skill, left)}
-              ${renderStatRow('health', L === 'ko' ? '❤️ 강인한 숨결 (Health)' : '❤️ Vitality Guard', L === 'ko' ? '유아기(0~4세) 열병·역병 저항력 강화 (영아 사망 극복)' : 'Resist infant fevers (crucial for under-5 survival)', baseStats.health, investments.health, STAT_STEPS.health, left)}
+              ${renderStatRow('health', L === 'ko' ? '❤️ 강인한 숨결 (Health)' : '❤️ Vitality Guard', L === 'ko' ? '기사회생(치명적 위기 극복) 및 유아기·청소년기 사망 위험 대폭 감쇄' : 'Grants Tenacity (survive fatal crisis) & drastically lowers child mortality', baseStats.health, investments.health, STAT_STEPS.health, left)}
               ${renderStatRow('wealth', L === 'ko' ? '🪙 숨겨둔 복채 (Wealth)' : '🪙 Hidden Wealth', L === 'ko' ? '가난한 집안에서 태어나도 초기 식량과 궁핍을 완화하는 비상금' : 'Extra starting savings even in poor households', baseStats.wealth, investments.wealth, STAT_STEPS.wealth, left)}
             </div>
           </div>
@@ -645,7 +645,7 @@ export function createUI({ lang, robot = false, fast = false }) {
     const k = j.kind === 'echo' ? 'echoBead' : (life.memories || []).some((m) => m.j === i) ? 'memBead' : null;
     return k ? `<i class="mk memo${k === 'echoBead' ? ' echo' : ''}" role="img" title="${esc(t(L, k))}" aria-label="${esc(t(L, k))}"></i>` : '';
   };
-  const jMark = (life, j, i) => memMark(life, j, i) + (j.kind === 'decision' ? '<i class="mk star" aria-hidden="true"></i>' : j.kind === 'event' ? '<i class="mk crack" aria-hidden="true"></i>' : '');
+  const jMark = (life, j, i) => memMark(life, j, i) + (j.kind === 'decision' ? '<i class="mk star" aria-hidden="true"></i>' : j.kind === 'event' ? '<i class="mk crack" aria-hidden="true"></i>' : j.kind === 'tenacity' ? '<i class="mk spark" style="color:#e68a19" title="기사회생" aria-label="기사회생">✨ </i>' : '');
   function journalItem(life, j, i) {
     const li = document.createElement('li');
     li.className = 'k-' + j.kind; li.dataset.j = i;
@@ -699,7 +699,7 @@ export function createUI({ lang, robot = false, fast = false }) {
     // 수치 판: 건강·재산·곁·마음 = 숫자 · 막대 · 구체적인 한 줄 (상태 낱말·앓은 일 / 그 땅 단위 살림 / 짝·아이·이웃 / 마음 낱말)
     const ctx = life.ctx();
     const lines = {
-      health: [healthWord(life.stats.health, L), ailmentLine(life, DECK_BY_ID, L)].filter(Boolean).join(' · '),
+      health: [healthWord(life.stats.health, L), life.tenacity > 0 ? (L === 'ko' ? `✨불씨 ${life.tenacity}` : `✨Spark ${life.tenacity}`) : null, ailmentLine(life, DECK_BY_ID, L)].filter(Boolean).join(' · '),
       wealth: holdingsLine(holdingsOf(life.stats.wealth, ctx, b.household), L),
       family: kinLine(life, L),
       happy: heartWord(life.stats.happy, L),
