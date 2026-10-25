@@ -1,3 +1,4 @@
+import { applyHeirloom } from './heirlooms.js';
 // 연결 (설계 12장): 시작 → 탄생 장면 → 출생 기록 → 해가 저절로 흐르는 한 생 → 마지막 해 → 사망 기록 → 다음 생 / 족보
 // ?seed=문자열: 그 시드로 연습 한 판 (저장 안 함) · ?auto=1: 단추·결정을 저절로 · ?fast=1: 기다림 없음
 import { phaseOf } from './phase.js';
@@ -141,6 +142,7 @@ async function playLife(soul) {
   const n = soul ? soul.lives.length + 1 : 0;
 
   let chosenInvestments = customDestiny ? customDestiny.investments : null;
+  let chosenHeirloom = customDestiny ? customDestiny.heirloom : null;
   if (!customDestiny && !robot && ui.destinySetup) {
     const chosen = await ui.destinySetup({ birth, n, prev, traces, soul });
     if (chosen && chosen.birth) {
@@ -150,11 +152,17 @@ async function playLife(soul) {
     if (chosen && chosen.investments) {
       chosenInvestments = chosen.investments;
     }
+    if (chosen && chosen.heirloom) {
+      chosenHeirloom = chosen.heirloom;
+    }
   }
 
   const life = createLife({ birth, traces, player: true, avoid: prev && Array.isArray(prev.lines) ? prev.lines : [] });
   if (chosenInvestments) {
     applyInvestments(life, chosenInvestments);
+  }
+  if (chosenHeirloom) {
+    applyHeirloom(life, chosenHeirloom);
   }
   const peers = makePeers(birth);
   window.__pl.life = life; window.__pl.soul = soul;
@@ -162,7 +170,7 @@ async function playLife(soul) {
   sound.chime();
   await ui.birthIntro({ birth, n, gap: prev ? birth.year - prev.death.year : null, traces, prev });
   // 무대 짓기(동기로 1초 남짓)는 출생 기록 종이가 한 번 그려진 뒤에: 시작을 누르면 화면이 바로 바뀌고, 짓는 동안의 멈춤은 가만히 읽는 종이 뒤에 숨는다
-  const record = ui.birthRecord({ birth, n, prev, peers, traces });
+  const record = ui.birthRecord({ birth, n, prev, peers, traces, heirloom: chosenHeirloom });
   await nextPaint();
   await stageReady;   // 첫 생: three·무대 모듈이 아직 오는 중이면 출생 기록을 읽는 동안 기다린다
   village.setLife(birth); village.setAge(0, birth.year); village.setPhase('night');
@@ -232,7 +240,7 @@ async function playLife(soul) {
   const sum = summarize(life, DECK);
   // 염주에 남길 것: 이 생의 구슬 (한 해 한 글자)과 모닥불에서 꿴 기억 구슬 (나이·메아리·한 줄)
   const memories = life.memories.map((m) => ({ age: m.age, echo: m.kind === 'echo', text: { ko: m.text.ko, en: m.text.en } }));
-  if (soul) { finishLife(soul, life, { thumb, beads: encodeBeads(beadsOf(life)), memories, lines: life.linesSeen.slice() }); store.saveSoul(soul); store.saveDex(addDex(store.loadDex(), life)); }
+  if (soul) { finishLife(soul, life, { thumb, finalWealth: Math.round(life.stats.wealth), beads: encodeBeads(beadsOf(life)), memories, lines: life.linesSeen.slice() }); store.saveSoul(soul); store.saveDex(addDex(store.loadDex(), life)); }
   window.__pl.done = (window.__pl.done || 0) + 1;
   for (;;) {
     const r = await ui.deathRecord({ life, sum, soul, peers });

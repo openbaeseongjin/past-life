@@ -14,6 +14,7 @@ import { LOCAL_CARDS_SA } from '../cards_local_sa.js';
 import { LOCAL_CARDS_EA } from '../cards_local_ea.js';
 import { LOCAL_CARDS_EU } from '../cards_local_eu.js';
 import { LOCAL_CARDS_AM } from '../cards_local_am.js';
+import { HEIRLOOM_CARDS } from '../heirlooms.js';
 
 const STAT = ['health', 'wealth', 'family', 'happy'];
 const EFFECT_RANGE = { health: 25, wealth: 25, family: 25, happy: 25, luck: 20, charm: 20, know: 20, skill: 20, status: 1 };
@@ -27,7 +28,7 @@ test('카드 수와 id', () => {
   const ids = DECK.map((c) => c.id);
   assert.equal(new Set(ids).size, ids.length);
   // 사건 카드 수는 events.test.mjs, 땅·자리 고유 카드 수는 local_*.test.mjs 가 잰다 (시뮬 2.0 작업 5·7)
-  assert.equal(DECK.length, 55 + 60 + 24 + EVENT_CARDS.length + LOCAL_CARDS_SA.length + LOCAL_CARDS_EA.length + LOCAL_CARDS_EU.length + LOCAL_CARDS_AM.length);
+  assert.equal(DECK.length, 55 + 60 + 24 + HEIRLOOM_CARDS.length + EVENT_CARDS.length + LOCAL_CARDS_SA.length + LOCAL_CARDS_EA.length + LOCAL_CARDS_EU.length + LOCAL_CARDS_AM.length);
 });
 
 test('모든 글이 한·영으로 있고 길이 제한을 지킨다, key 가 바르다', () => {

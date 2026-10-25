@@ -1,3 +1,4 @@
+import { HEIRLOOMS, HEIRLOOM_LIST, computeLegacyWealthBonus } from './heirlooms.js';
 import { drawBirth } from './birth.js';
 // 화면 (설계 8·12장, 화면 다시 기획 3장): 시작 → 탄생 장면 → 출생 서류 → 해가 흐르는 화면(섬 마을 + 가장자리 HUD) → 갈림길·모닥불 → 마지막 해 → 사망 서류
 // 기다리는 일은 모두 Promise. robot(?auto=1)이면 단추를 저절로 누른다
@@ -412,7 +413,10 @@ export function createUI({ lang, robot = false, fast = false }) {
     let curBirth = initialBirth;
     let fateHistory = [];
     let rerollsLeft = 3;
-    const totalEmbers = 5;
+    let selectedHeirloom = null;
+    const prevLife = prev || (soul && soul.lives && soul.lives.length > 0 ? soul.lives[soul.lives.length - 1] : null);
+    const legacyBonus = prevLife && prevLife.finalWealth ? computeLegacyWealthBonus(prevLife.finalWealth) : 0;
+    const totalEmbers = 5 + legacyBonus;
     let investments = { luck: 0, charm: 0, know: 0, skill: 0, health: 0, wealth: 0 };
     const STAT_STEPS = { luck: 10, charm: 10, know: 8, skill: 10, health: 8, wealth: 8 };
 
@@ -471,6 +475,31 @@ export function createUI({ lang, robot = false, fast = false }) {
               </div>
             </div>
           </div>
+
+          ${(prev && soul && soul.lives && soul.lives.length > 0) ? `
+          <!-- 전생의 가보 (Soul Relic) -->
+          <div class="card-heirlooms" style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 20px;display:grid;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <div>
+                <h3 style="font:700 17px/1.3 var(--serif);margin:0">🏺 ${esc(L === 'ko' ? '전생의 가보 (Soul Relic)' : 'Ancestral Heirloom')}</h3>
+                <span style="font-size:12px;color:var(--ink-soft)">${esc(L === 'ko' ? '선대로부터 전해 내려온 유물을 하나 골라 품에 안고 태어납니다.' : 'Choose one heirloom from past lives to carry with you.')}</span>
+              </div>
+              ${legacyBonus > 0 ? `<span style="font:600 12.5px var(--ui);color:#b37d14;background:rgba(226,182,94,.16);padding:3px 10px;border-radius:999px;border:1px solid rgba(226,182,94,.4)">✨ ${esc(L === 'ko' ? `전생 재산 유산 덤 +${legacyBonus}pt` : `Past Wealth Legacy +${legacyBonus}pt`)}</span>` : ''}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px">
+              ${HEIRLOOM_LIST.map((h) => {
+                const sel = selectedHeirloom === h.id;
+                return `<div class="heirloom-card ${sel ? 'selected' : ''}" data-h="${h.id}" style="border:1.5px solid ${sel ? 'var(--gold)' : 'var(--line)'};border-radius:10px;padding:12px 14px;background:${sel ? 'rgba(226,182,94,.1)' : '#fff'};box-shadow:${sel ? '0 0 10px rgba(226,182,94,.3)' : 'none'};cursor:pointer;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center">
+                  <span style="font-size:24px">${h.icon}</span>
+                  <div>
+                    <div style="font-weight:700;font-size:13.5px;color:var(--ink)">${esc(h.name[L])}</div>
+                    <div style="font-size:11.5px;color:var(--ink-soft);margin-top:2px">${esc(h.desc[L])}</div>
+                  </div>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+          ` : ''}
 
           <!-- 환생의 불씨 (스탯 투자) -->
           <div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:grid;gap:14px">
@@ -581,6 +610,13 @@ export function createUI({ lang, robot = false, fast = false }) {
           };
         }
       });
+      screen.querySelectorAll('.heirloom-card').forEach((card) => {
+        card.onclick = (e) => {
+          e.preventDefault(); e.stopPropagation();
+          selectedHeirloom = card.dataset.h;
+          render();
+        };
+      });
       screen.querySelectorAll('.btn-preset').forEach(btn => {
         btn.onclick = (e) => {
           e.preventDefault(); e.stopPropagation();
@@ -598,12 +634,12 @@ export function createUI({ lang, robot = false, fast = false }) {
 
     return pick(screen).then(() => {
       screen.hidden = true;
-      return { birth: curBirth, investments: { ...investments } };
+      return { birth: curBirth, investments: { ...investments }, heirloom: selectedHeirloom };
     });
   }
 
   // 출생 기록 (서류)
-  function birthRecord({ birth, n, prev, peers, traces }) {
+  function birthRecord({ birth, n, prev, peers, traces, heirloom }) {
     app.hidden = true; modal.hidden = true; screen.className = '';
     const sh = shapeFor(birth.era, birth.region), e0 = Math.round(lifeStats(sh).e0), u5 = Math.round((1 - survivalTo(sh, 5)) * 100);
     show(screen, `<article class="doc"><header class="doc-head"><span>${esc(t(L, 'birthDoc'))}</span><span class="mono">No. ${esc(birth.seed)}</span></header>
@@ -612,6 +648,7 @@ export function createUI({ lang, robot = false, fast = false }) {
         <h2>${esc(birthLine(birth, L))}</h2>
         ${prev ? `<p>${esc(t(L, 'wander', birth.year - prev.death.year))}</p>` : ''}
         ${prev && prev.note ? `<p class="quote">${esc(t(L, 'lastWords'))} · “${esc(prev.note)}”</p>` : ''}
+        ${heirloom && HEIRLOOMS[heirloom] ? `<div style="margin:8px 0;padding:6px 14px;background:rgba(226,182,94,.14);border:1px solid rgba(226,182,94,.4);border-radius:8px;font-size:12.5px;color:var(--gold2);display:inline-flex;align-items:center;gap:6px"><span>${HEIRLOOMS[heirloom].icon}</span><b>${esc(L === 'ko' ? '물려받은 가보' : 'Inherited Heirloom')}:</b> ${esc(HEIRLOOMS[heirloom].name[L])} · ${esc(HEIRLOOMS[heirloom].desc[L])}</div>` : ''}
         ${traces.length ? `<div class="chips">${traces.map(badge).join('')}</div>` : ''}
         <dl class="fields">
           ${field(t(L, 'f_era'), eraOf(birth.year)[L])}${field(t(L, 'f_year'), fmtYear(birth.year, L))}
@@ -686,14 +723,16 @@ export function createUI({ lang, robot = false, fast = false }) {
     $('age').textContent = life.age;
     $('when').textContent = `${fmtYear(life.year, L)} · ${AREAS[b.area].short[L]}`;
     const lv = (x) => traceLevel(life.traceBoost, traceKey(x));
-    const tk = L + '|' + life.traces.map((x) => `${traceKey(x)}:${lv(x)}`).join(',');
+    const tk = L + '|' + (life.heirloom || '') + '|' + life.traces.map((x) => `${traceKey(x)}:${lv(x)}`).join(',');
     if (tk !== trKey) {   // 앞 생의 흔적 구슬 (누르면 이름) + 짙음 표시 ●○○ (모닥불에서 푸른 메아리를 꿸 때마다 한 칸, 많아도 ●●●)
       const grew = trKey && trKey.split('|')[0] === L;
       trKey = tk;
-      $('traceBeads').innerHTML = life.traces.length ? `<span>${esc(t(L, 'trace'))}</span>${life.traces.map((x) => {
+      const heirloomHtml = life.heirloom && HEIRLOOMS[life.heirloom] ? `<span class="tri heirloom"><button class="tb" data-tr="${esc(HEIRLOOMS[life.heirloom].name[L])}: ${esc(HEIRLOOMS[life.heirloom].desc[L])}" title="${esc(HEIRLOOMS[life.heirloom].name[L])}: ${esc(HEIRLOOMS[life.heirloom].desc[L])}" aria-label="${esc(HEIRLOOMS[life.heirloom].name[L])}">${HEIRLOOMS[life.heirloom].icon}</button></span>` : '';
+      const beadsHtml = life.traces.map((x) => {
         const n = lv(x), s = `${traceText(x, L)} · ${t(L, 'traceLevel', n)}`;
         return `<span class="tri${n > 1 ? ' deep' : ''}"><button class="tb" data-tr="${esc(s)}" title="${esc(s)}" aria-label="${esc(s)}"></button><span class="tlv" aria-hidden="true">${[1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span></span>`;
-      }).join('')}` : '';
+      }).join('');
+      $('traceBeads').innerHTML = (life.traces.length || life.heirloom) ? `<span>${esc(t(L, 'trace'))}</span>${heirloomHtml}${beadsHtml}` : '';
       if (grew && !reduced()) { const box = $('traceBeads'); box.classList.remove('pulse'); void box.offsetWidth; box.classList.add('pulse'); }   // 짙어지면 한 번 반짝
     }
     // 수치 판: 건강·재산·곁·마음 = 숫자 · 막대 · 구체적인 한 줄 (상태 낱말·앓은 일 / 그 땅 단위 살림 / 짝·아이·이웃 / 마음 낱말)
@@ -971,7 +1010,20 @@ export function createUI({ lang, robot = false, fast = false }) {
         <h3>${esc(t(L, 'mapTitle'))}</h3>${mapHtml(life, e0)}
         <h3>${esc(t(L, 'survTitle'))}</h3>${survSvg(sh, d.age)}
         <h3>${esc(t(L, 'peersTitle'))}</h3><ul class="peers">${peers.map((p) => `<li>${esc(peerLine(p, 999, L))}</li>`).join('')}</ul>
-        ${soul && !now ? `<h3>${esc(t(L, 'gained'))}</h3><div class="chips">${soul.traces.length ? soul.traces.map(badge).join('') : esc(t(L, 'noneGained'))}</div>` : ''}
+        ${soul && !now ? `<h3>${esc(t(L, 'gained'))}</h3><div class="chips">${soul.traces.length ? soul.traces.map(badge).join('') : esc(t(L, 'noneGained'))}</div>
+        <div class="legacy-card" style="margin:14px 0;padding:12px 16px;background:rgba(226,182,94,.1);border:1px solid rgba(226,182,94,.38);border-radius:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <div>
+            <span style="font-weight:700;color:var(--gold2);font-size:13.5px">🏺 ${esc(L === 'ko' ? '윤회의 유산 (Soul Legacy)' : 'Soul Legacy')}</span>
+            <div style="font-size:12px;color:var(--ink-soft);margin-top:2px">
+              ${esc(L === 'ko' ? `생애 최종 재산: ${Math.round(life.stats.wealth)} pt` : `Final Wealth: ${Math.round(life.stats.wealth)} pt`)}
+            </div>
+          </div>
+          <div>
+            <span style="font:700 13px var(--serif);color:#2e7d32;background:rgba(46,125,50,.1);padding:4px 10px;border-radius:6px;border:1px solid rgba(46,125,50,.25)">
+              ${esc(L === 'ko' ? (computeLegacyWealthBonus(life.stats.wealth) > 0 ? `다음 생 불씨 덤 +${computeLegacyWealthBonus(life.stats.wealth)}pt` : '다음 생 가보 계승 가능') : (computeLegacyWealthBonus(life.stats.wealth) > 0 ? `+${computeLegacyWealthBonus(life.stats.wealth)}pt Embers Next Life` : 'Heirloom Unlocked'))}
+            </span>
+          </div>
+        </div>` : ''}
         ${ended ? `<p class="obit"><b>${esc(epilogueText(soul, L))}</b></p>` : ''}
         ${soul ? `<label>${esc(t(L, ended ? 'toLifeEnd' : 'toLife'))}<textarea id="toLife" maxlength="140" rows="2" placeholder="${esc(t(L, 'toLifePh'))}"></textarea></label>` : ''}
         <div class="btns">${first}<button data-v="share">${esc(t(L, 'share'))}</button>
