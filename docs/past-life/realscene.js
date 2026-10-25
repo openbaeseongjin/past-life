@@ -37,6 +37,7 @@ import { lerp, smooth, rng, hash2, fbm, obb, obbLocal, obbHas, VC, WATER_Y, RIVE
 import { planPeople, peopleSeed, PEOPLE_DEFAULT, paletteOf, dressVariant } from './peopleplan.js';
 import { createPeople, touchPeople, sweepPeople, peopleCacheSize, preloadPeople } from './realpeople.js';
 import { stageOf, stageSeed, builtKit, sceneKitOf, LAND_LOOK, morphologyOf } from './lands.js';
+import { cardFocusOf, cardWorkSpotOf } from './cardscene.js';
 import { t as tr } from './i18n.js';
 
 const EZTREE = '@dgreenheck/ez-tree';   // importmap 이름 (look-real.html·index.html: ez-tree 1.1.0 build/ez-tree.es.js)
@@ -2187,8 +2188,8 @@ export function createStage(canvas) {
   function activity() {
     const a = st.age, b = st.birth, S = W.spots, h = b.household, m = b.sex !== 'f';
     const stage = a < 13 ? 'child' : a < 60 ? 'grown' : 'old';
-    let f = st.focus || 'work';
-    if (a < 6) f = a < 3 || a % 2 === 0 ? 'family' : 'body';
+    let f = st.card ? cardFocusOf(st.card) : (st.focus || 'work');
+    if (!st.card && a < 6) f = a < 3 || a % 2 === 0 ? 'family' : 'body';
     // 곁 사람 (가족): 내 나이에 맞춰 부모·짝·아이·손주
     const fam = () => (stage === 'child' ? [['f_apron', 'talk'], [m ? 'm_field' : 'm_tunic', 'talk'], ['child', 'stand']]
       : stage === 'grown' ? (a < 22 ? [['f_apron', 'talk'], ['elder', 'talk']] : [[m ? 'f_apron' : 'm_tunic', 'talk'], ['child', 'stand'], ['elder', 'talk']])
@@ -2223,9 +2224,15 @@ export function createStage(canvas) {
     if (f === 'body') return { key: 'lane', spot: S.lane, action: 'walk' };   // 노인은 굽은 등·지팡이로 천천히
     if (f === 'rest') return S.bench.tree || a < 13 ? { key: 'tree', spot: S.bench.stand || S.bench, action: 'stand' } : { key: 'bench', spot: S.bench, action: 'sit' };
     if (f === 'learn') return { key: 'church', spot: S.church, action: 'talk', mates: a < 13 ? [['m_hood', 'talk'], ['child', 'stand']] : [['m_hood', 'talk']] };
+    // 카드 고유 일터 스팟 매칭
+    const cSpot = st.card ? cardWorkSpotOf(st.card) : null;
+    if (cSpot === 'market' && S.market) return { key: 'market', spot: S.market, action: 'talk', mates: [['f_cloak', 'talk', S.market.mate]] };
+    if (cSpot === 'forge' && S.forge) return { key: 'forge', spot: S.forge, action: 'kneel' };
+    if (cSpot === 'shore' && S.shore) return { key: 'shore', spot: S.shore, action: 'kneel' };
+    if (cSpot === 'field' && S.field) return { key: 'field', spot: S.field, action: W.sc.recipe.camp ? 'kneel' : 'hoe' };
     // 일: 집안에 따라 (아이는 집안 돕기 = 텃밭, 노인은 소일거리 = 텃밭)
     if (stage !== 'grown') return { key: 'garden', spot: S.garden, action: 'kneel' };
-    if (h === 'farm' || h === 'herd' || h === 'band') return { key: 'field', spot: S.field, action: W.sc.recipe.camp ? 'kneel' : 'hoe' };   // 농사 전 야영: 들에서 캐고 줍는다
+    if (h === 'farm' || h === 'herd' || h === 'band') return { key: 'field', spot: S.field, action: W.sc.recipe.camp ? 'kneel' : 'hoe' };   // 농사 전 야영: 들에서 캐고 줍는다   // 농사 전 야영: 들에서 캐고 줍는다
     if (h === 'craft' || h === 'factory') return { key: 'forge', spot: S.forge, action: 'kneel' };
     if (h === 'trade' || h === 'shop') return { key: 'market', spot: S.market, action: 'talk', mates: [['f_cloak', 'talk', S.market.mate]] };
     if (h === 'fish' || h === 'sail') return { key: 'shore', spot: S.shore, action: 'kneel' };
@@ -2653,7 +2660,9 @@ export function createStage(canvas) {
       spawnMe(false);
     },
     // 올해의 패 (work·learn·family·body·rest, 고르지 않았으면 main 이 정한 저절로 값) → 내 사람이 하는 일·자리
-    setFocus(id) { st.focus = id || null; spawnMe(false); },
+    setFocus(id) { st.focus = id || null; st.card = null; spawnMe(false); },
+    // 카드 등장 시 카드 상황에 맞춘 현장 연출
+    setCardFocus(card) { st.card = card || null; spawnMe(false); },
     setPhase(name) { setTimeGoal(name); },
     // 모닥불 (5·15·30·50·70살): 켜면 불 + 내 사람이 불가에 + 카메라가 사람과 불을 함께. ghost 면 건너편에 앞 생의 푸른 불씨. 끄면 되돌린다
     setCampfire(on, ghost = false) {

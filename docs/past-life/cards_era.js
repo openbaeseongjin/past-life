@@ -368,7 +368,7 @@ export const ERA_CARDS = [
     ] },
   // 바다 건너 일하러 가던 곳: 서유럽(아메리카·아시아로), 중국 남부(동남아로), 인도·벵골(뱃사람), 아라비아(인도양으로)
   { id: 'e.early.adult.overseas', route: 'voyager', routeStep: 2, stage: 'adult',
-    when: { eraGroups: ['early'], areas: ['china', 'india', 'bengal', 'arabia', 'france', 'italy', 'germany', 'iberia', 'britain', 'nordic'] },
+    when: { eraGroups: ['early'], coast: true, areas: ['china', 'india', 'bengal', 'arabia', 'france', 'italy', 'germany', 'iberia', 'britain', 'nordic'] },
     title: { ko: '바다 건너 일자리', en: 'Work across the sea' },
     text: { ko: '신대륙 무역선에서 선원을 구한대요. 풍랑을 넘기만 하면 거대한 부를 쥘 수 있대요.', en: 'A merchant ship seeks hands for the New World. Fortunes await those who brave the seas.' },
     choices: [
