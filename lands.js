@@ -19,6 +19,18 @@ export const KITS = ['england', 'mudbrick', 'eastasia', 'southasia', 'africa', '
 export const ERAS = ['forager', 'ancient', 'medieval', 'early', 'industrial', 'modern'];   // births.js groupOf 의 묶음과 같은 이름
 export const SETTINGS = ['village', 'camp', 'street', 'estate', 'shore', 'factory'];
 export const BUILT_KITS = ['england', 'southasia', 'eastasia', 'mudbrick'];
+export const MORPHOLOGIES = ['england', 'eastasia', 'mudbrick', 'southasia', 'steppe'];
+
+// 문화권·시대·장소에 따른 5대 마을 형태(골격)
+export function morphologyOf(stage) {
+  if (!stage) return 'england';
+  const { kit, era, setting } = stage;
+  if (era === 'forager' || setting === 'camp' || kit === 'steppe') return 'steppe';
+  if (kit === 'eastasia') return 'eastasia';
+  if (kit === 'mudbrick') return 'mudbrick';
+  if (kit === 'southasia') return 'southasia';
+  return 'england';
+}
 
 // 집안(households.js 의 id) → 사는 자리. serve 는 큰 집의 하인이라 estate
 export const HOUSEHOLD_SETTING = {

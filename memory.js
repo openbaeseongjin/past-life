@@ -7,7 +7,7 @@ import { groupOf, eraOf } from './births.js';
 import { traceKey } from './traces.js';
 
 // 점수: 식구 일·사건·갈림길 결정 3, 작은 일 줄 1. 이미 뽑은 kind 는 −2 (같으면 아직 안 뽑은 kind 가 먼저)
-export const MEMORY_SCORE = { kin: 3, event: 3, decision: 3, line: 1 };
+export const MEMORY_SCORE = { kin: 3, event: 3, decision: 3, tenacity: 4, line: 1 };
 const SAME_KIND = -2;
 export const ECHO_KIND = 'echo';
 
@@ -199,6 +199,7 @@ const ICON_OF_ABOUT = { wed: 'rings', baby: 'cradle', event: 'flame' };
 function iconOf(e) {
   if (e.kind === 'kin') return e.kin === 'wed' ? 'rings' : 'cradle';
   if (e.kind === 'event') return 'flame';
+  if (e.kind === 'tenacity') return 'flame';
   if (e.kind === 'decision') return ICON_OF_ABOUT[e.about] || 'sign';
   return 'scroll';
 }

@@ -1,6 +1,7 @@
 // 카드 고르기 (설계 5장): 정해진 나이 13칸, 조건에 맞는 카드 가운데 가중치대로
 import { sub } from './rng.js';
 import { traceKey } from './traces.js';
+import { routeWeightBonus } from './routes.js';
 
 export const STAGES = ['baby', 'child', 'teen', 'adult', 'middle', 'old'];
 export const stageOf = (age) => (age < 5 ? 'baby' : age < 13 ? 'child' : age < 20 ? 'teen' : age < 40 ? 'adult' : age < 60 ? 'middle' : 'old');
@@ -55,17 +56,21 @@ export function condOk(w, ctx) {
   if (w.war != null && !(ctx.war >= w.war)) return false;
   if (w.setting != null && ![].concat(w.setting).includes(ctx.setting)) return false;
   if (w.zones && !w.zones.includes(ctx.zone)) return false;
+  if (w.route && (!ctx.route || ctx.route.id !== w.route)) return false;
+  if (w.minRouteStep != null && (!ctx.route || ctx.route.step < w.minRouteStep)) return false;
+  if (w.maxRouteStep != null && (!ctx.route || ctx.route.step > w.maxRouteStep)) return false;
   return true;
 }
 
-// 가중치: 기본 1 (card.weight), 시대·지역·땅·집안(문화권·사는 자리 포함)이 정해진 카드 ×2, 흔적 카드 ×3
-function weightOf(card) {
+// 가중치: 기본 1 (card.weight), 시대·지역·땅·집안(문화권·사는 자리 포함)이 정해진 카드 ×2, 흔적 카드 ×3, 생애 루트 다음 단계 ×5
+function weightOf(card, ctx) {
   const w = card.when || {};
   let k = card.weight ?? 1;
   if (w.eraGroups || w.eras || w.regions || w.areas || w.tags || w.zones || w.setting) k *= 2;
   if (w.trace) k *= 3;
+  if (ctx && ctx.route && card.route) k *= routeWeightBonus(card, ctx.route);
   return k;
 }
 export function pickCard(deck, ctx, rng) {
-  return rng.weighted(deck.filter((c) => eligible(c, ctx)), weightOf);
+  return rng.weighted(deck.filter((c) => eligible(c, ctx)), (c) => weightOf(c, ctx));
 }

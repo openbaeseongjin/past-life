@@ -35,8 +35,9 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { KIT_DIMS, PROP_DIMS, KIT_SETS, TREES_SA, BUSHES_SA, TREE_GLB_SA, TREES_EA, BUSHES_EA, TREE_GLB_EA } from './kitdata.js';
 import { lerp, smooth, rng, hash2, fbm, obb, obbLocal, obbHas, VC, WATER_Y, RIVER_HW, RIVER, BRIDGE, CHURCH, CHURCHYARD, SMITHY, MILL, WELL, GREEN, LANES, VIEW_CLEAR, inRect, smoothLine, polyCum, polyAt, makeEnv, planVillage, planDressing, recipeFor, flavorOf, dressSeed } from './villageplan.js';
 import { planPeople, peopleSeed, PEOPLE_DEFAULT, paletteOf, dressVariant } from './peopleplan.js';
-import { createPeople, touchPeople, sweepPeople, peopleCacheSize } from './realpeople.js';
-import { stageOf, stageSeed, builtKit, sceneKitOf, LAND_LOOK } from './lands.js';
+import { createPeople, touchPeople, sweepPeople, peopleCacheSize, preloadPeople } from './realpeople.js';
+import { stageOf, stageSeed, builtKit, sceneKitOf, LAND_LOOK, morphologyOf } from './lands.js';
+import { cardFocusOf, cardWorkSpotOf } from './cardscene.js';
 import { t as tr } from './i18n.js';
 
 const EZTREE = '@dgreenheck/ez-tree';   // importmap 이름 (look-real.html·index.html: ez-tree 1.1.0 build/ez-tree.es.js)
@@ -135,9 +136,13 @@ const QUALITY = {
 
 // 텍스처는 그리개마다 한 번만 받는다 (게임에서 생이 바뀌어 장면을 다시 지어도 같은 텍스처를 쓴다)
 const texCaches = new WeakMap();
-// 시드와 상관없는 무거운 계산 (지형 정점, 먼 땅 그림, 강·길·밭 색인): 한 번 만들어 장면 사이에 함께 쓴다
-const SHARED = { env: null, far: null, terrain: null };
-const sharedEnv = () => SHARED.env || (SHARED.env = makeEnv());
+// 시드와 상관없는 무거운 계산 (지형 정점, 먼 땅 그림, 강·길·밭 색인): 골격별로 한 번 만들어 장면 사이에 함께 쓴다
+const SHARED = { envs: new Map(), fars: new Map(), terrains: new Map() };
+const sharedEnv = (morph = 'england') => {
+  let e = SHARED.envs.get(morph);
+  if (!e) SHARED.envs.set(morph, e = makeEnv(morph));
+  return e;
+};
 
 // ───────────────────────── 마을 짜기·꾸미기 (villageplan.js, three 없는 순수 모듈) ─────────────────────────
 // 집 자리 planVillage(seed, env) 와 소품·가축·나무 자리 규칙은 villageplan.js 에 있다 (Node 시험: test/villageplan.test.mjs).
@@ -205,6 +210,25 @@ export function loadKit(url) {
   kitCache.set(url, p);
   p.catch(() => kitCache.delete(url));
   return p;
+}
+export function preloadAssets(birth) {
+  try {
+    if (!birth) return;
+    const stage = stageOf(birth);
+    const kitName = sceneKitOf(stage);
+    const KIT = KIT_SETS[kitName] ? kitName : 'england';
+    const KS = KIT_SETS[KIT];
+    if (!KS) return;
+    const FL = flavorOf(KIT, stage.variant), FLV = (FL && KS.flavors && KS.flavors[FL]) || null;
+    const kitUrl = ASSET + 'kits/' + ((FLV && FLV.kit) || KS.kit) + '.glb';
+    const propsUrl = ASSET + 'kits/' + KS.props + '.glb';
+    const people = (FLV && FLV.people) || KS.people;
+    const peopleUrl = ASSET + 'people/' + people + '.glb';
+    loadKit(kitUrl);
+    loadKit(propsUrl);
+    if (KS.trees) loadKit(ASSET + 'kits/' + KS.trees + '.glb');
+    preloadPeople(peopleUrl, ASSET + 'people/anims.glb');
+  } catch (e) {}
 }
 // 양자화된(정수) 속성을 Float32 로 풀어 새 지오메트리로 (행렬을 곱해 합치려고)
 // 다음 일거리로 넘긴다 (세트·나무를 캐시에서 바로 받아도 짓기를 여러 덩어리로 나눠, 한 번에 오래 멈추지 않게)
@@ -531,8 +555,9 @@ export function createRealScene(canvas, opts = {}) {
   const KIT_URL_S = opts.kitUrl || ASSET + 'kits/' + ((FLV && FLV.kit) || KS.kit) + '.glb', PROPS_URL_S = opts.propsUrl || ASSET + 'kits/' + KS.props + '.glb';
   const TREE_KEY = (opts.land || 'temperate') + '|' + KIT;
   const P = landPreset(PRESETS[presetKey(opts.era, opts.region, KIT)], opts.land), LD = P.land;
-  const QL = QUALITY[opts.quality] || QUALITY.high;
-  const state = { time: opts.timeOfDay ?? 7, post: opts.post ?? true, ao: opts.ao ?? QL.ao, bloom: opts.bloom ?? true, orbit: false, disposed: false, view: opts.view || 'overview', quality: QUALITY[opts.quality] ? opts.quality : 'high' };
+  const QL = QUALITY[opts.quality] || QUALITY.normal;
+  const state = { time: opts.timeOfDay ?? 7, post: opts.post ?? true, ao: opts.ao ?? QL.ao, bloom: opts.bloom ?? true, orbit: false, disposed: false, view: opts.view || 'overview', quality: QUALITY[opts.quality] ? opts.quality : 'normal' };
+  const quality = state.quality;
 
   const ownRenderer = !opts.renderer;
   const renderer = opts.renderer || new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
@@ -543,7 +568,7 @@ export function createRealScene(canvas, opts = {}) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.shadowMap.autoUpdate = false;           // 그림자는 몇 프레임에 한 번 (정적 장면 + 작은 사람들)
-  const SHADOW_EVERY = opts.shadowEvery ?? 3;
+  const SHADOW_EVERY = opts.shadowEvery ?? (quality === 'normal' ? 6 : 3);
   let frameNo = 0;
 
   const scene = new THREE.Scene();
@@ -619,8 +644,9 @@ export function createRealScene(canvas, opts = {}) {
 
   // ── 지형 높이 ── (강·길 거리 색인과 밭 조각보는 villageplan.makeEnv: 꾸미기 규칙·Node 시험과 같은 것)
   const TB = performance.now(), times = {};
-  const ENV = sharedEnv();
-  const { riverIdx, roadIdx, roadLines, FS, FN, FOFF, gp, fieldType, findCell, hedgeOn, fieldAt } = ENV;
+  const morph = morphologyOf({ kit: KIT, era: opts.era, setting: opts.setting, area: opts.area });
+  const ENV = sharedEnv(morph);
+  const { riverIdx, roadIdx, roadLines, FS, FN, FOFF, gp, fieldType, findCell, hedgeOn, fieldAt, cellType, cellTint, cellAng } = ENV;
   function baseHeight(x, z) {
     const d = Math.hypot(x - VC.x, z - VC.z);
     let h = 0.9 + 0.9 * fbm(x / 60, z / 60, 3, 4);
@@ -636,7 +662,8 @@ export function createRealScene(canvas, opts = {}) {
   function heightAt(x, z) {
     let h = baseHeight(x, z);
     const dr = riverIdx.edge(x, z);                 // 강 중심선까지 (w=0)
-    const bank = dr < RIVER_HW ? lerp(-2.4, -0.1, (dr / RIVER_HW) ** 2) : -0.1 + (dr - RIVER_HW) * 0.1 + Math.max(0, dr - 60) ** 2 * 0.0025;
+    const riverHw = ENV.riverHw || RIVER_HW;
+    const bank = dr < riverHw ? lerp(-2.4, -0.1, (dr / riverHw) ** 2) : -0.1 + (dr - riverHw) * 0.1 + Math.max(0, dr - 60) ** 2 * 0.0025;
     if (dr < 419 && bank < h) h = bank;
     const dRoad = roadIdx.edge(x, z);
     if (dRoad < 1.5) h -= 0.12 * (1 - Math.max(0, dRoad) / 1.5);
@@ -663,10 +690,10 @@ export function createRealScene(canvas, opts = {}) {
     let soil = 0, wheat = 0, path = 0, ang = 0, tint = 0.5, hedge = 0;
     const cell = findCell(x, z);
     if (cell) {
-      const ty = fieldType(cell.i, cell.j);
-      tint = hash2(cell.i, cell.j, 14);
-      const a = gp[cell.j][cell.i], b = gp[cell.j][cell.i + 1];
-      ang = ((Math.atan2(b[1] - a[1], b[0] - a[0]) + (hash2(cell.i, cell.j, 15) < 0.5 ? 0 : Math.PI / 2)) / Math.PI + 2) % 1;
+      const idx = cell.j * FN + cell.i;
+      const ty = cellType ? cellType[idx] : fieldType(cell.i, cell.j);
+      tint = cellTint ? cellTint[idx] : hash2(cell.i, cell.j, 14);
+      ang = cellAng ? cellAng[idx] : 0;
       const inner = smooth(2.5, 6, cell.edge);       // 밭 가장자리는 풀 (두렁)
       if (ty === 2) wheat = inner; else if (ty === 3) soil = inner; else if (ty === 4) { wheat = 0.35 * inner; tint = 0.1 + tint * 0.2; }
       if (ty !== 0) hedge = 1 - smooth(1.5, 6.5, cell.edge);
@@ -702,17 +729,21 @@ export function createRealScene(canvas, opts = {}) {
   }
   const buildSplat = (cx, cz, size, N) => splatTex(splatData(cx, cz, size, N));
   const T0 = performance.now();
-  const near = buildSplat(VC.x, VC.z, 700, 1024);
-  // 먼 땅 그림(7 km)은 시드와 상관없다 (텃밭·밟힌 흙은 가까운 그림에만): 한 번 만든 값을 생 사이에 함께 쓴다
-  const far = SHARED.far ? splatTex(SHARED.far) : splatTex(SHARED.far = splatData(VC.x, VC.z, 7000, 1536));
+  const nearN = quality === 'normal' ? 384 : 512;
+  const near = buildSplat(VC.x, VC.z, 700, nearN);
+  // 먼 땅 그림(7 km)은 시드와 상관없다 (텃밭·밟힌 흙은 가까운 그림에만): 골격마다 한 번 만든 값을 생 사이에 함께 쓴다
+  let farData = SHARED.fars.get(morph);
+  if (!farData) SHARED.fars.set(morph, farData = splatData(VC.x, VC.z, 7000, 512));
+  const far = splatTex(farData);
   const splatMs = performance.now() - T0;
   disposables.push(near.splat, near.info, far.splat, far.info);
 
   // ── 지형 메시 (가운데가 촘촘한 격자) ──
   const TL = 9000, TN = 460;
   function buildTerrainGeo() {
-    // 지형 높이는 시드와 상관없다: 정점·노멀·색인을 한 번 만들어 생 사이에 함께 쓴다 (지오메트리는 장면마다 새로, 배열만 나눔)
-    if (SHARED.terrain) { const t = SHARED.terrain, g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(t.pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(t.nrm, 3)); g.setIndex(new THREE.BufferAttribute(t.idx, 1)); return g; }
+    // 지형 높이는 시드와 상관없다: 골격별로 정점·노멀·색인을 한 번 만들어 생 사이에 함께 쓴다 (지오메트리는 장면마다 새로, 배열만 나눔)
+    const cachedT = SHARED.terrains.get(morph);
+    if (cachedT) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(cachedT.pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(cachedT.nrm, 3)); g.setIndex(new THREE.BufferAttribute(cachedT.idx, 1)); return g; }
     const warp = (s) => TL * (0.034 * s + 0.966 * s * s * s * s * s);
     const xs = []; for (let i = 0; i <= TN; i++) xs.push(warp(-1 + 2 * i / TN));
     const pos = new Float32Array((TN + 1) * (TN + 1) * 3);
@@ -726,7 +757,7 @@ export function createRealScene(canvas, opts = {}) {
       idx[n++] = a; idx[n++] = c; idx[n++] = b; idx[n++] = b; idx[n++] = c; idx[n++] = d;
     }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setIndex(new THREE.BufferAttribute(idx, 1)); g.computeVertexNormals();
-    SHARED.terrain = { pos, idx, nrm: g.attributes.normal.array };
+    SHARED.terrains.set(morph, { pos, idx, nrm: g.attributes.normal.array });
     return g;
   }
   times.splat = Math.round(splatMs);
@@ -1027,7 +1058,9 @@ export function createRealScene(canvas, opts = {}) {
     for (const g of geo) add('bridgeWood', g.index ? g : g, M);
     occAdd(B.x, B.z, 12);
   }
-  if (RC.bridge === 'timber') buildBridgeTimber(); else buildBridge();
+  if (ENV.bridge === null) {
+    // 다리 없음 (외나무다리/징검다리 또는 열린 평원)
+  } else if (RC.bridge === 'timber') buildBridgeTimber(); else buildBridge();
 
 
   // 재질별 합치기
@@ -1130,19 +1163,24 @@ export function createRealScene(canvas, opts = {}) {
           transformed.x += sin(uTime * 1.7 + ph) * 0.08 * uv.y; transformed.z += cos(uTime * 1.3 + ph) * 0.06 * uv.y;`);
       sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', THREE.ShaderChunk.normal_fragment_begin.replace('normal *= faceDirection;', ''));
     })(mat.onBeforeCompile);
-    const BASE = Math.round(140000 * Math.min(1.3, LD.tufts)), COUNT = BASE + 26000, im = new THREE.InstancedMesh(geo, mat, COUNT), r = rng(4), m4 = new THREE.Matrix4(), c = new THREE.Color();
-    let n = 0, tries = 0;
-    while (n < BASE && tries < BASE * 4) {
+    const isNormal = quality === 'normal';
+    const baseTarget = isNormal ? 45000 : 75000;
+    const BASE = Math.round(baseTarget * Math.min(1.3, LD.tufts)), COUNT = BASE + (isNormal ? 15000 : 25000);
+    const scaleMul = isNormal ? 1.35 : 1.25;
+    const im = new THREE.InstancedMesh(geo, mat, COUNT), r = rng(4), m4 = new THREE.Matrix4(), c = new THREE.Color();
+    let n = 0, tries = 0, maxTries = BASE * 3;
+    while (n < BASE && tries < maxTries) {
       tries++;
       // 절반 남짓은 마을·풀밭 가까이(95 m 안)에 촘촘히
       const ang = r() * Math.PI * 2, rad = r() < 0.55 ? Math.sqrt(r()) * 95 : Math.sqrt(r()) * 190, x = VC.x - 30 + Math.cos(ang) * rad * 1.15, z = VC.z + 40 + Math.sin(ang) * rad;
-      if (roadIdx.edge(x, z) < 0.6 || riverIdx.edge(x, z) < RIVER_HW - 0.5) continue;
+      if (riverIdx.edge(x, z) < RIVER_HW - 0.5) continue;
+      if (roadIdx.edge(x, z) < 0.6) continue;
       if (occHit(x, z, -2)) continue;
-      const cell = findCell(x, z); if (cell && fieldType(cell.i, cell.j) === 3 && cell.edge > 5) continue;
+      const cell = findCell(x, z); if (cell && (cellType ? cellType[cell.j * FN + cell.i] : fieldType(cell.i, cell.j)) === 3 && cell.edge > 5) continue;
       // 풀 밀도를 잡음으로 묶는다: 고르게 흩어진 점박이 대신 덤불진 곳과 성긴 곳
       const dens = 0.5 + 0.5 * fbm(x / 13, z / 13, 3, 21);
       if (r() > 0.25 + 0.75 * smooth(0.3, 0.7, dens)) continue;
-      const s = (0.13 + r() * 0.22) * (0.75 + 0.6 * dens);   // 작고 촘촘한 포기 (뭉친 곳은 크게)
+      const s = (0.13 + r() * 0.22) * (0.75 + 0.6 * dens) * scaleMul;   // 작고 촘촘한 포기 (뭉친 곳은 크게)
       m4.compose(_v1.set(x, heightAt(x, z) - 0.04, z), _q.setFromAxisAngle(_v2.set(0, 1, 0), r() * 6.28), _s.set(s * 1.3, s, s * 1.3));
       im.setMatrixAt(n, m4); c.setRGB(0.85 + r() * 0.25, 0.9 + r() * 0.2, 0.75 + r() * 0.25); im.setColorAt(n, c); n++;
     }
@@ -1152,7 +1190,7 @@ export function createRealScene(canvas, opts = {}) {
       for (let q = 0; q < k && n < COUNT; q++) {
         const a = r() * Math.PI * 2, d = Math.sqrt(r()) * cr, x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
         if (roadIdx.edge(x, z) < 0.3) continue;
-        const s = (0.5 + r() * 0.45) * (1 - 0.35 * d / cr);
+        const s = (0.5 + r() * 0.45) * (1 - 0.35 * d / cr) * scaleMul;
         m4.compose(_v1.set(x, heightAt(x, z) - 0.04, z), _q.setFromAxisAngle(_v2.set(0, 1, 0), r() * 6.28), _s.set(s * 1.1, s * 1.45, s * 1.1));
         im.setMatrixAt(n, m4); c.setRGB(0.88 + r() * 0.3, 0.86 + r() * 0.2, 0.55 + r() * 0.25); im.setColorAt(n, c); n++;
       }
@@ -1161,19 +1199,19 @@ export function createRealScene(canvas, opts = {}) {
     // 들꽃 포기: 키 큰 풀 무더기 둘레와 풀밭 군데군데 (잡음이 높은 곳에 무리 지어)
     const ftex = flowerTex(); disposables.push(ftex);
     const fmat = mat.clone(); fmat.map = ftex; fmat.color = new THREE.Color(1, 1, 1); fmat.onBeforeCompile = mat.onBeforeCompile; fmat.customProgramCacheKey = mat.customProgramCacheKey; disposables.push(fmat);
-    const FC = Math.max(200, Math.round(16000 * LD.flowers)), fl = new THREE.InstancedMesh(geo, fmat, FC); let fn = 0;
-    const flower = (x, z, s) => { if (fn >= FC || roadIdx.edge(x, z) < 0.4 || riverIdx.edge(x, z) < RIVER_HW) return;
+    const FC = Math.max(200, Math.round((isNormal ? 8000 : 14000) * LD.flowers)), fl = new THREE.InstancedMesh(geo, fmat, FC); let fn = 0;
+    const flower = (x, z, s) => { if (fn >= FC || riverIdx.edge(x, z) < RIVER_HW || roadIdx.edge(x, z) < 0.4) return;
       m4.compose(_v1.set(x, heightAt(x, z) - 0.03, z), _q.setFromAxisAngle(_v2.set(0, 1, 0), r() * 6.28), _s.set(s * 1.1, s, s * 1.1)); fl.setMatrixAt(fn++, m4); };
     for (const [cx, cz, cr] of dressing.tall) if (r() < 0.55) for (let q = 0, k = 4 + Math.floor(r() * 9); q < k; q++) { const a = r() * 6.28, d = cr * (0.6 + r() * 0.8); flower(cx + Math.cos(a) * d, cz + Math.sin(a) * d, 0.32 + r() * 0.3); }
-    for (let t = 0; t < 60000 && fn < FC; t++) {
+    for (let t = 0; t < 15000 && fn < FC; t++) {
       const ang = r() * Math.PI * 2, rad = Math.sqrt(r()) * 200, x = VC.x - 30 + Math.cos(ang) * rad * 1.15, z = VC.z + 40 + Math.sin(ang) * rad;
       if (fbm(x / 22, z / 22, 2, 33) < 0.18 || occHit(x, z, -1)) continue;
-      const cell = findCell(x, z); if (cell && fieldType(cell.i, cell.j) > 1 && cell.edge > 5) continue;
+      const cell = findCell(x, z); if (cell && (cellType ? cellType[cell.j * FN + cell.i] : fieldType(cell.i, cell.j)) > 1 && cell.edge > 5) continue;
       flower(x, z, 0.26 + r() * 0.26);
     }
     fl.count = fn; fl.receiveShadow = true; fl.layers.set(1); scene.add(fl);
     // 갈대: 물가를 따라 키 큰 포기
-    const reedN = 7000, reeds = new THREE.InstancedMesh(geo, mat, reedN); let rn = 0;
+    const reedN = isNormal ? 3500 : 5000, reeds = new THREE.InstancedMesh(geo, mat, reedN); let rn = 0;
     for (let k = 0; k < RIVER.length - 1 && rn < reedN; k++) {
       const [x0, z0] = RIVER[k]; if (Math.hypot(x0 - VC.x, z0 - VC.z) > 650) continue;
       const [x1, z1] = RIVER[k + 1], Lg = Math.hypot(x1 - x0, z1 - z0) || 1;
@@ -1438,7 +1476,10 @@ export function createRealScene(canvas, opts = {}) {
     await nextTask();
     if (state.disposed) return;
     const chunks = new Map(), _m = new THREE.Matrix4(), _p = new THREE.Vector3();
+    let pCount = 0;
     for (const pl of placements) {
+      if (++pCount % 6 === 0) await nextTask();
+      if (state.disposed) return;
       const ck = chunkOf(pl); let kbins = chunks.get(ck); if (!kbins) chunks.set(ck, kbins = new Map());
       const root = kit.pieces.get(pl.piece);
       if (!root) throw new Error('세트에 조각이 없다: ' + pl.piece);
@@ -1489,7 +1530,10 @@ export function createRealScene(canvas, opts = {}) {
     const byPiece = new Map();
     for (const it of dressing.items) { let a = byPiece.get(it.p); if (!a) byPiece.set(it.p, a = []); a.push(it); }
     const _m = new THREE.Matrix4(), _p = new THREE.Vector3(), _c = new THREE.Color();
+    let pieceIdx = 0;
     for (const [piece, list] of byPiece) {
+      if (++pieceIdx % 8 === 0) await nextTask();
+      if (state.disposed) return;
       const root = pk.pieces.get(piece); if (!root) throw new Error('소품 세트에 조각이 없다: ' + piece);
       const d = PD[piece] || [1, 1, 1];
       // 바닥 다섯 점의 가장 낮은 땅에 놓는다 (비탈에서 뜨지 않게, 울타리 기둥·담 밑은 땅속으로 이어짐)
@@ -1522,10 +1566,11 @@ export function createRealScene(canvas, opts = {}) {
   // 땅 높이 (다리 위는 다리 길 높이)
   function groundAt(x, z) {
     let y = heightAt(x, z);
-    if (Math.hypot(x - BRIDGE.x, z - BRIDGE.z) < BRIDGE.len / 2 + 0.6) {
-      const u = Math.abs((x - BRIDGE.x) * BRIDGE.dirx + (z - BRIDGE.z) * BRIDGE.dirz);
-      if (RC.bridge === 'timber') { const e = BRIDGE.len / 2 - 1.6; y = Math.max(y, u < e ? BRT.top : lerp(BRT.top, y, Math.min(1, (u - e) / 2.1))); }
-      else if (u < BRIDGE.len / 2) y = Math.max(y, u < BRIDGE.len / 2 - 4.5 ? 2.8 : lerp(2.8, Math.min(y, 0) - 0.4, (u - (BRIDGE.len / 2 - 4.5)) / 4.5));
+    const curBridge = ENV.bridge !== undefined ? ENV.bridge : BRIDGE;
+    if (curBridge && Math.hypot(x - curBridge.x, z - curBridge.z) < curBridge.len / 2 + 0.6) {
+      const u = Math.abs((x - curBridge.x) * curBridge.dirx + (z - curBridge.z) * curBridge.dirz);
+      if (RC.bridge === 'timber') { const e = curBridge.len / 2 - 1.6; y = Math.max(y, u < e ? BRT.top : lerp(BRT.top, y, Math.min(1, (u - e) / 2.1))); }
+      else if (u < curBridge.len / 2) y = Math.max(y, u < curBridge.len / 2 - 4.5 ? 2.8 : lerp(2.8, Math.min(y, 0) - 0.4, (u - (curBridge.len / 2 - 4.5)) / 4.5));
     }
     return y;
   }
@@ -1642,13 +1687,19 @@ export function createRealScene(canvas, opts = {}) {
   //   (게임 무대가 시각을 넘길 때: 처음에 skyColorsAt(목표 시각)으로 두 끝 색을 한 번만 읽고, 사이는 섞은 색을 준다)
   let fogC = new THREE.Color(0xbfd0e0), sunSideC = new THREE.Color(0xffffff);
   const sunDirAt = (h, out) => { const { el, az } = sunAt(h), e = THREE.MathUtils.degToRad(el), a = THREE.MathUtils.degToRad(az); return out.set(Math.sin(a) * Math.cos(e), Math.sin(e), -Math.cos(a) * Math.cos(e)).normalize(); };
+  const skyCache = new Map();
   function skyColorsAt(h) {
+    const key = Math.round(((h % 24) + 24) % 24 * 10);
+    let cached = skyCache.get(key);
+    if (cached) return { fogC: cached.fogC.clone(), sunSide: cached.sunSide.clone() };
     const { el, az } = sunAt(h), azR = THREE.MathUtils.degToRad(az), u = sky2.material.uniforms.sunPosition.value, keep = u.clone();
     sunDirAt(h, u);
     const f = sampleSky(azR + Math.PI / 2, THREE.MathUtils.degToRad(1.5)).lerp(sampleSky(azR - Math.PI / 2, THREE.MathUtils.degToRad(1.5)), 0.5);
     const side = sampleSky(azR, THREE.MathUtils.degToRad(Math.max(1.5, Math.min(el, 6))));
     u.copy(keep);
-    return { fogC: f, sunSide: side };
+    cached = { fogC: f, sunSide: side };
+    skyCache.set(key, cached);
+    return { fogC: f.clone(), sunSide: side.clone() };
   }
   function setTime(h, o = {}) {
     state.time = h;
@@ -1667,9 +1718,9 @@ export function createRealScene(canvas, opts = {}) {
     }
     if (o.colors) { fogC = o.colors.fogC.clone(); sunSideC = o.colors.sunSide.clone(); }
     else if (!o.light) {
-      // 안개 색 = 해와 직각 방향 지평선 하늘색, 해 쪽 색은 해 방향 지평선
-      fogC = sampleSky(azR + Math.PI / 2, THREE.MathUtils.degToRad(1.5)).lerp(sampleSky(azR - Math.PI / 2, THREE.MathUtils.degToRad(1.5)), 0.5);
-      sunSideC = sampleSky(azR, THREE.MathUtils.degToRad(Math.max(1.5, Math.min(el, 6))));
+      // 안개 색 = 캐시된 하늘색 표본 (GPU 파이프라인 동기 락 방지)
+      const col = skyColorsAt(h);
+      fogC = col.fogC; sunSideC = col.sunSide;
     }
     scene.fog.color.copy(fogC);
     FOGU.uFogSunCol.value.copy(sunSideC).lerp(fogC, 0.25); FOGU.uFogSunDir.value.copy(sunDir);
@@ -1702,7 +1753,7 @@ export function createRealScene(canvas, opts = {}) {
   // ── 카메라 ──
   // rel: 높이(pos·look 의 y)가 그 자리 땅에서 잰 값 (마을이 비탈이라 눈높이 시점은 땅을 따른다). 없으면 절대 높이
   const VIEWS = {
-    overview: { pos: [-20, 40, 92], look: [10, -1, -26], fov: 42 },   // 목표 그림 구도: 왼쪽 아래 아치 다리(옆면)·강, 왼쪽 물레방앗간, 가운데 오르막 마을, 오른쪽 교회·대장간, 오른쪽 아래 양, 뒤에 구릉
+    overview: ENV.overview || RC.overview || { pos: [-20, 40, 92], look: [10, -1, -26], fov: 42 },   // 목표 그림 구도
     street: { pos: [-11, 1.7, 8], look: [22, 3.2, -24], fov: 40, rel: true },      // 큰길 눈높이: 양쪽 집줄·길가 풀섶·꽃, 끝에 장터·교회 탑
     dusk: { pos: [23, 7, 55], look: [42, 3, 15], rel: true },
     forge: { pos: [29, 4.5, 44], look: [41, 2, 17], rel: true },          // 대장간 마당 가까이 (화덕 불빛·물통·말·연장 걸이)
@@ -1757,6 +1808,8 @@ export function createRealScene(canvas, opts = {}) {
     await new Promise((r) => setTimeout(r, 0));
     if (state.disposed) return api;
     { const t = performance.now(); grass = buildGrass(); times.grass = Math.round(performance.now() - t); }
+    await nextTask();
+    if (state.disposed) return api;
     const res = await Promise.allSettled([buildTrees(), buildPeople(), buildKit(), buildProps()]);
     if (state.disposed) return api;   // 다 짓기 전에 풀렸다 (게임에서 생이 빨리 바뀜)
     await nextTask();
@@ -1771,6 +1824,7 @@ export function createRealScene(canvas, opts = {}) {
     applyEnvI();
     // 모든 셰이더를 미리 컴파일
     renderer.compile(scene, camera);
+    for (const t of [5.1, 7.4, 12.6, 16.6, 19.05, 21.7]) skyColorsAt(t);
     return api;
   })();
   if (opts.autoStart !== false) frame();
@@ -1787,7 +1841,7 @@ export function createRealScene(canvas, opts = {}) {
     snapshot() { renderOnce(0); return canvas.toDataURL('image/png'); },
     // 게임 무대(createStage)용: 바깥 고리에서 한 프레임 그리기 (autoStart: false 일 때), 땅 높이, 마을 배치, 화질
     renderFrame(dt) { if (state.disposed) return; dt = Math.min(dt, 0.1); tAcc += dt; renderOnce(dt); },
-    heightAt, groundAt, layout, dressing, state, sunDir, fogify, skyColorsAt, kit: KIT, kitDims: KD, propDims: PD, recipe: RC, flavor: FL, peopleUrl, setting: opts.setting || RC.setting || 'village', household: opts.household || null,
+    heightAt, groundAt, layout, dressing, state, sunDir, fogify, skyColorsAt, kit: KIT, kitDims: KD, propDims: PD, recipe: RC, flavor: FL, peopleUrl, setting: opts.setting || RC.setting || 'village', household: opts.household || null, env: ENV,
     skyColors() { return { fogC: fogC.clone(), sunSide: sunSideC.clone() }; },
     setQuality(q) {
       const Q2 = QUALITY[q]; if (!Q2) return;
@@ -1872,8 +1926,8 @@ export function createStage(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
   const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   // 화질: 주소의 ?q=high|normal 은 이번 판에만 (저장하지 않는다. 공유 링크가 받은 사람의 설정을 바꾸지 않게). 없으면 저장된 값(setQuality), 그것도 없으면 높음
-  let quality = 'high';
-  try { const s = JSON.parse(localStorage.getItem(QUALITY_KEY)); if (s === 'high' || s === 'normal') quality = s; } catch (e) { /* 저장소가 없으면 높음 */ }
+  let quality = 'normal';
+  try { const s = JSON.parse(localStorage.getItem(QUALITY_KEY)); if (s === 'high' || s === 'normal') quality = s; } catch (e) { /* 저장소가 없으면 보통 */ }
   try { const q = new URLSearchParams(location.search).get('q'); if (q === 'high' || q === 'normal') quality = q; } catch (e) { /* 주소를 못 읽으면 그대로 */ }
 
   const st = {
@@ -1932,9 +1986,10 @@ export function createStage(canvas) {
   // ── 내 사람이 오가는 길: 마을 골목 가운데 전경 카메라에서 가리지 않고 보이는 18 m 남짓 (시드마다 집이 달라 그때그때 고른다) ──
   function homePath(sc, blk) {
     const cam = sc.camera, _v = new THREE.Vector3();
-    gamePose(cam.position, _v, sc, 0); cam.lookAt(_v); cam.fov = GAME_CAM.fov; cam.updateProjectionMatrix(); cam.updateMatrixWorld();
+    gamePose(cam.position, _v, sc, 0); cam.lookAt(_v); cam.fov = (sc.env && sc.env.overview && sc.env.overview.fov) || GAME_CAM.fov; cam.updateProjectionMatrix(); cam.updateMatrixWorld();
     let best = null;
-    for (const lane of LANES) {
+    const lanes = (sc.env && sc.env.lanes) || LANES;
+    for (const lane of lanes) {
       const pts = smoothLine(lane, 3), cum = polyCum(pts), total = cum[cum.length - 1], run = [];
       const flush = () => {
         if (run.length >= 6) {   // 15 m 넘게 이어 보이는 구간: 화면 가운데(0.5, 0.58)에 가깝고 길수록
@@ -1953,7 +2008,7 @@ export function createStage(canvas) {
       flush();
     }
     if (best) return best.path;
-    const lane = LANES[LANES.length - 1], pts = smoothLine(lane, 3), cum = polyCum(pts), path = [];   // 못 찾으면 다리 어귀 길
+    const fallbackLane = lanes[lanes.length - 1] || LANES[LANES.length - 1], pts = smoothLine(fallbackLane, 3), cum = polyCum(pts), path = [];   // 못 찾으면 안쪽 길
     for (let d = 6; d <= 26; d += 2.5) { const p = polyAt(pts, cum, d); path.push([p.x - p.tz * 0.8, p.z + p.tx * 0.8]); }
     return path;
   }
@@ -1996,15 +2051,47 @@ export function createStage(canvas) {
     const [home, hi] = near.length ? near[Math.floor(r() * Math.min(8, near.length))] : [L.houses[0], 0];
     const S = {};
     const toward = (x, z, tx, tz) => Math.atan2(tx - x, tz - z);
+
+    // 소품·가구와 겹치지 않게 안전한 빈 지면으로 밀어내는 함수
+    const clearSpot = (x, z, minDist = 0.95, ignore = null) => {
+      let cx = x, cz = z;
+      for (let pass = 0; pass < 3; pass++) {
+        let hit = false;
+        for (const it of items) {
+          if (it === ignore) continue;
+          const d = Math.hypot(it.x - cx, it.z - cz);
+          const isLarge = it.p === 'charpai' || it.p === 'bench' || it.p === 'bench_ea' || it.p === 'carpet_mb' || it.p === 'cart_bullock' || (it.p && it.p.includes('bed'));
+          const need = isLarge ? Math.max(minDist, 1.25) : minDist;
+          if (d < need) {
+            hit = true;
+            const pushD = need - d + 0.15;
+            const ang = d > 1e-4 ? Math.atan2(cx - it.x, cz - it.z) : (it.rot != null ? it.rot + Math.PI / 2 : 0);
+            cx += Math.sin(ang) * pushD;
+            cz += Math.cos(ang) * pushD;
+          }
+        }
+        if (!hit) break;
+      }
+      return { x: cx, z: cz };
+    };
+
     // 집 앞 (길 쪽 2.4 m): 가족 이야기·아기
     { const fx = home.x - home.n[0] * (home.D / 2 + 2.4), fz = home.z - home.n[1] * (home.D / 2 + 2.4);
-      S.home = { x: fx, z: fz, face: toward(fx, fz, home.x, home.z) + Math.PI, bg: [home.x, home.z] }; }
+      const cl = clearSpot(fx, fz, 0.95);
+      S.home = { x: cl.x, z: cl.z, face: toward(cl.x, cl.z, home.x, home.z) + Math.PI, bg: [home.x, home.z] }; }
     // 텃밭 (집 뒤뜰의 채소밭 곁에 무릎 꿇기) — 없으면 뒤뜰 가운데
     // 남아시아: 텃밭 대신 마당 아궁이(chulha) 앞, 걸상 대신 끈 침상(charpai)
     const A = sc.recipe.activity, BED = A.bed, SEAT = A.seat, SEAT_H = A.seatH, SITE = sc.recipe.sites;   // 세트별 활동 자리 (villageplan.js RECIPES.*.activity)
     { const bed = items.filter((it) => it.p === BED && it.yard === hi)[0] || items.filter((it) => it.p === BED).sort((a, b) => Math.hypot(a.x - home.x, a.z - home.z) - Math.hypot(b.x - home.x, b.z - home.z))[0];
-      if (bed) { const x = bed.x + Math.sin(bed.rot) * 0.95, z = bed.z + Math.cos(bed.rot) * 0.95; S.garden = { x, z, face: bed.rot + Math.PI, bg: [home.x, home.z] }; }
-      else { const c = home.croft || home.foot; S.garden = { x: c.x, z: c.z, face: 0, bg: [home.x, home.z] }; } }
+      if (bed) {
+        const x = bed.x + Math.sin(bed.rot) * 0.95, z = bed.z + Math.cos(bed.rot) * 0.95;
+        const cl = clearSpot(x, z, 0.9, bed);
+        S.garden = { x: cl.x, z: cl.z, face: bed.rot + Math.PI, bg: [home.x, home.z] };
+      } else {
+        const c = home.croft || home.foot;
+        const cl = clearSpot(c.x, c.z, 1.15);
+        S.garden = { x: cl.x, z: cl.z, face: 0, bg: [home.x, home.z] };
+      } }
     // 밭 (마을에서 150~260 m 의 갈아엎은 밭·밀밭, 마을 사람 괭이질 자리와 20 m 넘게): 괭이질, 뒤로 마을
     { const busy = sc.people.people.filter((P) => P.p.action === 'hoe').map((P) => [P.p.x, P.p.z]);
       const a0 = r() * Math.PI * 2;
@@ -2034,8 +2121,17 @@ export function createStage(canvas) {
     { const sitters = sc.people.people.filter((P) => P.p.action === 'sit').map((P) => [P.p.x, P.p.z]);
       const benches = items.filter((it) => it.p === SEAT && !sitters.some(([sx, sz]) => Math.hypot(sx - it.x, sz - it.z) < 1.2)).sort((a, b) => Math.hypot(a.x - home.x, a.z - home.z) - Math.hypot(b.x - home.x, b.z - home.z));
       const b = benches[0];
-      if (b && Math.hypot(b.x - home.x, b.z - home.z) < 60) S.bench = { x: b.x + Math.sin(b.rot) * 0.06, z: b.z + Math.cos(b.rot) * 0.06, face: b.rot, sitOn: SEAT_H * b.s, bg: [b.x - Math.sin(b.rot) * 5, b.z - Math.cos(b.rot) * 5] };
-      else { const t = [...sc.dressing.trees].sort((a, c) => Math.hypot(a.x - home.x, a.z - home.z) - Math.hypot(c.x - home.x, c.z - home.z))[0]; S.bench = t ? { x: t.x + 1.4, z: t.z + 0.6, face: 0, bg: [t.x, t.z], tree: true } : { ...S.home, tree: true }; } }
+      if (b && Math.hypot(b.x - home.x, b.z - home.z) < 60) {
+        const sx = b.x + Math.sin(b.rot) * 0.95, sz = b.z + Math.cos(b.rot) * 0.95;
+        S.bench = {
+          x: b.x + Math.sin(b.rot) * 0.06, z: b.z + Math.cos(b.rot) * 0.06,
+          face: b.rot, sitOn: SEAT_H * b.s, bg: [b.x - Math.sin(b.rot) * 5, b.z - Math.cos(b.rot) * 5],
+          stand: { x: sx, z: sz, face: b.rot + Math.PI, bg: [b.x, b.z] }
+        };
+      } else {
+        const t = [...sc.dressing.trees].sort((a, c) => Math.hypot(a.x - home.x, a.z - home.z) - Math.hypot(c.x - home.x, c.z - home.z))[0];
+        S.bench = t ? { x: t.x + 1.4, z: t.z + 0.6, face: 0, bg: [t.x, t.z], tree: true } : { ...S.home, tree: true };
+      } }
     // 물가 (다리 아래쪽 강둑, 그물 손질)
     { const k = RIVER.findIndex(([x, z]) => Math.hypot(x - BRIDGE.x, z - BRIDGE.z) < 30 && z > BRIDGE.z + 18);
       const [x0, z0] = RIVER[Math.max(0, k)], [x1, z1] = RIVER[Math.max(1, k + 1)], [tx, tz] = unit(x1 - x0, z1 - z0), off = RIVER_HW + 0.8;
@@ -2051,14 +2147,28 @@ export function createStage(canvas) {
       S.estate_front = { x: fx, z: fz, face: est.rot, bg: [est.x, est.z] };
       const [tx, tz] = obbLocal(eFoot, 0, eD / 2 - 0.8);
       S.estate_terrace = { x: tx, z: tz, face: est.rot, bg: [est.x, est.z] };
-      const [hx, hz] = obbLocal(eFoot, -eL / 4, -eD / 2 - 2.2);
-      S.estate_hearth = { x: hx, z: hz, face: est.rot + Math.PI, bg: [est.x, est.z] };
+
+      // 큰 집 뒤뜰 화덕: 주변에 실제 아궁이/화덕(chulha/clay_oven) 소품이 있으면 그 앞,
+      // 없으면 뒤뜰 기준 자리를 잡되 침상(charpai) 등 소품과 겹치지 않게 안전 반경(1.3m)을 확보한다
+      const nearHearth = items.filter((it) => (it.p === BED || it.p === 'chulha' || it.p === 'clay_oven') && Math.hypot(it.x - est.x, it.z - est.z) < 25)[0];
+      let hx, hz, hface;
+      if (nearHearth) {
+        hx = nearHearth.x + Math.sin(nearHearth.rot) * 0.95;
+        hz = nearHearth.z + Math.cos(nearHearth.rot) * 0.95;
+        hface = nearHearth.rot + Math.PI;
+      } else {
+        const [bx, bz] = obbLocal(eFoot, -eL / 4, -eD / 2 - 2.2);
+        const cl = clearSpot(bx, bz, 1.3);
+        hx = cl.x; hz = cl.z; hface = est.rot + Math.PI;
+      }
+      S.estate_hearth = { x: hx, z: hz, face: hface, bg: [est.x, est.z] };
+
       const well = (L.fixed && L.fixed.find((f) => f.role === 'well')) || { x: 2, z: -14, rot: 0.3 };
-      const [wx, wz] = [well.x + 1.8, well.z + 0.8];
-      S.estate_wash = { x: wx, z: wz, face: toward(wx, wz, well.x, well.z), bg: [est.x, est.z] };
+      const clw = clearSpot(well.x + 1.8, well.z + 0.8, 1.0);
+      S.estate_wash = { x: clw.x, z: clw.z, face: toward(clw.x, clw.z, well.x, well.z), bg: [est.x, est.z] };
       const store = (L.fixed && L.fixed.find((f) => f.role === 'store')) || { x: 26, z: -20, rot: -Math.PI / 2 };
-      const [sx, sz] = [store.x - 2.5, store.z];
-      S.estate_stable = { x: sx, z: sz, face: toward(sx, sz, store.x, store.z), bg: [store.x, store.z] };
+      const cls = clearSpot(store.x - 2.5, store.z, 1.1);
+      S.estate_stable = { x: cls.x, z: cls.z, face: toward(cls.x, cls.z, store.x, store.z), bg: [store.x, store.z] };
     }
     return S;
   }
@@ -2078,8 +2188,8 @@ export function createStage(canvas) {
   function activity() {
     const a = st.age, b = st.birth, S = W.spots, h = b.household, m = b.sex !== 'f';
     const stage = a < 13 ? 'child' : a < 60 ? 'grown' : 'old';
-    let f = st.focus || 'work';
-    if (a < 6) f = a < 3 || a % 2 === 0 ? 'family' : 'body';
+    let f = st.card ? cardFocusOf(st.card) : (st.focus || 'work');
+    if (!st.card && a < 6) f = a < 3 || a % 2 === 0 ? 'family' : 'body';
     // 곁 사람 (가족): 내 나이에 맞춰 부모·짝·아이·손주
     const fam = () => (stage === 'child' ? [['f_apron', 'talk'], [m ? 'm_field' : 'm_tunic', 'talk'], ['child', 'stand']]
       : stage === 'grown' ? (a < 22 ? [['f_apron', 'talk'], ['elder', 'talk']] : [[m ? 'f_apron' : 'm_tunic', 'talk'], ['child', 'stand'], ['elder', 'talk']])
@@ -2095,7 +2205,7 @@ export function createStage(canvas) {
       }
       if (h === 'serve') {
         if (f === 'family') return { key: 'family', spot: S.home, action: a < 3 ? 'stand' : 'talk', mates: fam() };
-        if (f === 'rest') return S.bench.tree || a < 13 ? { key: 'tree', spot: S.bench, action: 'stand' } : { key: 'bench', spot: S.bench, action: 'sit' };
+        if (f === 'rest') return S.bench.tree || a < 13 ? { key: 'tree', spot: S.bench.stand || S.bench, action: 'stand' } : { key: 'bench', spot: S.bench, action: 'sit' };
         if (f === 'body') return { key: 'lane', spot: S.lane, action: 'carry' };
         if (f === 'learn') return { key: 'garden', spot: S.estate_hearth || S.garden, action: 'kneel' };
         if (stage !== 'grown') return { key: 'garden', spot: S.estate_hearth || S.garden, action: 'kneel' };
@@ -2112,11 +2222,17 @@ export function createStage(canvas) {
     }
     if (f === 'family') return { key: 'family', spot: S.home, action: a < 3 ? 'stand' : 'talk', mates: fam() };
     if (f === 'body') return { key: 'lane', spot: S.lane, action: 'walk' };   // 노인은 굽은 등·지팡이로 천천히
-    if (f === 'rest') return S.bench.tree || a < 13 ? { key: 'tree', spot: S.bench, action: 'stand' } : { key: 'bench', spot: S.bench, action: 'sit' };
+    if (f === 'rest') return S.bench.tree || a < 13 ? { key: 'tree', spot: S.bench.stand || S.bench, action: 'stand' } : { key: 'bench', spot: S.bench, action: 'sit' };
     if (f === 'learn') return { key: 'church', spot: S.church, action: 'talk', mates: a < 13 ? [['m_hood', 'talk'], ['child', 'stand']] : [['m_hood', 'talk']] };
+    // 카드 고유 일터 스팟 매칭
+    const cSpot = st.card ? cardWorkSpotOf(st.card) : null;
+    if (cSpot === 'market' && S.market) return { key: 'market', spot: S.market, action: 'talk', mates: [['f_cloak', 'talk', S.market.mate]] };
+    if (cSpot === 'forge' && S.forge) return { key: 'forge', spot: S.forge, action: 'kneel' };
+    if (cSpot === 'shore' && S.shore) return { key: 'shore', spot: S.shore, action: 'kneel' };
+    if (cSpot === 'field' && S.field) return { key: 'field', spot: S.field, action: W.sc.recipe.camp ? 'kneel' : 'hoe' };
     // 일: 집안에 따라 (아이는 집안 돕기 = 텃밭, 노인은 소일거리 = 텃밭)
     if (stage !== 'grown') return { key: 'garden', spot: S.garden, action: 'kneel' };
-    if (h === 'farm' || h === 'herd' || h === 'band') return { key: 'field', spot: S.field, action: W.sc.recipe.camp ? 'kneel' : 'hoe' };   // 농사 전 야영: 들에서 캐고 줍는다
+    if (h === 'farm' || h === 'herd' || h === 'band') return { key: 'field', spot: S.field, action: W.sc.recipe.camp ? 'kneel' : 'hoe' };   // 농사 전 야영: 들에서 캐고 줍는다   // 농사 전 야영: 들에서 캐고 줍는다
     if (h === 'craft' || h === 'factory') return { key: 'forge', spot: S.forge, action: 'kneel' };
     if (h === 'trade' || h === 'shop') return { key: 'market', spot: S.market, action: 'talk', mates: [['f_cloak', 'talk', S.market.mate]] };
     if (h === 'fish' || h === 'sail') return { key: 'shore', spot: S.shore, action: 'kneel' };
@@ -2161,6 +2277,21 @@ export function createStage(canvas) {
       plan.push({ id: i + 1, variant: dress(v, b), action: ac, place: 'mate', x, z, face: at ? at.face : Math.atan2(sp.x - x, sp.z - z), speed: 0, phase: 0.2 + i * 0.27, scale: v === 'child' ? (a < 13 ? 0.62 : 0.58) : 1, palette: pl });
     });
     act.group = act.mates ? [gx / plan.length, gz / plan.length] : null;
+    // 소품·가구 침범 방지 (앉기가 아닌데 걸상/침상/소품 위에 올라타서 박히지 않게 외곽 지면으로 밀어냄)
+    for (const pl of plan) {
+      if (pl.action === 'sit') continue;
+      for (const it of W.sc.dressing.items) {
+        const isBed = it.p === 'charpai' || it.p === 'bench' || it.p === 'bench_ea' || it.p === 'carpet_mb' || (it.p && it.p.includes('bed'));
+        const minD = isBed ? 1.15 : 0.65;
+        const d = Math.hypot(it.x - pl.x, it.z - pl.z);
+        if (d < minD) {
+          const pushD = minD - d + 0.1;
+          const ang = d > 1e-4 ? Math.atan2(pl.x - it.x, pl.z - it.z) : (it.rot != null ? it.rot + Math.PI / 2 : 0);
+          pl.x += Math.sin(ang) * pushD;
+          pl.z += Math.cos(ang) * pushD;
+        }
+      }
+    }
     // 곁 사람도 가림 검사에 넣는다 (카메라가 돌아가도 가족이 나를 가리지 않게)
     act.blk = plan.slice(1).map((q) => ({ o: obb(q.x, q.z, 0, 0.4, 0.4), top: q.scale > 0.8 ? 1.85 : 1.2 }));
     // 남아시아: 뒤뜰 소품이 크다 (쇠똥 떡 더미·볏짚 가리·베틀·흙 담) — 가까운 높은 소품도 가림 검사에 넣어 아이·무릎 꿇은 사람을 가리지 않게
@@ -2346,9 +2477,10 @@ export function createStage(canvas) {
   const _p = new THREE.Vector3(), _l = new THREE.Vector3(), _t = new THREE.Vector3(), _c = new THREE.Vector3();
   function gamePose(out, look, sc = W.sc, sway = STAGE_SWAY * Math.sin(st.phi)) {
     const a = sway;
-    const lx = GAME_CAM.look[0], lz = GAME_CAM.look[2], ly = GAME_CAM.look[1] + sc.heightAt(lx, lz);
-    const dx = GAME_CAM.pos[0] - lx, dz = GAME_CAM.pos[2] - lz, c = Math.cos(a), s = Math.sin(a);
-    out.set(lx + dx * c + dz * s, GAME_CAM.pos[1] + sc.heightAt(GAME_CAM.pos[0], GAME_CAM.pos[2]), lz - dx * s + dz * c);
+    const camSpec = (sc && sc.env && sc.env.overview) || GAME_CAM;
+    const lx = camSpec.look[0], lz = camSpec.look[2], ly = camSpec.look[1] + sc.heightAt(lx, lz);
+    const dx = camSpec.pos[0] - lx, dz = camSpec.pos[2] - lz, c = Math.cos(a), s = Math.sin(a);
+    out.set(lx + dx * c + dz * s, camSpec.pos[1] + sc.heightAt(camSpec.pos[0], camSpec.pos[2]), lz - dx * s + dz * c);
     look.set(lx, ly, lz);
   }
   // 내 사람 가까이: 사람 키의 3.4배쯤 떨어져 눈높이보다 조금 위에서. 바탕(bg: 마을·교회) 쪽을 보게 사람 건너편에 선다. 벽에 막히면 당기거나 돌린다
@@ -2509,6 +2641,7 @@ export function createStage(canvas) {
   return {
     get fast() { return st.fast; },
     set fast(v) { st.fast = !!v; },
+    preload(birth) { preloadAssets(birth); },
     setKit() {},   // KayKit 육각 섬 시절의 이름 (실사 무대는 생마다 세트를 스스로 부른다)
     setLife(birth) {
       Object.assign(st, { birth, age: 0, year: birth.year, focus: null, campOn: false, ghostOn: false, meKey: '', tr: null, time: PHASE_TIME.night, phi: 0, spin: 0, mode: 'wide', wideHold: WIDE_HOLD, rate: 1.2, wideW: 1, dying: false, colDa: 0 });
@@ -2527,7 +2660,9 @@ export function createStage(canvas) {
       spawnMe(false);
     },
     // 올해의 패 (work·learn·family·body·rest, 고르지 않았으면 main 이 정한 저절로 값) → 내 사람이 하는 일·자리
-    setFocus(id) { st.focus = id || null; spawnMe(false); },
+    setFocus(id) { st.focus = id || null; st.card = null; spawnMe(false); },
+    // 카드 등장 시 카드 상황에 맞춘 현장 연출
+    setCardFocus(card) { st.card = card || null; spawnMe(false); },
     setPhase(name) { setTimeGoal(name); },
     // 모닥불 (5·15·30·50·70살): 켜면 불 + 내 사람이 불가에 + 카메라가 사람과 불을 함께. ghost 면 건너편에 앞 생의 푸른 불씨. 끄면 되돌린다
     setCampfire(on, ghost = false) {

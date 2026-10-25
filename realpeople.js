@@ -72,6 +72,7 @@ function loadAssets(url, animUrl) {
 const cacheGen = new Map();
 export function touchPeople(url, animUrl, gen) { cacheGen.set(url + '|' + animUrl, gen); }
 export const peopleCacheSize = () => cache.size;
+export function preloadPeople(url, animUrl) { return loadAssets(url, animUrl).catch(() => null); }
 function disposeAssets(a) {
   const seen = new Set();
   const drop = (root) => root.traverse((o) => {

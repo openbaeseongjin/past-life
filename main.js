@@ -1,3 +1,5 @@
+import { applyHeirloom } from './heirlooms.js';
+import { createDynasty, prepareSuccessor, applyDynastyPerks } from './dynasty.js';
 // 연결 (설계 12장): 시작 → 탄생 장면 → 출생 기록 → 해가 저절로 흐르는 한 생 → 마지막 해 → 사망 기록 → 다음 생 / 족보
 // ?seed=문자열: 그 시드로 연습 한 판 (저장 안 함) · ?auto=1: 단추·결정을 저절로 · ?fast=1: 기다림 없음
 import { phaseOf } from './phase.js';
@@ -32,7 +34,7 @@ const ui = createUI({ lang: S.lang, robot, fast });
 // 실사 3D 무대 (realscene.js createStage: 생마다 출생 시드로 마을을 짓는다. 옛 KayKit 육각 섬 village.js 와 메서드 이름이 같다)
 // three.js(CDN, 1 MB 남짓)를 뒤에서 받는다: 시작 화면은 바로 뜨고, 첫 생을 시작할 때 무대를 기다린다 (stageReady).
 // WebGL 이 없거나 꺼져 있거나 three 를 못 받으면 3D 마을 없이 글로만 간다. 빈 마을은 진짜 마을과 메서드 이름이 같다 (그림은 null → 족보·나누기가 건너뛴다)
-const NO_STAGE = { fast: false, setKit() {}, setLife() {}, setAge() {}, setFocus() {}, setPhase() {}, tick() {}, snapshot: () => null, setCampfire() {}, flameRise: () => Promise.resolve(), setView() {}, setQuality() {}, whenReady: () => Promise.resolve() };
+const NO_STAGE = { fast: false, preload() {}, setKit() {}, setLife() {}, setAge() {}, setFocus() {}, setCardFocus() {}, setPhase() {}, tick() {}, snapshot: () => null, setCampfire() {}, flameRise: () => Promise.resolve(), setView() {}, setQuality() {}, whenReady: () => Promise.resolve() };
 let village = NO_STAGE, has3d = false;
 const textOnly = (e) => {
   console.warn('한 영혼의 여정: 3D 마을을 만들지 못해 글로만 진행한다', e);
@@ -103,19 +105,85 @@ function yearWait() {
   });
 }
 
+function applyInvestments(life, inv) {
+  if (!inv) return;
+  if (inv.luck) {
+    life.attrs.luck = Math.min(100, Math.max(0, (life.attrs.luck || 50) + inv.luck * 10));
+    if (inv.luck >= 3) life.tenacity = (life.tenacity || 1) + 1;
+  }
+  if (inv.charm) life.attrs.charm = Math.min(100, Math.max(0, (life.attrs.charm || 50) + inv.charm * 10));
+  if (inv.know) {
+    life.attrs.know = Math.min(100, Math.max(0, (life.attrs.know || 15) + inv.know * 8));
+    if (life.attrs.know >= 60) life.flags.literate = true;
+  }
+  if (inv.skill) life.attrs.skill = Math.min(100, Math.max(0, (life.attrs.skill || 35) + inv.skill * 10));
+  if (inv.health) {
+    life.stats.health = Math.min(100, Math.max(0, (life.stats.health || 50) + inv.health * 8));
+    if (inv.health >= 2) life.tenacity = (life.tenacity || 1) + 1;
+    if (inv.health >= 4) life.tenacity = (life.tenacity || 1) + 1;
+  }
+  if (inv.wealth) life.stats.wealth = Math.min(100, Math.max(0, (life.stats.wealth || 30) + inv.wealth * 8));
+}
 // 한 생을 끝까지. 돌려주는 값: 'next' | 'lineage' | 'title'
 async function playLife(soul) {
-  const birth = soul ? soul.next : drawBirth(practice);
+  let customDestiny = null;
+  try {
+    const raw = sessionStorage.getItem('past_life_destiny');
+    if (raw) {
+      customDestiny = JSON.parse(raw);
+      sessionStorage.removeItem('past_life_destiny');
+    }
+  } catch (e) {}
+
+  let birth = customDestiny && customDestiny.seed ? drawBirth(customDestiny.seed) : (soul ? soul.next : drawBirth(practice));
+  if (!birth && customDestiny && customDestiny.seed) birth = drawBirth(customDestiny.seed);
+  if (!birth) birth = drawBirth(practice);
   const prev = soul && soul.lives.length ? soul.lives[soul.lives.length - 1] : null;
   const traces = soul ? soul.traces : [];
   const n = soul ? soul.lives.length + 1 : 0;
-  const life = createLife({ birth, traces, avoid: prev && Array.isArray(prev.lines) ? prev.lines : [] });
+
+  let chosenInvestments = customDestiny ? customDestiny.investments : null;
+  let chosenHeirloom = customDestiny ? customDestiny.heirloom : null;
+  if (!customDestiny && !robot && ui.destinySetup) {
+    const chosen = await ui.destinySetup({ birth, n, prev, traces, soul });
+    if (chosen && chosen.birth) {
+      birth = chosen.birth;
+      if (soul) { soul.next = birth; store.saveSoul(soul); }
+    }
+    if (chosen && chosen.investments) {
+      chosenInvestments = chosen.investments;
+    }
+    if (chosen && chosen.heirloom) {
+      chosenHeirloom = chosen.heirloom;
+    }
+  }
+
+  const life = createLife({ birth, traces, player: true, avoid: prev && Array.isArray(prev.lines) ? prev.lines : [] });
+  if (chosenInvestments) {
+    applyInvestments(life, chosenInvestments);
+  }
+  if (chosenHeirloom) {
+    applyHeirloom(life, chosenHeirloom, { buriedStash: prev && prev.buriedStash });
+  }
+  if (birth.dynasty) {
+    applyDynastyPerks(life, birth.dynasty);
+    life.journal.push({
+      age: 0,
+      year: birth.year,
+      kind: 'dynasty',
+      text: {
+        ko: `[가문 계승] ${birth.dynasty.name.ko} ${birth.dynasty.gen}대 가주로서 선대의 가업과 유산 ${birth.wealth}냥을 물려받고 가문의 대를 잇습니다.`,
+        en: `[Dynasty Succession] Inherited the trade and ${birth.wealth} wealth as head of generation ${birth.dynasty.gen} of ${birth.dynasty.name.en}.`,
+      },
+    });
+  }
   const peers = makePeers(birth);
   window.__pl.life = life; window.__pl.soul = soul;
+  try { if (village && village.preload) village.preload(birth); } catch (e) {}
   sound.chime();
   await ui.birthIntro({ birth, n, gap: prev ? birth.year - prev.death.year : null, traces, prev });
   // 무대 짓기(동기로 1초 남짓)는 출생 기록 종이가 한 번 그려진 뒤에: 시작을 누르면 화면이 바로 바뀌고, 짓는 동안의 멈춤은 가만히 읽는 종이 뒤에 숨는다
-  const record = ui.birthRecord({ birth, n, prev, peers, traces });
+  const record = ui.birthRecord({ birth, n, prev, peers, traces, heirloom: chosenHeirloom });
   await nextPaint();
   await stageReady;   // 첫 생: three·무대 모듈이 아직 오는 중이면 출생 기록을 읽는 동안 기다린다
   village.setLife(birth); village.setAge(0, birth.year); village.setPhase('night');
@@ -123,6 +191,7 @@ async function playLife(soul) {
   ui.stageLoading(has3d);
   village.whenReady().then(() => ui.stageLoading(false), () => ui.stageLoading(false));
   await record;
+  await Promise.race([village.whenReady(), wait(2000)]);
   Object.assign(S, { paused: false, skipping: false, exit: false, n });
   cur = { life, peers };
   ui.showApp(life, peers, S);
@@ -134,12 +203,19 @@ async function playLife(soul) {
   for (;;) {
     if (S.exit) { cur = null; return 'title'; }
     const ev = advance(life, DECK, { lines: LINES, yearly: true });
+    if (life.justTenacity) {
+      life.justTenacity = null;
+      sound.chime();
+      ui.toast(S.lang === 'ko' ? '✨ 기사회생! 죽음의 고비를 넘기고 살아남았습니다.' : '✨ Miraculous Recovery! Overcame a fatal crisis.', 3500);
+    }
     village.setAge(life.age, life.year); village.setPhase(phaseOf(life.age)); showFocus(life);
     refresh();
     if (ev.type === 'death') break;
     if (ev.type === 'card') {
       S.skipping = false; refresh();
+      village.setCardFocus(ev.card);
       const i = await ui.decision(ev.card, life, { badge: badgeFor(ev.card, life.traces), autoIndex: autoChoice(life, ev.card), auto: S.auto || robot });
+      village.setCardFocus(null);
       sound.tick(); choose(life, i); refresh();
       continue;
     }
@@ -177,12 +253,36 @@ async function playLife(soul) {
   const sum = summarize(life, DECK);
   // 염주에 남길 것: 이 생의 구슬 (한 해 한 글자)과 모닥불에서 꿴 기억 구슬 (나이·메아리·한 줄)
   const memories = life.memories.map((m) => ({ age: m.age, echo: m.kind === 'echo', text: { ko: m.text.ko, en: m.text.en } }));
-  if (soul) { finishLife(soul, life, { thumb, beads: encodeBeads(beadsOf(life)), memories, lines: life.linesSeen.slice() }); store.saveSoul(soul); store.saveDex(addDex(store.loadDex(), life)); }
+  if (soul) { finishLife(soul, life, { thumb, finalWealth: Math.round(life.stats.wealth), karmicEndowment: !!(life.flags && life.flags.karmic_endowment), buriedStash: !!(life.flags && life.flags.buried_stash), beads: encodeBeads(beadsOf(life)), memories, lines: life.linesSeen.slice() }); store.saveSoul(soul); store.saveDex(addDex(store.loadDex(), life)); }
   window.__pl.done = (window.__pl.done || 0) + 1;
   for (;;) {
-    const r = await ui.deathRecord({ life, sum, soul, peers });
+    const r = await ui.deathRecord({ life, sum, soul, peers, dynasty: store.loadDynasty() });
     if (soul && r.note) { soul.lives[soul.lives.length - 1].note = r.note; store.saveSoul(soul); }
     if (r.act === 'share') { await ui.share(life, soul, thumb); continue; }
+    if (r.act === 'dynastyTree') {
+      await ui.dynastyScreen({ dynasty: store.loadDynasty(), dex: store.loadDynastyDex() });
+      continue;
+    }
+    if (r.act === 'dynasty') {
+      let curDyn = store.loadDynasty();
+      if (!curDyn) curDyn = createDynasty(life);
+      const succ = prepareSuccessor({ parentLife: life, dynasty: curDyn });
+      store.saveDynasty(succ.dynasty);
+      if (soul) {
+        soul.next = succ.birth;
+        store.saveSoul(soul);
+      }
+      return 'next';
+    }
+    if (r.act === 'next') {
+      const curDyn = store.loadDynasty();
+      if (curDyn) {
+        const dex = store.loadDynastyDex() || [];
+        if (!dex.some((d) => d.id === curDyn.id)) dex.push(curDyn);
+        store.saveDynastyDex(dex);
+        store.saveDynasty(null);
+      }
+    }
     return r.act;
   }
 }
@@ -193,6 +293,14 @@ async function main() {
   for (;;) {
     if (practice) { await playLife(null); practice = null; history.replaceState(null, '', location.pathname); continue; }
     let soul = store.loadSoul();
+    if (Q.get('from') === 'destiny' || sessionStorage.getItem('past_life_destiny')) {
+      if (!soul || soul.ended) soul = newSoul();
+      history.replaceState(null, '', location.pathname);
+      let next = await playLife(soul);
+      while (next === 'next' && !soul.ended) next = await playLife(soul);
+      if (next === 'lineage' && (await ui.lineage(soul)) === 'newsoul') store.saveSoul(newSoul());
+      continue;
+    }
     const act = await ui.title({
       soul, dexCount: Object.keys(store.loadDex()).length, soundOn: () => S.sound,
       onLang: (l) => { S.lang = l; store.saveLang(l); document.documentElement.lang = l; ui.setLang(l); },
@@ -200,6 +308,7 @@ async function main() {
       onSettings: openSettings,
     });
     if (act === 'dex') { await ui.dex(store.loadDex()); continue; }
+    if (act === 'dynasty') { await ui.dynastyScreen({ dynasty: store.loadDynasty(), dex: store.loadDynastyDex() }); continue; }
     if (act === 'lineage') { if ((await ui.lineage(soul)) === 'newsoul') store.saveSoul(newSoul()); continue; }
     if (act === 'newsoul' || !soul || soul.ended) { soul = newSoul(); store.saveSoul(soul); }
     let next = await playLife(soul);

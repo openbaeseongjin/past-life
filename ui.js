@@ -1,3 +1,6 @@
+import { HEIRLOOMS, HEIRLOOM_LIST, computeLegacyWealthBonus } from './heirlooms.js';
+import { getDynastyTier, DYNASTY_TIERS } from './dynasty.js';
+import { drawBirth } from './birth.js';
 // 화면 (설계 8·12장, 화면 다시 기획 3장): 시작 → 탄생 장면 → 출생 서류 → 해가 흐르는 화면(섬 마을 + 가장자리 HUD) → 갈림길·모닥불 → 마지막 해 → 사망 서류
 // 기다리는 일은 모두 Promise. robot(?auto=1)이면 단추를 저절로 누른다
 import { t, fmtYear, birthLine, traceText, deathLine, causeName, focusName, birthsThatYear, fmtBig, obituary, peerLine, spanText, lifeEnd, epilogueText, ageWord } from './i18n.js';
@@ -17,6 +20,7 @@ import { contextOf } from './context.js';
 import { holdingsOf } from './holdings.js';
 import { openChoices, chanceOf } from './life.js';
 import { DECK } from './deck.js';
+import { ROUTES, getRouteBadge, careerSummary } from './routes.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -30,7 +34,7 @@ const ATTR_ICON = { charm: 'i-smile', luck: 'i-clover', know: 'i-book', skill: '
 const DECK_BY_ID = new Map(DECK.map((c) => [c.id, c]));
 const FOCUS_ICON = { work: 'i-hammer', learn: 'i-book', family: 'i-house', body: 'i-leaf', rest: 'i-moon' };
 // 기억 구슬 그림 (memory.js 의 icon) → <symbol>. 메아리(ember)는 푸른 구슬 안의 불씨
-const ORB_ICON = { cradle: 'i-cradle', rings: 'i-rings', flame: 'i-flame', scroll: 'i-scroll', sign: 'i-sign', ember: 'i-flame' };
+const ORB_ICON = { cradle: 'i-cradle', rings: 'i-rings', flame: 'i-flame', scroll: 'i-scroll', sign: 'i-sign', ember: 'i-flame', spark: 'i-flame' };
 // 저장된 기억 구슬 (soul.lives[i].memories) 은 손으로 고친 값일 수 있어 모양을 본다
 const okMem = (m) => !!m && typeof m === 'object' && Number.isInteger(m.age) && m.age >= 0 && m.age <= 130;
 const icon = (id) => `<svg class="ic" aria-hidden="true" focusable="false"><use href="#${id}"/></svg>`;
@@ -64,8 +68,16 @@ export function createUI({ lang, robot = false, fast = false }) {
   // root 안 [data-v] 단추를 누를 때까지. auto 가 있으면 그 단추를 곧 누른다 ('first' = 첫 단추)
   function pick(root, auto = robot ? 'first' : null) {
     return new Promise((res) => {
-      const on = (e) => { const b = e.target.closest('[data-v]'); if (!b || !root.contains(b)) return; root.removeEventListener('click', on); res(b.dataset.v); };
+      const cleanup = () => { root.removeEventListener('click', on); window.removeEventListener('keydown', onKey); };
+      const on = (e) => { const b = e.target.closest('[data-v]'); if (!b || !root.contains(b)) return; cleanup(); res(b.dataset.v); };
+      const onKey = (e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && !e.target.matches('textarea, input')) {
+          const prim = root.querySelector('button.primary[data-v]');
+          if (prim) { e.preventDefault(); prim.click(); }
+        }
+      };
       root.addEventListener('click', on);
+      window.addEventListener('keydown', onKey);
       if (auto != null) setTimeout(() => { const b = auto === 'first' ? root.querySelector('[data-v]') : root.querySelector(`[data-v="${auto}"]`); if (b) b.click(); }, fast ? 20 : 350);
     });
   }
@@ -266,6 +278,7 @@ export function createUI({ lang, robot = false, fast = false }) {
           <button class="primary" data-v="start">${esc(going ? t(L, 'next', soul.lives.length + 1) : t(L, 'born'))}</button>
           ${has ? `<button data-v="lineage">${esc(t(L, 'lineage'))}</button>` : ''}
           <button data-v="dex">${esc(t(L, 'dex', dexCount))}</button>
+          <button data-v="dynasty">${esc(t(L, 'dynastyBtn'))}</button>
           ${has ? `<button class="quiet" data-v="${sure ? 'newsoul' : 'ask'}">${esc(sure ? t(L, 'newSoulSure') : t(L, 'newSoul'))}</button>` : ''}
         </div>
         <div class="btns row"><button class="quiet" data-v="lang">${esc(t(L, 'lang'))}</button><button class="quiet" data-v="sound">${esc(soundOn() ? t(L, 'soundOn') : t(L, 'soundOff'))}</button>${onSettings ? `<button class="quiet" data-v="settings">${esc(t(L, 'settings'))}</button>` : ''}</div>
@@ -396,8 +409,260 @@ export function createUI({ lang, robot = false, fast = false }) {
     });
   }
 
+  // 운명의 제단: 출생 리롤 & 환생의 불씨 능력치 투자
+  function destinySetup({ birth: initialBirth, n, prev, traces, soul }) {
+    app.hidden = true; modal.hidden = true; screen.className = '';
+    let curBirth = initialBirth;
+    let fateHistory = [];
+    let rerollsLeft = 3;
+    let selectedHeirloom = null;
+    const prevLife = prev || (soul && soul.lives && soul.lives.length > 0 ? soul.lives[soul.lives.length - 1] : null);
+    const legacyBonus = prevLife && prevLife.finalWealth ? computeLegacyWealthBonus(prevLife.finalWealth) : 0;
+    const karmicBonus = prevLife && prevLife.karmicEndowment ? 1 : 0;
+    const totalEmbers = 5 + legacyBonus + karmicBonus;
+    let investments = { luck: 0, charm: 0, know: 0, skill: 0, health: 0, wealth: 0 };
+    const STAT_STEPS = { luck: 10, charm: 10, know: 8, skill: 10, health: 8, wealth: 8 };
+
+    function render() {
+      const b = curBirth;
+      const sh = shapeFor(b.era, b.region), e0 = Math.round(lifeStats(sh).e0), u5 = Math.round((1 - survivalTo(sh, 5)) * 100);
+      const h = householdOf(b.group, b.household);
+      const yearStr = fmtYear(b.year, L);
+      const eraName = eraOf(b.year)[L];
+      const areaName = AREAS[b.area][L];
+      const houseName = h[L];
+      const roleName = t(L, 'childOf', b.order, b.sex);
+
+      let used = 0;
+      for (const k in investments) used += investments[k];
+      const left = totalEmbers - used;
+
+      const baseStats = {
+        luck: 50,
+        charm: 50,
+        know: b.household === 'noble' || b.household === 'royal' || b.household === 'scholar' ? 30 : 15,
+        skill: 40,
+        health: 50,
+        wealth: Math.round(b.wealth || 35)
+      };
+
+      const pipsHtml = Array.from({ length: totalEmbers }, (_, i) => `<div class="ember-pip ${i < left ? '' : 'empty'}"></div>`).join('');
+
+      show(screen, `<article class="doc" style="max-width:760px"><header class="doc-head"><span>${esc(L === 'ko' ? '운명의 제단' : 'Altar of Destiny')}</span><span class="mono">No. ${esc(b.seed)}</span></header>
+        <div class="doc-body" style="padding:22px 24px;display:grid;gap:18px">
+          <p class="eyebrow">${esc(n ? t(L, 'nth', n) : t(L, 'practice'))} · ${esc(L === 'ko' ? '새 생으로 들어가기 전, 운명을 다시 굴리거나 불씨를 배분할 수 있습니다' : 'Reroll fate or invest embers before beginning your life')}</p>
+
+          <!-- 점지된 운명 카드 -->
+          <div class="card-destiny" style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 20px;display:grid;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+              <div>
+                <h2 style="font:700 22px/1.3 var(--serif);margin:0;color:var(--ink)">${esc(yearStr)} · ${esc(eraName)} ${esc(areaName)}</h2>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+                  <span class="tag" style="background:rgba(226,182,94,.16);color:var(--gold2);border:1px solid rgba(226,182,94,.4);padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600">${esc(houseName)}</span>
+                  <span class="tag" style="background:rgba(226,182,94,.16);color:var(--gold2);border:1px solid rgba(226,182,94,.4);padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600">${esc(roleName)}</span>
+                  <span class="tag hazard" style="background:rgba(184,60,60,.1);color:#a42c2c;border:1px solid rgba(184,60,60,.3);padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600">${esc(L === 'ko' ? '5세 미만 사망률' : 'Under-5 mortality')} ${u5}%</span>
+                  <span class="tag" style="background:rgba(226,182,94,.16);color:var(--gold2);border:1px solid rgba(226,182,94,.4);padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600">${esc(L === 'ko' ? '기대수명' : 'Life expectancy')} ${e0}${esc(t(L, 'age', e0).replace(/^[0-9]+/, ''))}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 리롤 컨트롤 -->
+            <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(226,182,94,.1);border:1px dashed var(--gold);border-radius:10px;padding:10px 14px;flex-wrap:wrap;gap:10px">
+              <div style="font-size:13px;color:var(--ink-soft)">
+                ${esc(L === 'ko' ? '운명 다시 굴리기 기회' : 'Rerolls available')}: <b style="color:var(--gold2);font-size:14.5px">${rerollsLeft} / 3</b>
+                <span style="display:block;font-size:11.5px;color:#8d7959">${esc(L === 'ko' ? '원하는 시대나 지역이 나올 때까지 다시 뽑을 수 있습니다.' : 'Reroll until you find your desired era or region.')}</span>
+              </div>
+              <div style="display:flex;gap:6px">
+                <button type="button" id="btnUndo" class="quiet" ${fateHistory.length ? '' : 'disabled'} style="padding:6px 12px;font-size:12.5px">${esc(L === 'ko' ? '↩ 이전' : '↩ Undo')}</button>
+                <button type="button" id="btnReroll" class="primary" ${rerollsLeft > 0 ? '' : 'disabled'} style="min-height:36px;padding:6px 14px;font:700 13.5px var(--serif);background:linear-gradient(135deg,var(--ink),#2c325e);border:1px solid var(--gold);color:var(--gold)">🎲 ${esc(L === 'ko' ? '운명 다시 굴리기' : 'Reroll Fate')}</button>
+              </div>
+            </div>
+          </div>
+
+          ${b.dynasty ? `
+          <!-- 가문 대물림 정보 배너 -->
+          <div class="dynasty-banner" style="background:linear-gradient(135deg, rgba(226,182,94,.18), rgba(184,134,11,.08));border:1.5px solid var(--gold);border-radius:14px;padding:16px 20px;display:grid;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:28px">👑</span>
+                <div>
+                  <h3 style="font:700 18px/1.3 var(--serif);margin:0;color:var(--gold2)">${esc(b.dynasty.name[L])} ${esc(t(L, 'dynastyGen', b.dynasty.gen))}</h3>
+                  <div style="font-size:12px;color:var(--ink-soft)">${esc(L === 'ko' ? `선대의 가업과 유산 ${b.wealth}냥을 계승하여 시작합니다.` : `Inheriting predecessor's trade and ${b.wealth} starting wealth.`)}</div>
+                </div>
+              </div>
+              <span style="font:700 13px var(--ui);color:#fff;background:var(--gold2);padding:4px 12px;border-radius:999px">${esc(t(L, 'dynastyPrestigeBadge', b.dynasty.prestige, getDynastyTier(b.dynasty.prestige).title[L]))}</span>
+            </div>
+            <div style="font-size:12px;color:var(--ink);background:rgba(255,255,255,.6);padding:6px 12px;border-radius:8px">
+              <b>🏛️ ${esc(L === 'ko' ? '가문 가훈' : 'Motto')}:</b> “${esc(getDynastyTier(b.dynasty.prestige).motto[L])}” · <b>${esc(L === 'ko' ? '가문 특권' : 'Dynasty Trait')}:</b> ${esc(getDynastyTier(b.dynasty.prestige).perkDesc[L])}
+            </div>
+          </div>
+          ` : ''}
+
+          ${(prev && soul && soul.lives && soul.lives.length > 0) ? `
+          <!-- 전생의 가보 (Soul Relic) -->
+          <div class="card-heirlooms" style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 20px;display:grid;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <div>
+                <h3 style="font:700 17px/1.3 var(--serif);margin:0">🏺 ${esc(L === 'ko' ? '전생의 가보 (Soul Relic)' : 'Ancestral Heirloom')}</h3>
+                <span style="font-size:12px;color:var(--ink-soft)">${esc(L === 'ko' ? '선대로부터 전해 내려온 유물을 하나 골라 품에 안고 태어납니다.' : 'Choose one heirloom from past lives to carry with you.')}</span>
+              </div>
+              ${legacyBonus > 0 ? `<span style="font:600 12.5px var(--ui);color:#b37d14;background:rgba(226,182,94,.16);padding:3px 10px;border-radius:999px;border:1px solid rgba(226,182,94,.4)">✨ ${esc(L === 'ko' ? `전생 재산 유산 덤 +${legacyBonus}pt` : `Past Wealth Legacy +${legacyBonus}pt`)}</span>` : ''}
+              ${karmicBonus > 0 ? `<span style="font:600 12.5px var(--ui);color:#3f51b5;background:rgba(63,81,181,.12);padding:3px 10px;border-radius:999px;border:1px solid rgba(63,81,181,.35)">📿 ${esc(L === 'ko' ? '전생 시주 공덕 덤 +1pt' : 'Past Karmic Merit +1pt')}</span>` : ''}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px">
+              ${HEIRLOOM_LIST.map((h) => {
+                const sel = selectedHeirloom === h.id;
+                return `<div class="heirloom-card ${sel ? 'selected' : ''}" data-h="${h.id}" style="border:1.5px solid ${sel ? 'var(--gold)' : 'var(--line)'};border-radius:10px;padding:12px 14px;background:${sel ? 'rgba(226,182,94,.1)' : '#fff'};box-shadow:${sel ? '0 0 10px rgba(226,182,94,.3)' : 'none'};cursor:pointer;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center">
+                  <span style="font-size:24px">${h.icon}</span>
+                  <div>
+                    <div style="font-weight:700;font-size:13.5px;color:var(--ink)">${esc(h.name[L])}</div>
+                    <div style="font-size:11.5px;color:var(--ink-soft);margin-top:2px">${esc((prevLife && prevLife.buriedStash && h.id === 'pouch') ? (L === 'ko' ? '✨ 선대가 묻어둔 비밀 은화 발견 (시작 재산 +30)' : '✨ Unearth silver buried by your past self (+30 wealth)') : h.desc[L])}</div>
+                  </div>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- 환생의 불씨 (스탯 투자) -->
+          <div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:grid;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border-bottom:1px solid var(--line);padding-bottom:12px">
+              <div>
+                <h3 style="font:700 18px/1.3 var(--serif);margin:0">${esc(L === 'ko' ? '환생의 불씨' : 'Embers of Rebirth')}</h3>
+                <span style="font-size:12.5px;color:var(--ink-soft)">${esc(L === 'ko' ? '남은 불씨를 원하는 재능이나 생존력에 나누어 담으세요.' : 'Distribute remaining embers into attributes or survival guards.')}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="display:flex;gap:4px">${pipsHtml}</div>
+                <span style="font:700 15px var(--serif);color:var(--gold2)">${left} pt</span>
+              </div>
+            </div>
+
+            <!-- 프리셋 -->
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px">
+              <span style="font-weight:600;color:var(--ink-soft)">${esc(L === 'ko' ? '추천' : 'Presets')}:</span>
+              <button type="button" class="btn-preset" data-p="survive" style="padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer">🛡️ ${esc(L === 'ko' ? '생존형' : 'Survival')}</button>
+              <button type="button" class="btn-preset" data-p="scholar" style="padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer">📜 ${esc(L === 'ko' ? '학자형' : 'Scholar')}</button>
+              <button type="button" class="btn-preset" data-p="craft" style="padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer">🔨 ${esc(L === 'ko' ? '장인형' : 'Craft')}</button>
+              <button type="button" class="btn-preset" data-p="reset" style="padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer">↺ ${esc(L === 'ko' ? '초기화' : 'Reset')}</button>
+            </div>
+
+            <!-- 스탯 그리드 -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px">
+              ${renderStatRow('luck', L === 'ko' ? '🍀 행운 (Luck)' : '🍀 Luck', L === 'ko' ? '질병·사고 회피율 증가, 갈림길 위험 선택 성공률 보정' : 'Avoid accidents and boost risky choice success', baseStats.luck, investments.luck, STAT_STEPS.luck, left)}
+              ${renderStatRow('charm', L === 'ko' ? '🤝 친화력 (Charm)' : '🤝 Charm', L === 'ko' ? '혼인·자녀 확률 증가, 가족·이웃 초점 시 행복 회복 상승' : 'Higher marriage & kids chance, family happiness boost', baseStats.charm, investments.charm, STAT_STEPS.charm, left)}
+              ${renderStatRow('know', L === 'ko' ? '📖 지식 (Knowledge)' : '📖 Knowledge', L === 'ko' ? '배움 성장 가속, 60점 도달 시 글 읽기(문해력) 조기 해금' : 'Faster learning, early literacy unlock at 60', baseStats.know, investments.know, STAT_STEPS.know, left)}
+              ${renderStatRow('skill', L === 'ko' ? '🛠️ 손재주 (Skill)' : '🛠️ Skill', L === 'ko' ? '노동 품삯 배율 증가, 장인·기술 관련 이벤트 성공률 상승' : 'Higher wage multiplier and craft event success', baseStats.skill, investments.skill, STAT_STEPS.skill, left)}
+              ${renderStatRow('health', L === 'ko' ? '❤️ 강인한 숨결 (Health)' : '❤️ Vitality Guard', L === 'ko' ? '기사회생(치명적 위기 극복) 및 유아기·청소년기 사망 위험 대폭 감쇄' : 'Grants Tenacity (survive fatal crisis) & drastically lowers child mortality', baseStats.health, investments.health, STAT_STEPS.health, left)}
+              ${renderStatRow('wealth', L === 'ko' ? '🪙 숨겨둔 복채 (Wealth)' : '🪙 Hidden Wealth', L === 'ko' ? '가난한 집안에서 태어나도 초기 식량과 궁핍을 완화하는 비상금' : 'Extra starting savings even in poor households', baseStats.wealth, investments.wealth, STAT_STEPS.wealth, left)}
+            </div>
+          </div>
+
+          <!-- 하단 시작 CTA -->
+          <div class="btns" style="margin-top:4px">
+            <button class="primary" data-v="go" style="min-height:50px;font:700 17px var(--serif);letter-spacing:.04em;background:linear-gradient(135deg,var(--gold),#caa049);color:#121329;border:1.5px solid #fff;border-radius:14px;box-shadow:0 6px 20px var(--gold-glow)">${esc(L === 'ko' ? '이 운명으로 삶 시작하기 ➔' : 'Begin Life with this Destiny ➔')}</button>
+            <span class="hint-kbd">${esc(L === 'ko' ? 'Space 또는 Enter 키로 시작할 수 있습니다' : 'Press Space or Enter to begin')}</span>
+          </div>
+        </div></article>`);
+
+      bindEvents();
+    }
+
+    function renderStatRow(k, label, desc, base, inv, step, left) {
+      const added = inv * step;
+      const total = Math.min(100, base + added);
+      return `<div class="stat-row" data-stat="${k}" style="border:1px solid var(--line);border-radius:10px;padding:10px 14px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;background:#fff">
+        <div style="font-weight:700;font-size:13.5px">${label}</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button type="button" class="stepper-btn minus" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:var(--bg);font-weight:bold;cursor:pointer" ${inv <= 0 ? 'disabled' : ''}>−</button>
+          <div style="min-width:62px;text-align:right;font-family:ui-monospace,monospace;font-size:13px">
+            <span style="color:var(--ink-soft)">${base}</span>
+            ${inv > 0 ? `<b style="color:#2e7d32;font-size:12px">+${added}</b>` : ''}
+          </div>
+          <button type="button" class="stepper-btn plus" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:var(--bg);font-weight:bold;cursor:pointer" ${left <= 0 || total >= 100 ? 'disabled' : ''}>+</button>
+        </div>
+        <div style="grid-column:1/-1;font-size:11.5px;color:var(--ink-soft);margin-top:-4px">${desc}</div>
+        <div style="grid-column:1/-1;height:5px;background:#f0ebe1;border-radius:3px;overflow:hidden;position:relative">
+          <div style="height:100%;background:var(--gold2);width:${base}%;border-radius:3px"></div>
+          ${inv > 0 ? `<div style="position:absolute;top:0;height:100%;background:#4caf50;left:${base}%;width:${Math.min(100 - base, added)}%;border-radius:0 3px 3px 0"></div>` : ''}
+        </div>
+      </div>`;
+    }
+
+    function bindEvents() {
+      const btnReroll = $('btnReroll');
+      if (btnReroll) {
+        btnReroll.onclick = (e) => {
+          e.preventDefault(); e.stopPropagation();
+          if (rerollsLeft <= 0) return;
+          rerollsLeft--;
+          fateHistory.push(curBirth);
+          const nextSeed = `${curBirth.seed}-r${3 - rerollsLeft}`;
+          curBirth = drawBirth(nextSeed, prev ? prev.death.year : -Infinity) || drawBirth(nextSeed);
+          render();
+        };
+      }
+      const btnUndo = $('btnUndo');
+      if (btnUndo) {
+        btnUndo.onclick = (e) => {
+          e.preventDefault(); e.stopPropagation();
+          if (!fateHistory.length) return;
+          curBirth = fateHistory.pop();
+          rerollsLeft++;
+          render();
+        };
+      }
+      screen.querySelectorAll('.stat-row').forEach(row => {
+        const k = row.dataset.stat;
+        const plus = row.querySelector('.stepper-btn.plus');
+        const minus = row.querySelector('.stepper-btn.minus');
+        if (plus) {
+          plus.onclick = (e) => {
+            e.preventDefault(); e.stopPropagation();
+            let used = 0; for (const s in investments) used += investments[s];
+            if (totalEmbers - used <= 0) return;
+            investments[k]++;
+            render();
+          };
+        }
+        if (minus) {
+          minus.onclick = (e) => {
+            e.preventDefault(); e.stopPropagation();
+            if (investments[k] <= 0) return;
+            investments[k]--;
+            render();
+          };
+        }
+      });
+      screen.querySelectorAll('.heirloom-card').forEach((card) => {
+        card.onclick = (e) => {
+          e.preventDefault(); e.stopPropagation();
+          selectedHeirloom = card.dataset.h;
+          render();
+        };
+      });
+      screen.querySelectorAll('.btn-preset').forEach(btn => {
+        btn.onclick = (e) => {
+          e.preventDefault(); e.stopPropagation();
+          const p = btn.dataset.p;
+          if (p === 'reset') investments = { luck: 0, charm: 0, know: 0, skill: 0, health: 0, wealth: 0 };
+          else if (p === 'survive') investments = { luck: 2, charm: 1, know: 0, skill: 0, health: 2, wealth: 0 };
+          else if (p === 'scholar') investments = { luck: 1, charm: 1, know: 3, skill: 0, health: 0, wealth: 0 };
+          else if (p === 'craft') investments = { luck: 1, charm: 0, know: 0, skill: 3, health: 0, wealth: 1 };
+          render();
+        };
+      });
+    }
+
+    render();
+
+    return pick(screen).then(() => {
+      screen.hidden = true;
+      return { birth: curBirth, investments: { ...investments }, heirloom: selectedHeirloom };
+    });
+  }
+
   // 출생 기록 (서류)
-  function birthRecord({ birth, n, prev, peers, traces }) {
+  function birthRecord({ birth, n, prev, peers, traces, heirloom }) {
     app.hidden = true; modal.hidden = true; screen.className = '';
     const sh = shapeFor(birth.era, birth.region), e0 = Math.round(lifeStats(sh).e0), u5 = Math.round((1 - survivalTo(sh, 5)) * 100);
     show(screen, `<article class="doc"><header class="doc-head"><span>${esc(t(L, 'birthDoc'))}</span><span class="mono">No. ${esc(birth.seed)}</span></header>
@@ -406,6 +671,8 @@ export function createUI({ lang, robot = false, fast = false }) {
         <h2>${esc(birthLine(birth, L))}</h2>
         ${prev ? `<p>${esc(t(L, 'wander', birth.year - prev.death.year))}</p>` : ''}
         ${prev && prev.note ? `<p class="quote">${esc(t(L, 'lastWords'))} · “${esc(prev.note)}”</p>` : ''}
+        ${birth.dynasty ? `<div style="margin:8px 0;padding:8px 14px;background:linear-gradient(135deg, rgba(226,182,94,.2), rgba(184,134,11,.1));border:1.5px solid var(--gold);border-radius:8px;font-size:13px;color:var(--gold2);display:flex;align-items:center;flex-wrap:wrap;gap:8px"><span>👑</span><b>${esc(t(L, 'dynastyBadge', birth.dynasty.name[L], birth.dynasty.gen))}</b> · <span>${esc(t(L, 'dynastyPrestigeBadge', birth.dynasty.prestige, getDynastyTier(birth.dynasty.prestige).title[L]))}</span></div>` : ''}
+        ${heirloom && HEIRLOOMS[heirloom] ? `<div style="margin:8px 0;padding:6px 14px;background:rgba(226,182,94,.14);border:1px solid rgba(226,182,94,.4);border-radius:8px;font-size:12.5px;color:var(--gold2);display:inline-flex;align-items:center;gap:6px"><span>${HEIRLOOMS[heirloom].icon}</span><b>${esc(L === 'ko' ? '물려받은 가보' : 'Inherited Heirloom')}:</b> ${esc(HEIRLOOMS[heirloom].name[L])} · ${esc(HEIRLOOMS[heirloom].desc[L])}</div>` : ''}
         ${traces.length ? `<div class="chips">${traces.map(badge).join('')}</div>` : ''}
         <dl class="fields">
           ${field(t(L, 'f_era'), eraOf(birth.year)[L])}${field(t(L, 'f_year'), fmtYear(birth.year, L))}
@@ -416,7 +683,7 @@ export function createUI({ lang, robot = false, fast = false }) {
         <h3>${esc(t(L, 'peersTitle'))}</h3>
         <ul class="peers">${peers.map((p) => `<li>${esc(peerLine(p, null, L))}</li>`).join('')}</ul>
         <p class="hint">${esc(t(L, 'peersHint'))}</p>
-        <div class="btns"><button class="primary" data-v="go">${esc(t(L, 'start'))}</button></div>
+        <div class="btns"><button class="primary" data-v="go">${esc(t(L, 'start'))}</button><span class="hint-kbd">${esc(L === 'ko' ? 'Space 또는 Enter 키로 시작할 수 있습니다' : 'Press Space or Enter to begin')}</span></div>
       </div></article>`);
     screen.scrollTop = 0;
     return pick(screen).then(() => { screen.hidden = true; });
@@ -439,7 +706,7 @@ export function createUI({ lang, robot = false, fast = false }) {
     const k = j.kind === 'echo' ? 'echoBead' : (life.memories || []).some((m) => m.j === i) ? 'memBead' : null;
     return k ? `<i class="mk memo${k === 'echoBead' ? ' echo' : ''}" role="img" title="${esc(t(L, k))}" aria-label="${esc(t(L, k))}"></i>` : '';
   };
-  const jMark = (life, j, i) => memMark(life, j, i) + (j.kind === 'decision' ? '<i class="mk star" aria-hidden="true"></i>' : j.kind === 'event' ? '<i class="mk crack" aria-hidden="true"></i>' : '');
+  const jMark = (life, j, i) => memMark(life, j, i) + (j.kind === 'decision' ? '<i class="mk star" aria-hidden="true"></i>' : j.kind === 'event' ? '<i class="mk crack" aria-hidden="true"></i>' : j.kind === 'tenacity' ? '<i class="mk spark" style="color:#e68a19" title="기사회생" aria-label="기사회생">✨ </i>' : '');
   function journalItem(life, j, i) {
     const li = document.createElement('li');
     li.className = 'k-' + j.kind; li.dataset.j = i;
@@ -476,24 +743,27 @@ export function createUI({ lang, robot = false, fast = false }) {
     if (!cur || cur.life !== life) cur = { life, peers };
     const st = lastState, b = life.birth;
     // 배지
-    $('lifeN').textContent = st && st.n ? t(L, 'lifeN', st.n) : t(L, 'practiceBadge');
+    const dObj = life.dynasty || (b && b.dynasty);
+    $('lifeN').textContent = dObj ? `${dObj.name[L]} ${t(L, 'dynastyGen', dObj.gen)}` : (st && st.n ? t(L, 'lifeN', st.n) : t(L, 'practiceBadge'));
     $('age').textContent = life.age;
     $('when').textContent = `${fmtYear(life.year, L)} · ${AREAS[b.area].short[L]}`;
     const lv = (x) => traceLevel(life.traceBoost, traceKey(x));
-    const tk = L + '|' + life.traces.map((x) => `${traceKey(x)}:${lv(x)}`).join(',');
+    const tk = L + '|' + (life.heirloom || '') + '|' + life.traces.map((x) => `${traceKey(x)}:${lv(x)}`).join(',');
     if (tk !== trKey) {   // 앞 생의 흔적 구슬 (누르면 이름) + 짙음 표시 ●○○ (모닥불에서 푸른 메아리를 꿸 때마다 한 칸, 많아도 ●●●)
       const grew = trKey && trKey.split('|')[0] === L;
       trKey = tk;
-      $('traceBeads').innerHTML = life.traces.length ? `<span>${esc(t(L, 'trace'))}</span>${life.traces.map((x) => {
+      const heirloomHtml = life.heirloom && HEIRLOOMS[life.heirloom] ? `<span class="tri heirloom"><button class="tb" data-tr="${esc(HEIRLOOMS[life.heirloom].name[L])}: ${esc(HEIRLOOMS[life.heirloom].desc[L])}" title="${esc(HEIRLOOMS[life.heirloom].name[L])}: ${esc(HEIRLOOMS[life.heirloom].desc[L])}" aria-label="${esc(HEIRLOOMS[life.heirloom].name[L])}">${HEIRLOOMS[life.heirloom].icon}</button></span>` : '';
+      const beadsHtml = life.traces.map((x) => {
         const n = lv(x), s = `${traceText(x, L)} · ${t(L, 'traceLevel', n)}`;
         return `<span class="tri${n > 1 ? ' deep' : ''}"><button class="tb" data-tr="${esc(s)}" title="${esc(s)}" aria-label="${esc(s)}"></button><span class="tlv" aria-hidden="true">${[1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span></span>`;
-      }).join('')}` : '';
+      }).join('');
+      $('traceBeads').innerHTML = (life.traces.length || life.heirloom) ? `<span>${esc(t(L, 'trace'))}</span>${heirloomHtml}${beadsHtml}` : '';
       if (grew && !reduced()) { const box = $('traceBeads'); box.classList.remove('pulse'); void box.offsetWidth; box.classList.add('pulse'); }   // 짙어지면 한 번 반짝
     }
     // 수치 판: 건강·재산·곁·마음 = 숫자 · 막대 · 구체적인 한 줄 (상태 낱말·앓은 일 / 그 땅 단위 살림 / 짝·아이·이웃 / 마음 낱말)
     const ctx = life.ctx();
     const lines = {
-      health: [healthWord(life.stats.health, L), ailmentLine(life, DECK_BY_ID, L)].filter(Boolean).join(' · '),
+      health: [healthWord(life.stats.health, L), life.tenacity > 0 ? (L === 'ko' ? `✨불씨 ${life.tenacity}` : `✨Spark ${life.tenacity}`) : null, ailmentLine(life, DECK_BY_ID, L)].filter(Boolean).join(' · '),
       wealth: holdingsLine(holdingsOf(life.stats.wealth, ctx, b.household), L),
       family: kinLine(life, L),
       happy: heartWord(life.stats.happy, L),
@@ -524,6 +794,17 @@ export function createUI({ lang, robot = false, fast = false }) {
       row.querySelector('.sbh').textContent = ss.bound ? ` (${t(L, 'boundHint')})` : '';   // 키보드·읽어 주기에도 묶임 뜻을
       if (statusKey && statusKey.split('|')[0] !== ss.id && !reduced() && !fast) { const sv = row.querySelector('.sv'); sv.classList.remove('glow'); void sv.offsetWidth; sv.classList.add('glow'); }
       statusKey = sk;
+    }
+    // 생애 진로 배지
+    const rb = getRouteBadge(life, L);
+    const rRow = $('routeRow');
+    if (rRow) {
+      if (rb) {
+        rRow.textContent = rb.fullTitle;
+        rRow.style.display = 'block';
+      } else {
+        rRow.style.display = 'none';
+      }
     }
     // 시대의 바람 띠 (설계 3.3): 올해 죽을 위험은 그 사람의 그해 생명표 × 건강 배율 (life.js 죽음 굴림의 바탕)에 사건 위험률을 더한 배율
     const base = yearHazard(shapeFor(eraOf(life.year).id, b.region), life.age) * healthMul(life.stats.health);
@@ -579,6 +860,7 @@ export function createUI({ lang, robot = false, fast = false }) {
     show(modal, `<div class="xcard" role="dialog" aria-modal="true" aria-labelledby="dlgT" tabindex="-1">
       <span class="emblem" aria-hidden="true">${icon('i-sign')}</span>
       <p class="xwhen">${esc(cap(ageWord(life.age, L)))} · ${esc(fmtYear(life.year, L))}</p>
+      ${card.route && ROUTES[card.route] ? `<p class="xroute" style="margin:2px 0 6px;font:700 13px var(--ui);color:var(--gold2)">${esc(ROUTES[card.route].icon)} [${esc(ROUTES[card.route][L])}]${card.routeStep ? ' · ' + card.routeStep + (L === 'ko' ? '단계' : ' Step') : ''}</p>` : ''}
       <h3 id="dlgT">${esc(t(L, 'crossTitle', R(card.title[L], life)))}</h3>
       ${tr && !marks.length ? `<p class="xtrace">${bead}${esc(trName)}</p>` : ''}
       <div class="orn" aria-hidden="true"></div>
@@ -738,11 +1020,14 @@ export function createUI({ lang, robot = false, fast = false }) {
     const common = commonEnd(contextOf(d.year, b.area, b.household), L, { area: b.area, present: now, cause: d.cause });
     const first = soul ? `<button class="primary" data-v="${ended ? 'lineage' : 'next'}">${esc(ended ? t(L, 'toLineage') : t(L, 'nextBtn'))}</button>`
       : `<button class="primary" data-v="title">${esc(t(L, 'toTitle'))}</button>`;
-    show(screen, `<article class="doc ${now ? '' : 'death'}"><header class="doc-head"><span>${esc(t(L, now ? 'presentDoc' : 'deathDoc'))}</span><span class="mono">No. ${esc(b.seed)}</span></header>
+    const quickBtn = soul ? `<button class="quick-act" data-v="${ended ? 'lineage' : 'next'}">${esc(ended ? t(L, 'toLineage') : t(L, 'nextBtn'))} →</button>`
+      : `<button class="quick-act" data-v="title">${esc(t(L, 'toTitle'))} →</button>`;
+    show(screen, `<article class="doc ${now ? '' : 'death'}"><header class="doc-head"><span>${esc(t(L, now ? 'presentDoc' : 'deathDoc'))}</span><div class="head-actions"><span class="mono">No. ${esc(b.seed)}</span>${quickBtn}</div></header>
       <div class="doc-body">
         <p class="eyebrow">${esc(soul ? t(L, 'nth', soul.lives.length) : t(L, 'practice'))}</p>
         <h2>${esc(spanText(b, d, L))} · ${esc(t(L, 'age', d.age))} · ${esc(AREAS[b.area].short[L])}</h2>
         <p class="obit">${esc(obituary(life, sum, L))}</p>
+        <p class="obit-career" style="margin:4px 0 14px;font:600 13.5px var(--serif);color:var(--gold2)">${esc(careerSummary(life, L))}</p>
         ${now ? '' : `<p>${esc(t(L, 'cause'))} · ${esc(causeName(d.cause, L))}</p>`}
         <p class="common"><b>${esc(t(L, 'commonTitle'))}</b> ${esc(common)}</p>
         <dl class="fields">${field(t(L, 'happiest'), t(L, 'age', sum.happiest))}${field(t(L, 'topFocus'), sum.topFocus ? focusName(sum.topFocus, 30, L) : '—')}
@@ -750,10 +1035,41 @@ export function createUI({ lang, robot = false, fast = false }) {
         <h3>${esc(t(L, 'mapTitle'))}</h3>${mapHtml(life, e0)}
         <h3>${esc(t(L, 'survTitle'))}</h3>${survSvg(sh, d.age)}
         <h3>${esc(t(L, 'peersTitle'))}</h3><ul class="peers">${peers.map((p) => `<li>${esc(peerLine(p, 999, L))}</li>`).join('')}</ul>
-        ${soul && !now ? `<h3>${esc(t(L, 'gained'))}</h3><div class="chips">${soul.traces.length ? soul.traces.map(badge).join('') : esc(t(L, 'noneGained'))}</div>` : ''}
+        ${soul && !now ? `<h3>${esc(t(L, 'gained'))}</h3><div class="chips">${soul.traces.length ? soul.traces.map(badge).join('') : esc(t(L, 'noneGained'))}</div>
+        <div class="legacy-card" style="margin:14px 0;padding:12px 16px;background:rgba(226,182,94,.1);border:1px solid rgba(226,182,94,.38);border-radius:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <div>
+            <span style="font-weight:700;color:var(--gold2);font-size:13.5px">🏺 ${esc(L === 'ko' ? '윤회의 유산 (Soul Legacy)' : 'Soul Legacy')}</span>
+            <div style="font-size:12px;color:var(--ink-soft);margin-top:2px">
+              ${esc(L === 'ko' ? `생애 최종 재산: ${Math.round(life.stats.wealth)} pt` : `Final Wealth: ${Math.round(life.stats.wealth)} pt`)}
+            </div>
+          </div>
+          <div>
+            <span style="font:700 13px var(--serif);color:#2e7d32;background:rgba(46,125,50,.1);padding:4px 10px;border-radius:6px;border:1px solid rgba(46,125,50,.25)">
+              ${esc(L === 'ko' ? (computeLegacyWealthBonus(life.stats.wealth) > 0 ? `다음 생 불씨 덤 +${computeLegacyWealthBonus(life.stats.wealth)}pt` : '다음 생 가보 계승 가능') : (computeLegacyWealthBonus(life.stats.wealth) > 0 ? `+${computeLegacyWealthBonus(life.stats.wealth)}pt Embers Next Life` : 'Heirloom Unlocked'))}
+            </span>
+          </div>
+        </div>` : ''}
+        ${(soul && !now && life.kids > 0) ? `
+        <div class="dynasty-prompt-card" style="margin:14px 0;padding:14px 16px;background:linear-gradient(135deg, rgba(226,182,94,.16), rgba(184,134,11,.08));border:1.5px solid rgba(226,182,94,.5);border-radius:10px;display:grid;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <span style="font-weight:700;color:var(--gold2);font-size:14px">📜 ${esc(t(L, 'dynastySuccession'))}</span>
+            <span style="font:600 12px var(--ui);color:#b37d14;background:rgba(226,182,94,.2);padding:2px 8px;border-radius:4px">
+              ${esc(L === 'ko' ? `자식 ${life.kids}명 생존` : `${life.kids} children alive`)}
+            </span>
+          </div>
+          <p style="font-size:12.5px;color:var(--ink);margin:0;line-height:1.4">
+            ${esc(L === 'ko' ? `자식에게 가업과 유산(${Math.round(life.stats.wealth * 0.65)}냥)을 물려주고, 후계자로 대를 이어 플레이할 수 있습니다.` : `Pass down your trade and ${Math.round(life.stats.wealth * 0.65)} wealth to your heir to continue the family dynasty.`)}
+          </p>
+          <div style="margin-top:4px">
+            <button class="primary dynasty-act" data-v="dynasty" style="width:100%;padding:10px;background:linear-gradient(135deg, #d4af37, #aa771c);border-color:#ffd700;color:#fff;font-weight:700;font-size:14px;cursor:pointer;border-radius:8px">
+              👑 ${esc(t(L, 'dynastySuccession'))}
+            </button>
+          </div>
+        </div>
+        ` : ''}
         ${ended ? `<p class="obit"><b>${esc(epilogueText(soul, L))}</b></p>` : ''}
         ${soul ? `<label>${esc(t(L, ended ? 'toLifeEnd' : 'toLife'))}<textarea id="toLife" maxlength="140" rows="2" placeholder="${esc(t(L, 'toLifePh'))}"></textarea></label>` : ''}
-        <div class="btns">${first}<button data-v="share">${esc(t(L, 'share'))}</button>
+        <div class="btns">${first}<button data-v="dynastyTree">${esc(t(L, 'dynastyBtn'))}</button><button data-v="share">${esc(t(L, 'share'))}</button>
           ${soul && !ended ? `<button data-v="lineage">${esc(t(L, 'lineage'))}</button>` : ''}${soul ? `<button class="quiet" data-v="title">${esc(t(L, 'toTitle'))}</button>` : ''}</div>
       </div></article>`);
     screen.scrollTop = 0;
@@ -941,11 +1257,81 @@ export function createUI({ lang, robot = false, fast = false }) {
     });
   }
 
+  function dynastyScreen({ dynasty, dex }) {
+    app.hidden = true; screen.className = 'night';
+    const all = [];
+    if (dynasty && dynasty.members && dynasty.members.length) all.push(dynasty);
+    if (Array.isArray(dex)) {
+      for (const d of dex) {
+        if (!all.some((x) => x.id === d.id)) all.push(d);
+      }
+    }
+
+    const cur = dynasty || all[0];
+    const tier = cur ? getDynastyTier(cur.prestige) : DYNASTY_TIERS[0];
+
+    show(screen, `<div class="sheet">
+      <p class="eyebrow">${esc(t(L, 'dynastyTitle'))}</p>
+      <h1>${cur ? `👑 ${esc(cur.name[L] || cur.name.ko || '')}` : esc(t(L, 'dynastyTitle'))}</h1>
+      ${cur ? `
+      <div style="background:rgba(255,255,255,.06);border:1px solid rgba(226,182,94,.4);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:grid;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <div>
+            <span style="font:700 16px var(--serif);color:var(--gold2)">${esc(cur.name[L] || cur.name.ko || '')} · ${esc(t(L, 'dynastyGen', cur.gen || cur.members.length))}</span>
+            <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:2px">
+              ${esc(AREAS[cur.area] ? AREAS[cur.area].short[L] : cur.area)} · ${esc(L === 'ko' ? `총 누적 명망: ${cur.prestige}pt` : `Total Prestige: ${cur.prestige}pt`)}
+            </div>
+          </div>
+          <span style="font:700 12.5px var(--ui);background:var(--gold2);color:#000;padding:4px 10px;border-radius:999px">
+            ${esc(tier.title[L])}
+          </span>
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,.8);background:rgba(0,0,0,.25);padding:8px 12px;border-radius:6px">
+          <b>🏛️ ${esc(L === 'ko' ? '가문 가훈' : 'Motto')}:</b> “${esc(tier.motto[L])}”<br>
+          <b>✨ ${esc(L === 'ko' ? '가문 특권' : 'Dynasty Trait')}:</b> ${esc(tier.perkDesc[L])}
+        </div>
+      </div>
+
+      <h3 style="font:700 16px var(--serif);color:var(--gold2);margin:16px 0 10px">📜 ${esc(L === 'ko' ? '역대 가주 계보 (Chronicle)' : 'Heads of House')}</h3>
+      <div class="dynasty-members" style="display:grid;gap:12px;margin-bottom:24px">
+        ${(cur.members || []).map((m) => `
+        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font:700 14px var(--serif);color:#fff">
+              <span style="color:var(--gold2)">${esc(t(L, 'dynastyGen', m.gen))}</span> ${esc(m.name[L] || m.name.ko || '—')}
+              <span style="font-size:12px;font-weight:400;color:rgba(255,255,255,.6);margin-left:6px">(${fmtYear(m.birthYear, L)} ~ ${fmtYear(m.deathYear, L)}, ${m.age}${esc(t(L, 'unit'))})</span>
+            </div>
+            <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:4px">
+              ${m.career ? `<b>${esc(m.career[L] || m.career.ko || '')}</b> · ` : ''}
+              ${esc(L === 'ko' ? `유산: ${m.wealth}냥` : `Wealth: ${m.wealth}`)}
+              ${m.note ? `<br><i style="color:rgba(255,255,255,.5)">“${esc(m.note)}”</i>` : ''}
+            </div>
+          </div>
+          <span style="font:600 12px var(--ui);color:var(--gold);background:rgba(226,182,94,.12);border:1px solid rgba(226,182,94,.3);padding:3px 8px;border-radius:6px">
+            +${m.prestigeEarned} pt
+          </span>
+        </div>
+        `).join('')}
+      </div>
+      ` : `
+      <p style="color:rgba(255,255,255,.6);text-align:center;padding:30px 0">
+        ${esc(L === 'ko' ? '아직 창설된 가문이 없습니다. 삶을 마칠 때 자식이 있으면 가문의 대를 이어 가문을 창설할 수 있습니다.' : 'No dynasty recorded yet. Have children and choose dynasty succession at death to found a dynasty.')}
+      </p>
+      `}
+      <div class="btns">
+        <button class="primary" data-v="close">${esc(t(L, 'close'))}</button>
+      </div>
+    </div>`);
+    screen.scrollTop = 0;
+    return pick(screen).then(() => { screen.hidden = true; });
+  }
+
   return {
     setHandlers: (x) => { h = x; },
     toast: say,
     setLang(l) { L = l; labels(); if (cur && !app.hidden) { shown = 0; memShown = (cur.life.memories || []).length; $('journal').innerHTML = ''; hideTip(); update(cur.life, cur.peers); } },
-    title, birthIntro, mapZoom, birthRecord, showApp, update, decision, pause, lastYear, deathRecord, lineage, dex, share,
+    title, destinySetup, birthIntro, mapZoom, birthRecord, showApp, update, decision, pause, lastYear, deathRecord, lineage, dex, share,
+    dynastyScreen,
     settings, coach, stageLoading,
   };
 }
