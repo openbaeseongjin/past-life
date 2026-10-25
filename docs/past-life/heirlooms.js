@@ -52,14 +52,19 @@ export function computeLegacyWealthBonus(finalWealth) {
   return 0;
 }
 
-export function applyHeirloom(life, id) {
+export function applyHeirloom(life, id, extra = {}) {
   const h = HEIRLOOMS[id];
   if (!h) return;
   life.heirloom = id;
   life.flags[`heirloom_${id}`] = true;
-  if (h.bonus.wealth) {
-    life.base.wealth = Math.min(100, Math.max(0, life.base.wealth + h.bonus.wealth));
-    life.stats.wealth = Math.min(100, Math.max(0, life.stats.wealth + h.bonus.wealth));
+  let bonusWealth = h.bonus.wealth || 0;
+  if (id === 'pouch' && extra.buriedStash) {
+    bonusWealth += 10; // 전생에 사당에 직접 묻어둔 비자금 추가 발굴 (+30 총 보너스)
+    life.flags.unearthed_stash = true;
+  }
+  if (bonusWealth) {
+    life.base.wealth = Math.min(100, Math.max(0, life.base.wealth + bonusWealth));
+    life.stats.wealth = Math.min(100, Math.max(0, life.stats.wealth + bonusWealth));
   }
   if (h.bonus.know && life.attrs) {
     life.attrs.know = Math.min(100, Math.max(0, life.attrs.know + h.bonus.know));

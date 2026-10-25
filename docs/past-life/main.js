@@ -162,7 +162,7 @@ async function playLife(soul) {
     applyInvestments(life, chosenInvestments);
   }
   if (chosenHeirloom) {
-    applyHeirloom(life, chosenHeirloom);
+    applyHeirloom(life, chosenHeirloom, { buriedStash: prev && prev.buriedStash });
   }
   const peers = makePeers(birth);
   window.__pl.life = life; window.__pl.soul = soul;
@@ -240,7 +240,7 @@ async function playLife(soul) {
   const sum = summarize(life, DECK);
   // 염주에 남길 것: 이 생의 구슬 (한 해 한 글자)과 모닥불에서 꿴 기억 구슬 (나이·메아리·한 줄)
   const memories = life.memories.map((m) => ({ age: m.age, echo: m.kind === 'echo', text: { ko: m.text.ko, en: m.text.en } }));
-  if (soul) { finishLife(soul, life, { thumb, finalWealth: Math.round(life.stats.wealth), beads: encodeBeads(beadsOf(life)), memories, lines: life.linesSeen.slice() }); store.saveSoul(soul); store.saveDex(addDex(store.loadDex(), life)); }
+  if (soul) { finishLife(soul, life, { thumb, finalWealth: Math.round(life.stats.wealth), karmicEndowment: !!(life.flags && life.flags.karmic_endowment), buriedStash: !!(life.flags && life.flags.buried_stash), beads: encodeBeads(beadsOf(life)), memories, lines: life.linesSeen.slice() }); store.saveSoul(soul); store.saveDex(addDex(store.loadDex(), life)); }
   window.__pl.done = (window.__pl.done || 0) + 1;
   for (;;) {
     const r = await ui.deathRecord({ life, sum, soul, peers });

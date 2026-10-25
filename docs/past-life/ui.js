@@ -416,7 +416,8 @@ export function createUI({ lang, robot = false, fast = false }) {
     let selectedHeirloom = null;
     const prevLife = prev || (soul && soul.lives && soul.lives.length > 0 ? soul.lives[soul.lives.length - 1] : null);
     const legacyBonus = prevLife && prevLife.finalWealth ? computeLegacyWealthBonus(prevLife.finalWealth) : 0;
-    const totalEmbers = 5 + legacyBonus;
+    const karmicBonus = prevLife && prevLife.karmicEndowment ? 1 : 0;
+    const totalEmbers = 5 + legacyBonus + karmicBonus;
     let investments = { luck: 0, charm: 0, know: 0, skill: 0, health: 0, wealth: 0 };
     const STAT_STEPS = { luck: 10, charm: 10, know: 8, skill: 10, health: 8, wealth: 8 };
 
@@ -485,6 +486,7 @@ export function createUI({ lang, robot = false, fast = false }) {
                 <span style="font-size:12px;color:var(--ink-soft)">${esc(L === 'ko' ? '선대로부터 전해 내려온 유물을 하나 골라 품에 안고 태어납니다.' : 'Choose one heirloom from past lives to carry with you.')}</span>
               </div>
               ${legacyBonus > 0 ? `<span style="font:600 12.5px var(--ui);color:#b37d14;background:rgba(226,182,94,.16);padding:3px 10px;border-radius:999px;border:1px solid rgba(226,182,94,.4)">✨ ${esc(L === 'ko' ? `전생 재산 유산 덤 +${legacyBonus}pt` : `Past Wealth Legacy +${legacyBonus}pt`)}</span>` : ''}
+              ${karmicBonus > 0 ? `<span style="font:600 12.5px var(--ui);color:#3f51b5;background:rgba(63,81,181,.12);padding:3px 10px;border-radius:999px;border:1px solid rgba(63,81,181,.35)">📿 ${esc(L === 'ko' ? '전생 시주 공덕 덤 +1pt' : 'Past Karmic Merit +1pt')}</span>` : ''}
             </div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px">
               ${HEIRLOOM_LIST.map((h) => {
@@ -493,7 +495,7 @@ export function createUI({ lang, robot = false, fast = false }) {
                   <span style="font-size:24px">${h.icon}</span>
                   <div>
                     <div style="font-weight:700;font-size:13.5px;color:var(--ink)">${esc(h.name[L])}</div>
-                    <div style="font-size:11.5px;color:var(--ink-soft);margin-top:2px">${esc(h.desc[L])}</div>
+                    <div style="font-size:11.5px;color:var(--ink-soft);margin-top:2px">${esc((prevLife && prevLife.buriedStash && h.id === 'pouch') ? (L === 'ko' ? '✨ 선대가 묻어둔 비밀 은화 발견 (시작 재산 +30)' : '✨ Unearth silver buried by your past self (+30 wealth)') : h.desc[L])}</div>
                   </div>
                 </div>`;
               }).join('')}
