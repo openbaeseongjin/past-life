@@ -2,7 +2,7 @@
 // 영혼의 의지(The Soul's Will): 지도학습(Supervised Learning) 기반 초경량 내장 AI 서사 엔진
 // 외부 서버 통신 0, 모델 다운로드 0MB, API 키 필요 없음 (0.3ms 초고속 브라우저 로컬 추론)
 
-import { CLASSES, BASE_LOG, PRIORS, WEIGHTS } from './will_model.data.js';
+import { CLASSES, IDF, CENTROIDS } from './will_model.data.js';
 
 // 1. 순수 JS 한글 자모 분해기 (0 의존성)
 const CHOSUNG = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
@@ -26,7 +26,11 @@ export function decomposeHangul(str) {
   return res.toLowerCase();
 }
 
-// 2. 부분단어 및 N-gram 토크나이저
+// 2. 한국어 조사 및 용언 어미 분리 정규식
+const JOSA = /^(.*?)(에서|으로|에게|한테|부터|까지|하고|이며|에는|에|을|를|은|는|이|가|의|와|과|도|만|로|란|이라|려|며|고|서|자)$/;
+const VERB_ENDINGS = /^(.*?)(하며|하고|하여|하면|한다|했다|해라|된다|됐다|달이다|달여|치료하|가르쳐|가르치|배운다|익힌다|짓는다|만든다|벼린다|벼리기|달린다|싸운다|훔친다|떠난다|바친다|기른다|돌본다|사랑하|사모하|고백하|꿈꾼다|기도하|방황하|유랑하)$/;
+
+// 3. 다층 시맨틱 N-Gram 토크나이저
 export function extractFeatures(text) {
   const clean = text.toLowerCase().replace(/[^a-z가-힣0-9\s]/g, ' ').trim();
   const words = clean.split(/\s+/).filter(Boolean);
@@ -38,56 +42,77 @@ export function extractFeatures(text) {
   };
 
   for (const w of words) {
-    if (w.length >= 2) add(`w:${w}`, 2.5);
-    for (let i = 0; i < w.length - 1; i++) {
-      add(`bg:${w.slice(i, i + 2)}`, 1.2);
+    add(`w:${w}`, 3.0);
+    let stem = w;
+    const jm = stem.match(JOSA);
+    if (jm && jm[1].length >= 2) {
+      add(`w:${jm[1]}`, 2.8);
+      stem = jm[1];
+    }
+    const vm = stem.match(VERB_ENDINGS);
+    if (vm && vm[1].length >= 2) {
+      add(`w:${vm[1]}`, 3.0);
+      stem = vm[1];
+    }
+    for (let i = 0; i < stem.length - 1; i++) {
+      add(`bg:${stem.slice(i, i + 2)}`, 1.2);
+    }
+    for (let i = 0; i < stem.length - 2; i++) {
+      add(`tg:${stem.slice(i, i + 3)}`, 1.6);
     }
   }
 
   for (let i = 0; i < jamo.length - 2; i++) {
     const tri = jamo.slice(i, i + 3);
-    if (!tri.includes(' ')) add(`j3:${tri}`, 1.0);
-  }
-  for (let i = 0; i < jamo.length - 3; i++) {
-    const four = jamo.slice(i, i + 4);
-    if (!four.includes(' ')) add(`j4:${four}`, 1.2);
+    if (!tri.includes(' ')) add(`j3:${tri}`, 0.35);
   }
 
   return feats;
 }
 
-// 3. AI 추론기 (Naive Bayes Probabilistic Classifier)
+// 4. AI 추론기 (TF-IDF Cosine Centroid Classifier with Softmax Calibration)
 export function predictIntent(text) {
   const feats = extractFeatures(text);
-  const scores = [...PRIORS];
+  const docVec = {};
+  let normSq = 0;
 
-  for (const [f, count] of Object.entries(feats)) {
-    if (!WEIGHTS[f]) continue;
-    for (let ci = 0; ci < CLASSES.length; ci++) {
-      scores[ci] += BASE_LOG[ci] * count;
+  for (const [k, cnt] of Object.entries(feats)) {
+    if (!IDF[k]) continue;
+    const w = (1 + Math.log(cnt)) * IDF[k];
+    docVec[k] = w;
+    normSq += w * w;
+  }
+  const norm = Math.sqrt(normSq) || 1;
+  for (const k of Object.keys(docVec)) {
+    docVec[k] /= norm;
+  }
+
+  let bestC = CLASSES[0], maxSim = -Infinity;
+  const scores = {};
+  for (const c of CLASSES) {
+    let sim = 0;
+    const cVec = CENTROIDS[c];
+    for (const [k, w] of Object.entries(docVec)) {
+      if (cVec[k]) sim += w * cVec[k];
     }
-    const arr = WEIGHTS[f];
-    for (let i = 0; i < arr.length; i += 2) {
-      scores[arr[i]] += arr[i + 1] * count;
+    scores[c] = Number(sim.toFixed(3));
+    if (sim > maxSim) {
+      maxSim = sim;
+      bestC = c;
     }
   }
 
-  let maxScore = -Infinity;
-  let bestIdx = 0;
-  for (let i = 0; i < CLASSES.length; i++) {
-    if (scores[i] > maxScore) {
-      maxScore = scores[i];
-      bestIdx = i;
-    }
+  // 신뢰도 마진 및 유사도 정규화 (Calibrated Margin Confidence)
+  let confidence = 0.2;
+  if (maxSim >= 0.055) {
+    const sorted = Object.values(scores).sort((a, b) => b - a);
+    const top1 = sorted[0];
+    const top2 = sorted[1] || 0;
+    const margin = top1 - top2;
+    confidence = Math.min(1.0, Number(((top1 / 0.14) * 0.5 + (margin / 0.06) * 0.5).toFixed(3)));
   }
 
-  let sumExp = 0;
-  for (let i = 0; i < CLASSES.length; i++) {
-    sumExp += Math.exp(scores[i] - maxScore);
-  }
-  const confidence = sumExp > 0 ? (1 / sumExp) : 1;
-
-  return { intent: CLASSES[bestIdx], confidence, scores };
+  return { intent: bestC, confidence, similarity: Number(maxSim.toFixed(3)), scores };
 }
 
 // 4. 입력 문장에서 핵심 개체명(Entity) 추출 (생성형 서사에 실시간 융합)
@@ -373,7 +398,7 @@ export function parseSoulWill(text, context, life) {
       flags: [...cfg.set],
       scene: { ...cfg.scene },
       intent: 'anachronism',
-      ai: { model: 'nb_v1', confidence: 1.0 },
+      ai: { model: 'centroid_v1', confidence: 1.0 },
     };
   }
 
@@ -382,7 +407,7 @@ export function parseSoulWill(text, context, life) {
   let intentKey = aiPred.intent;
 
   // 신뢰도가 낮거나 모호한 경우 일반 결단(general_will)으로 안전 수렴
-  if (aiPred.confidence < 0.6) {
+  if (aiPred.confidence < 0.55 || aiPred.similarity < 0.055) {
     intentKey = 'general_will';
   }
 
@@ -409,9 +434,10 @@ export function parseSoulWill(text, context, life) {
     scene: { ...cfg.scene },
     intent: (/훔치|서리|도둑|털다|훔쳐/.test(raw) ? 'deviance_steal' : (/도망|탈출|달아나|야반도주/.test(raw) ? 'escape_flee' : (/공부|서책|배우|독서/.test(raw) ? 'study_learn' : (/싸우|결투|칼|검/.test(raw) ? 'fight_combat' : (/은화|엽전|비자금|장사/.test(raw) ? 'wealth_trade' : (/약초|의원|치료|침술|침을\s*놓|탕약/.test(raw) ? 'healer_care' : (/관아|사또|관리|나랏일/.test(raw) ? 'statesman_rule' : (/농사|모내기|밭|논/.test(raw) ? 'homesteader_farm' : (/고백|연애|사랑/.test(raw) ? 'love_romance' : cfg.key))))))))),
     ai: {
-      model: 'nb_v1',
+      model: 'centroid_v1',
       intent: aiPred.intent,
       confidence: Number(aiPred.confidence.toFixed(3)),
+      similarity: aiPred.similarity,
       entity,
     },
   };
