@@ -192,6 +192,19 @@ async function run() {
     await page.screenshot({ path: outcomeShotPath });
     console.log('Captured outcome journal screenshot:', outcomeShotPath);
 
+    // Test 3D Avatar Career Route Props (Package 2)
+    console.log('Testing 3D Avatar Career Route Prop transformations...');
+    await page.evaluate(() => {
+      const v = window.__pl.village;
+      if (v && v.setRoute) {
+        v.setRoute({ id: 'warrior' });
+      }
+    });
+    await page.waitForTimeout(600);
+    const warriorShotPath = path.join(ARTIFACT_DIR, 'career_warrior_prop_3d.png');
+    await page.screenshot({ path: warriorShotPath });
+    console.log('Captured warrior prop 3D screenshot:', warriorShotPath);
+
     console.log('Errors count:', errors.length);
     if (errors.length > 0) throw new Error(errors.join(', '));
   } finally {

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { parseSoulWill, getWillPresets } from '../will.js';
 import { drawBirth } from '../birth.js';
 import { createLife, choose } from '../life.js';
+import { computeTraces } from '../traces.js';
+import { cardHandPropOf } from '../cardscene.js';
 
 test('parseSoulWill 의도별 파싱 및 서사 생성 검증', () => {
   const dummyCtx = { era: 9, lang: 'ko' };
@@ -196,4 +198,60 @@ test('학습된 AI 추론기(Trained Model) 및 동적 개체명 생성(Entity S
   const res4 = parseSoulWill('사랑하는 이에게 수줍게 꽃다발을 건넨다', dummyCtx);
   assert.equal(res4.route?.id, 'homesteader');
   assert.ok(res4.result.ko.includes('꽃다발'));
+});
+
+test('패키지 1: AI 인과율 연쇄 사건 및 다음 생 윤회 각인(Karmic Trace) 검증', () => {
+  const birth = drawBirth('KARMIC-TEST-SEED');
+  const life = createLife({ birth, quiet: true });
+
+  const dummyCard = {
+    id: 'test_card_echo',
+    title: { ko: '청년의 결단', en: 'Youth Decision' },
+    choices: [{ text: { ko: '기본', en: 'Base' }, result: { ko: '결과', en: 'Result' } }],
+  };
+  life.pending = { card: dummyCard };
+
+  // 1. 유저 자유 결단 수행
+  const parsed = parseSoulWill('동네 서당에서 밤새 논어를 필사하며 학문의 뜻을 세운다', life.ctx(), life);
+  const customChoice = {
+    text: parsed.text,
+    result: parsed.result,
+    effects: parsed.effects,
+    route: parsed.route,
+    set: parsed.set,
+    scene: parsed.scene,
+    flags: parsed.flags,
+    ai: parsed.ai,
+    custom: true,
+  };
+  choose(life, customChoice);
+
+  // 2. 인과율 기록 및 플래그 세팅 검증
+  assert.ok(life.willEcho);
+  assert.equal(life.willEcho.routeId, 'scholar');
+  assert.equal(life.flags.will_echo_pending, true);
+  assert.equal(life.flags.echo_scholar, true);
+  assert.ok(life.willEcho.entity.includes('논어') || life.willEcho.entity.length > 0);
+
+  // 3. 사망 후 윤회 흔적 추출 (Karmic Trace) 검증
+  life.death = { age: 65, year: life.year + 45 };
+  const traces = computeTraces(life);
+  assert.ok(traces.some((t) => t.kind === 'karmic' && t.key === 'vow'));
+  const vowTrace = traces.find((t) => t.key === 'vow');
+  assert.ok(vowTrace.vow.includes('논어') || vowTrace.vow.length > 0);
+});
+
+test('패키지 2: 12대 진로 맞춤형 초경량 3D 손 소품(Hand Props) 매핑 검증', () => {
+  assert.equal(cardHandPropOf(null, { route: 'warrior' }), 'sword');
+  assert.equal(cardHandPropOf(null, { route: { id: 'artisan' } }), 'hammer');
+  assert.equal(cardHandPropOf(null, { route: 'artist' }), 'flute');
+  assert.equal(cardHandPropOf(null, { route: 'merchant' }), 'pouch');
+  assert.equal(cardHandPropOf(null, { route: 'rebel' }), 'dagger');
+  assert.equal(cardHandPropOf(null, { route: 'voyager' }), 'spyglass');
+  assert.equal(cardHandPropOf(null, { route: 'scholar' }), 'book');
+  assert.equal(cardHandPropOf(null, { route: 'homesteader' }), 'hoe');
+  assert.equal(cardHandPropOf(null, { route: 'healer' }), 'pack');
+  assert.equal(cardHandPropOf(null, { route: 'seeker' }), 'pray');
+  assert.equal(cardHandPropOf(null, { route: 'freespirit' }), 'staff');
+  assert.equal(cardHandPropOf(null, { age: 72 }), 'staff');
 });

@@ -374,6 +374,71 @@ export function createPeople(scene, opts) {
           g.add(hm); g.add(bm);
           return g;
         }
+        if (type === 'sword') {
+          const g = new THREE.Group();
+          const bladeGeo = new THREE.BoxGeometry(0.035, 0.62, 0.014);
+          const bladeMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.3, metalness: 0.8 });
+          const blade = new THREE.Mesh(bladeGeo, bladeMat);
+          blade.position.y = 0.3; blade.userData = { disposableMat: true };
+          blade.castShadow = true; blade.layers.set(1); g.add(blade);
+          const guardGeo = new THREE.BoxGeometry(0.12, 0.02, 0.035);
+          const guardMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+          const guard = new THREE.Mesh(guardGeo, guardMat);
+          guard.userData = { disposableMat: true }; g.add(guard);
+          const hiltGeo = new THREE.CylinderGeometry(0.014, 0.014, 0.13, 6);
+          const hiltMat = new THREE.MeshLambertMaterial({ color: 0x5a3d28 });
+          const hilt = new THREE.Mesh(hiltGeo, hiltMat);
+          hilt.position.y = -0.065; hilt.userData = { disposableMat: true }; g.add(hilt);
+          return g;
+        }
+        if (type === 'hammer') {
+          const g = new THREE.Group();
+          const handleGeo = new THREE.CylinderGeometry(0.015, 0.018, 0.42, 6);
+          const handleMat = new THREE.MeshLambertMaterial({ color: 0x5c4033 });
+          const handle = new THREE.Mesh(handleGeo, handleMat);
+          handle.userData = { disposableMat: true }; handle.castShadow = true; handle.layers.set(1); g.add(handle);
+          const headGeo = new THREE.BoxGeometry(0.11, 0.065, 0.065);
+          const headMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.5, metalness: 0.7 });
+          const head = new THREE.Mesh(headGeo, headMat);
+          head.position.y = 0.18; head.userData = { disposableMat: true };
+          head.castShadow = true; head.layers.set(1); g.add(head);
+          return g;
+        }
+        if (type === 'flute') {
+          const g = new THREE.Group();
+          const geo = new THREE.CylinderGeometry(0.012, 0.014, 0.42, 8);
+          const mat = new THREE.MeshLambertMaterial({ color: 0x40552b });
+          const m = new THREE.Mesh(geo, mat); m.userData = { disposableMat: true };
+          m.castShadow = true; m.layers.set(1); g.add(m);
+          return g;
+        }
+        if (type === 'pouch') {
+          const g = new THREE.Group();
+          const geo = new THREE.SphereGeometry(0.065, 7, 7);
+          const mat = new THREE.MeshLambertMaterial({ color: 0x966f33 });
+          const m = new THREE.Mesh(geo, mat); m.userData = { disposableMat: true };
+          m.castShadow = true; m.layers.set(1); g.add(m);
+          return g;
+        }
+        if (type === 'dagger') {
+          const g = new THREE.Group();
+          const bladeGeo = new THREE.BoxGeometry(0.025, 0.26, 0.01);
+          const bladeMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.3, metalness: 0.8 });
+          const blade = new THREE.Mesh(bladeGeo, bladeMat);
+          blade.position.y = 0.13; blade.userData = { disposableMat: true }; g.add(blade);
+          const hiltGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.09, 6);
+          const hiltMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+          const hilt = new THREE.Mesh(hiltGeo, hiltMat);
+          hilt.position.y = -0.045; hilt.userData = { disposableMat: true }; g.add(hilt);
+          return g;
+        }
+        if (type === 'spyglass') {
+          const g = new THREE.Group();
+          const geo = new THREE.CylinderGeometry(0.018, 0.026, 0.32, 8);
+          const mat = new THREE.MeshStandardMaterial({ color: 0xbf9b30, roughness: 0.3, metalness: 0.9 });
+          const m = new THREE.Mesh(geo, mat); m.userData = { disposableMat: true }; g.add(m);
+          return g;
+        }
         return null;
       };
       const hProp = p.handProp;
@@ -397,6 +462,15 @@ export function createPeople(scene, opts) {
           B.hand_r.add(bk); P.props.book = bk;
         }
       }
+      if (['sword', 'hammer', 'flute', 'pouch', 'dagger', 'spyglass'].includes(hProp) && B.hand_r && !P.props[hProp]) {
+        const pr = prop(hProp) || makeProceduralProp(hProp);
+        if (pr) {
+          pr.position.set(0.04, -0.05, 0.02);
+          pr.rotation.set(-0.2, 0.3, 0.1);
+          B.hand_r.add(pr);
+          P.props[hProp] = pr;
+        }
+      }
       if (p.headwear === 'satgat' && B.Head && !P.props.headwear) {
         const hGeo = new THREE.ConeGeometry(0.25, 0.1, 9);
         const hMat = new THREE.MeshLambertMaterial({ color: 0xbd9f67 });
@@ -409,6 +483,28 @@ export function createPeople(scene, opts) {
         const hMat = new THREE.MeshLambertMaterial({ color: 0x222228 });
         const hm = new THREE.Mesh(hGeo, hMat);
         hm.position.set(0, 0.16, 0);
+        hm.userData = { disposableMat: true };
+        B.Head.add(hm); P.props.headwear = hm;
+      } else if (p.headwear === 'warrior_helm' && B.Head && !P.props.headwear) {
+        const hGeo = new THREE.CylinderGeometry(0.12, 0.14, 0.12, 8);
+        const hMat = new THREE.MeshStandardMaterial({ color: 0x3a3d40, metalness: 0.6, roughness: 0.4 });
+        const hm = new THREE.Mesh(hGeo, hMat);
+        hm.position.set(0, 0.15, 0);
+        hm.userData = { disposableMat: true };
+        B.Head.add(hm); P.props.headwear = hm;
+      } else if (p.headwear === 'headband' && B.Head && !P.props.headwear) {
+        const hGeo = new THREE.TorusGeometry(0.12, 0.018, 6, 12);
+        const hMat = new THREE.MeshLambertMaterial({ color: 0xa83232 });
+        const hm = new THREE.Mesh(hGeo, hMat);
+        hm.rotation.x = Math.PI / 2;
+        hm.position.set(0, 0.11, 0);
+        hm.userData = { disposableMat: true };
+        B.Head.add(hm); P.props.headwear = hm;
+      } else if (p.headwear === 'monk_cowl' && B.Head && !P.props.headwear) {
+        const hGeo = new THREE.SphereGeometry(0.13, 8, 8);
+        const hMat = new THREE.MeshLambertMaterial({ color: 0x887b68 });
+        const hm = new THREE.Mesh(hGeo, hMat);
+        hm.position.set(0, 0.13, -0.02);
         hm.userData = { disposableMat: true };
         B.Head.add(hm); P.props.headwear = hm;
       }

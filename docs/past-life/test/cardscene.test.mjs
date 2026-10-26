@@ -90,7 +90,7 @@ test('모든 덱 카드(DECK + EVENT_CARDS)에서 cardFocusOf 및 cardWorkSpotOf
   const validFocuses = new Set(['work', 'learn', 'family', 'body', 'rest']);
   const validSpots = new Set(['market', 'forge', 'shore', 'field', null]);
   const validShots = new Set(['intimate', 'epic', 'solo', 'work']);
-  const validProps = new Set(['book', 'hoe', 'pack', 'staff', 'pray', null]);
+  const validProps = new Set(['book', 'hoe', 'pack', 'staff', 'pray', 'sword', 'hammer', 'flute', 'pouch', 'dagger', 'spyglass', null]);
   const validMoods = new Set(['warm', 'crisis', 'clear']);
 
   for (const c of allCards) {
