@@ -320,9 +320,15 @@ export function chanceOf(life, c) {
 export function choose(life, i) {
   if (!life.pending) return null;   // 이미 고른 결정 (자동 결정 타이머와 클릭이 겹칠 때)
   const { card } = life.pending;
-  const c = card.choices[i];
-  if (!c || !openChoices(life, card)[i]) return null;
-  let effects = { ...(c.effects || {}) }, result = c.result, ok;
+  let c, choiceIndex = i;
+  if (typeof i === 'object' && i !== null) {
+    c = i;
+    choiceIndex = -1;
+  } else {
+    c = card.choices[i];
+    if (!c || !openChoices(life, card)[i]) return null;
+  }
+  let effects = { ...(c.effects || {}) }, result = c.result, ok = true;
   if (c.chance) {   // 행운이 높거나 재능 흔적이 맞으면 성공이 잦다 (모닥불 메아리로 짙어졌으면 더)
     ok = sub(life.birth.seed, life.age, 'choice', card.id, i).next() < chanceOf(life, c);
     const branch = ok ? c.chance.win : c.chance.lose;
