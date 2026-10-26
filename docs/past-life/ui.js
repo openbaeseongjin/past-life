@@ -987,6 +987,8 @@ export function createUI({ lang, robot = false, fast = false }) {
         text: outcome.text,
         result: outcome.result,
         effects: outcome.effects,
+        route: outcome.route,
+        set: outcome.set,
         scene: outcome.scene,
         flags: outcome.flags,
         custom: true,

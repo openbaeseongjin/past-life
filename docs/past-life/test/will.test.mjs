@@ -12,6 +12,7 @@ test('parseSoulWill 의도별 파싱 및 서사 생성 검증', () => {
   assert.equal(resSteal.intent, 'deviance_steal');
   assert.ok(resSteal.result.ko.includes('달콤함'));
   assert.ok(resSteal.effects.happy > 0);
+  assert.equal(resSteal.route?.id, 'rebel');
   assert.ok(resSteal.scene.anim === 'nod');
 
   // 2. 도피 / 탈출
@@ -19,31 +20,51 @@ test('parseSoulWill 의도별 파싱 및 서사 생성 검증', () => {
   assert.equal(resFlee.intent, 'escape_flee');
   assert.ok(resFlee.result.ko.includes('자유'));
   assert.ok(resFlee.effects.family < 0);
+  assert.equal(resFlee.route?.id, 'freespirit');
   assert.equal(resFlee.scene.shot, 'epic');
 
   // 3. 학문 / 서책
   const resStudy = parseSoulWill('서책을 밤새워 공부한다', dummyCtx);
   assert.equal(resStudy.intent, 'study_learn');
   assert.ok(resStudy.effects.know >= 10);
+  assert.equal(resStudy.route?.id, 'scholar');
   assert.equal(resStudy.scene.focus, 'learn');
 
   // 4. 재산 / 비자금
   const resWealth = parseSoulWill('주춧돌 밑에 은화를 숨긴다', dummyCtx);
   assert.equal(resWealth.intent, 'wealth_trade');
   assert.ok(resWealth.effects.wealth >= 10);
+  assert.equal(resWealth.route?.id, 'merchant');
 
-  // 5. 사랑 / 고백
+  // 5. 치유 / 약초
+  const resHeal = parseSoulWill('아픈 이들을 위해 깊은 산에서 약초를 캐어 달인다', dummyCtx);
+  assert.equal(resHeal.intent, 'healer_care');
+  assert.equal(resHeal.route?.id, 'healer');
+  assert.ok(resHeal.effects.know > 0);
+
+  // 6. 관청 / 통치
+  const resGov = parseSoulWill('관아의 부름을 받아 나랏일을 돕는다', dummyCtx);
+  assert.equal(resGov.intent, 'statesman_rule');
+  assert.equal(resGov.route?.id, 'statesman');
+
+  // 7. 농경 / 대지
+  const resFarm = parseSoulWill('봄날 아침부터 논에 모내기를 하고 밭을 간다', dummyCtx);
+  assert.equal(resFarm.intent, 'homesteader_farm');
+  assert.equal(resFarm.route?.id, 'homesteader');
+
+  // 8. 사랑 / 고백
   const resLove = parseSoulWill('마음에 둔 사람에게 고백한다', dummyCtx);
   assert.equal(resLove.intent, 'love_romance');
   assert.ok(resLove.effects.charm >= 10);
   assert.equal(resLove.scene.focus, 'family');
 
-  // 6. 싸움 / 결투
+  // 9. 싸움 / 결투
   const resFight = parseSoulWill('단검을 뽑아 맞서 싸운다', dummyCtx);
   assert.equal(resFight.intent, 'fight_combat');
   assert.ok(resFight.effects.skill >= 10);
+  assert.equal(resFight.route?.id, 'warrior');
 
-  // 7. 일반 미등록 자유 입력 (Fallback)
+  // 10. 일반 미등록 자유 입력 (Fallback)
   const resGeneral = parseSoulWill('나만의 신비로운 길을 개척한다', dummyCtx);
   assert.equal(resGeneral.intent, 'general_will');
   assert.ok(resGeneral.result.ko.length > 10);
@@ -98,6 +119,8 @@ test('choose(life, customChoice) 영혼의 결단 생애 시스템 통합 검증
     text: parsed.text,
     result: parsed.result,
     effects: parsed.effects,
+    route: parsed.route,
+    set: parsed.set,
     scene: parsed.scene,
     flags: parsed.flags,
     custom: true,
@@ -115,6 +138,12 @@ test('choose(life, customChoice) 영혼의 결단 생애 시스템 통합 검증
   // 스탯 변동 검증
   assert.equal(life.stats.happy, Math.min(100, initHappy + parsed.effects.happy));
 
+  // 루트(Route) 및 플래그(Flags) 직결 검증
+  assert.ok(life.route);
+  assert.equal(life.route.id, 'rebel');
+  assert.equal(life.flags['route:rebel'], true);
+  assert.equal(life.flags.outlaw_will, true);
+
   // 일지에 결단 기록 남음 검증
   const lastEntry = life.journal[life.journal.length - 1];
   assert.ok(lastEntry.text.ko.includes('서당 뒤뜰 엿'));
@@ -122,4 +151,23 @@ test('choose(life, customChoice) 영혼의 결단 생애 시스템 통합 검증
 
   // pending 정상 해제
   assert.equal(life.pending, null);
+
+  // 진로 전환 (Career Pivot) 2차 결단 검증: 반란자 -> 학자의 길로 피벗
+  life.pending = { card: dummyCard };
+  const parsedPivot = parseSoulWill('서책을 밤새워 공부하며 과거를 본다', life.ctx(), life);
+  const pivotChoice = {
+    text: parsedPivot.text,
+    result: parsedPivot.result,
+    effects: parsedPivot.effects,
+    route: parsedPivot.route,
+    set: parsedPivot.set,
+    scene: parsedPivot.scene,
+    flags: parsedPivot.flags,
+    custom: true,
+  };
+  choose(life, pivotChoice);
+  assert.equal(life.route.id, 'scholar');
+  assert.equal(life.route.secondary, 'rebel');
+  assert.equal(life.route.pivoted, true);
+  assert.equal(life.flags['route:scholar'], true);
 });
