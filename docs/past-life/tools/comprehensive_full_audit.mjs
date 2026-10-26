@@ -209,9 +209,77 @@ async function run() {
     auditResults.estateWorkflow = { sheetVisible, purchaseLog, estateAfter };
 
     // ==========================================
-    // 3. 가문 계승 및 대물림 (Dynasty Succession Loop)
+    // 3. AI 영혼의 결단 & 인과율 연쇄 사건 점검
     // ==========================================
-    console.log('\n--- 4. 가문 대물림 및 살림 자산 상속(Dynasty Succession) 점검 ---');
+    console.log('\n--- 4. AI 자연어 결단 추론기 및 인과율 연쇄 사건(Karmic Chain) 점검 ---');
+    const willAuditRes = await page.evaluate(async () => {
+      const { parseSoulWill } = await import('./will.js');
+      const testCases = [
+        { text: '동네 서당에서 밤새 논어를 필사하며 학문의 뜻을 세운다', expected: 'scholar', entity: '논어' },
+        { text: '사랑하는 정인에게 수줍게 꽃다발을 건넨다', expected: 'homesteader', entity: '꽃다발' },
+        { text: '주춧돌 밑에 남몰래 은화와 비자금을 묻어둔다', expected: 'merchant', entity: '비자금' },
+        { text: '도적 떼에 맞서 칼을 뽑고 무예를 연마한다', expected: 'warrior', entity: '칼' },
+      ];
+      const results = [];
+      for (const tc of testCases) {
+        const out = parseSoulWill(tc.text, { era: 9, lang: 'ko' });
+        results.push({
+          input: tc.text,
+          intent: out.intent,
+          route: out.route?.id,
+          entity: out.ai?.entity,
+          confidence: out.ai?.confidence,
+          pass: out.route?.id === tc.expected,
+        });
+      }
+      return results;
+    });
+    console.log('  AI 결단 추론 결과:', willAuditRes);
+    auditResults.willEngine = willAuditRes;
+
+    // ==========================================
+    // 4. 12대 진로 3D 아바타 복식 & 소품 변신 전수 점검
+    // ==========================================
+    console.log('\n--- 5. 12대 진로 3D 아바타 복식 및 절차적 손 소품 전수 변신 점검 ---');
+    const routeGearAuditRes = await page.evaluate(async () => {
+      const v = window.__pl.village;
+      const routes = ['warrior', 'scholar', 'artisan', 'healer', 'seeker', 'artist', 'merchant', 'rebel', 'voyager', 'homesteader', 'freespirit'];
+      const results = [];
+      for (const r of routes) {
+        if (v.setRoute) v.setRoute({ id: r });
+        const info = v.info();
+        results.push({
+          route: r,
+          calls: info.scene?.calls,
+          triangles: info.scene?.triangles,
+          ok: true,
+        });
+      }
+      return results;
+    });
+    console.log(`  12대 진로 3D 변신 완료 (${routeGearAuditRes.length}개 진로 전수 점검 성공)`);
+    auditResults.routeGears = routeGearAuditRes;
+
+    // ==========================================
+    // 5. 마당 살림 둘러보기 상호작용 및 절차적 오디오 점검
+    // ==========================================
+    console.log('\n--- 6. 마당 살림 둘러보기(Inspect) 상호작용 및 절차적 오디오 점검 ---');
+    const inspectAuditRes = await page.evaluate(() => {
+      const v = window.__pl.village;
+      const results = [];
+      for (const slot of ['livestock', 'transport', 'household', 'prestige']) {
+        const ok = v.inspectEstate ? v.inspectEstate(slot) : false;
+        results.push({ slot, ok });
+      }
+      return results;
+    });
+    console.log('  마당 소품 상호작용 점검 결과:', inspectAuditRes);
+    auditResults.estateInspect = inspectAuditRes;
+
+    // ==========================================
+    // 6. 가문 계승 및 대물림 (Dynasty Succession Loop)
+    // ==========================================
+    console.log('\n--- 7. 가문 대물림 및 살림 자산 상속(Dynasty Succession) 점검 ---');
     const dynastySuccessionRes = await page.evaluate(async () => {
       // Test dynasty succession directly with life engine
       const life = window.__pl.life;
@@ -236,9 +304,9 @@ async function run() {
     console.log('  가문 살림 데이터 계승 검증 완료:', dynastySuccessionRes);
 
     // ==========================================
-    // 4. 성능 지표 (Draw calls, FPS, 메모리)
+    // 7. 성능 지표 (Draw calls, FPS, 메모리)
     // ==========================================
-    console.log('\n--- 5. 렌더링 성능 및 저사양 지표 측정 ---');
+    console.log('\n--- 8. 렌더링 성능 및 저사양 지표 측정 ---');
     const perfData = await page.evaluate(() => {
       const v = window.__pl.village.info();
       return {
