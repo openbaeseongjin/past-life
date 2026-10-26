@@ -344,6 +344,7 @@ export function createUI({ lang, robot = false, fast = false }) {
     intro.style.opacity = '0';
     await wait(fast ? 0 : reduced() ? 120 : 600);
     intro.hidden = true;
+    if (map && map.clearDots) map.clearDots();
   }
   // 출생 기록 뒤: 지도가 태어난 자리로 다가가며 걷히고, 뒤에 지어 둔 무대가 드러난다 (지도가 없었으면 그냥 지나간다)
   async function mapZoom() {
@@ -360,6 +361,7 @@ export function createUI({ lang, robot = false, fast = false }) {
     await z;
     await wait(fast ? 0 : reduced() ? 100 : 700);
     intro.hidden = true; intro.classList.remove('atlas');
+    if (introMap && introMap.clearDots) introMap.clearDots();
   }
 
   // 지도를 못 쓸 때의 예전 탄생 장면: 영혼 2만 개 가운데 하나가 금실을 끌며 떨어진다
@@ -1175,7 +1177,7 @@ export function createUI({ lang, robot = false, fast = false }) {
       const seg = (name, list, curV) => `<div class="seg" role="group">${list.map(([v, label]) => `<button data-v="${name}:${v}" aria-pressed="${v === curV}">${esc(label)}</button>`).join('')}</div>`;
       modal.className = 'settings';
       modal.innerHTML = `<div class="setsheet" role="dialog" aria-modal="true" aria-labelledby="setT"><h2 id="setT">${esc(t(L, 'setTitle'))}</h2>
-        <div class="row"><b>${esc(t(L, 'setQuality'))}</b>${seg('q', [['high', t(L, 'qHigh')], ['normal', t(L, 'qNormal')]], st.quality)}<small>${esc(t(L, 'qHint'))}</small></div>
+        <div class="row"><b>${esc(t(L, 'setQuality'))}</b>${seg('q', [['high', t(L, 'qHigh')], ['normal', t(L, 'qNormal')], ['low', t(L, 'qLow')]], st.quality)}<small>${esc(t(L, 'qHint'))}</small></div>
         <div class="row"><b>${esc(t(L, 'setSpeed'))}</b>${seg('sp', ['slow', 'normal', 'fast', 'fastest'].map((k) => [k, sp[k]]), st.speed)}</div>
         <div class="row"><b>${esc(t(L, 'setSound'))}</b>${seg('snd', [['on', t(L, 'soundOn')], ['off', t(L, 'soundOff')]], st.sound ? 'on' : 'off')}</div>
         <div class="row"><b>${esc(t(L, 'setLang'))}</b>${seg('lang', [['ko', '한국어'], ['en', 'English']], st.lang)}</div>
