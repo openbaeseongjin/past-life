@@ -341,7 +341,7 @@ export function choose(life, i) {
   if (effects.family > 0) effects.family *= charmMul(life.attrs && life.attrs.charm);   // 곁이 오를 때는 친화력 배율
   for (const k of STATS) if (effects[k]) life.stats[k] = clamp(life.stats[k] + effects[k]);
   if (life.attrs) { for (const k of ATTRS) if (effects[k]) life.attrs[k] = clampAttr(life.attrs[k] + effects[k]); readCheck(life); }
-  for (const f of c.set || []) life.flags[f] = true;
+  for (const f of (c.set || c.flags || [])) life.flags[f] = true;
   for (const f of c.unset || []) delete life.flags[f];
   if (c.route) setLifeRoute(life, c.route);
   if (c.estate) {

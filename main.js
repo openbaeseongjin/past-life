@@ -1,4 +1,5 @@
 import { applyHeirloom } from './heirlooms.js';
+import { getRouteBadge } from './routes.js';
 import { createDynasty, prepareSuccessor, applyDynastyPerks } from './dynasty.js';
 // 연결 (설계 12장): 시작 → 탄생 장면 → 출생 기록 → 해가 저절로 흐르는 한 생 → 마지막 해 → 사망 기록 → 다음 생 / 족보
 // ?seed=문자열: 그 시드로 연습 한 판 (저장 안 함) · ?auto=1: 단추·결정을 저절로 · ?fast=1: 기다림 없음
@@ -239,7 +240,20 @@ async function playLife(soul) {
         village.setFocus(i.scene.focus);
       }
       village.setCardFocus(null);
-      sound.tick(); choose(life, i); refresh();
+      sound.tick();
+      const prevRouteId = life.route?.id;
+      choose(life, i);
+      if (typeof i === 'object' && i !== null && i.route && life.route?.id) {
+        const badge = getRouteBadge(life, S.lang);
+        if (badge) {
+          const isPivot = prevRouteId && prevRouteId !== life.route.id;
+          const msg = S.lang === 'ko'
+            ? (isPivot ? `🔄 [${badge.routeName}] 진로로 삶의 궤적을 전환했습니다!` : `🛤️ [${badge.routeName}] 진로에 들어섰습니다!`)
+            : (isPivot ? `🔄 Pivoted path to [${badge.routeName}]!` : `🛤️ Embarked upon the [${badge.routeName}]!`);
+          ui.toast(msg, { ms: 3200, cls: 'echo' });
+        }
+      }
+      refresh();
       continue;
     }
     if (ev.type === 'pause') {
