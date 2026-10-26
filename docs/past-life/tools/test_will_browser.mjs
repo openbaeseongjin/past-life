@@ -205,6 +205,46 @@ async function run() {
     await page.screenshot({ path: warriorShotPath });
     console.log('Captured warrior prop 3D screenshot:', warriorShotPath);
 
+    // Test Package 3: Estate Drawer & Yard Interactive Inspection
+    console.log('Testing Package 3: Estate Drawer & Yard Interactive Inspection...');
+    await page.evaluate(() => {
+      const life = window.__pl.life;
+      life.stats.wealth = 150;
+      life.estate = { livestock: 1, transport: 1, household: 1, prestige: 1 };
+      window.__pl.village.updateEstate(life.estate, 'livestock');
+    });
+
+    // Open estate drawer via UI
+    await page.evaluate(() => {
+      const life = window.__pl.life;
+      window.__pl.ui.showEstateDrawer(life, (slot, tier) => {
+        life.estate[slot] = tier;
+        window.__pl.village.updateEstate(life.estate, slot);
+      }, (slot, tier) => {
+        window.__pl.village.inspectEstate?.(slot);
+        window.__pl.ui.toast(`👀 [마당 둘러보기] ${slot} 상호작용 성공!`, 2500);
+      });
+    });
+    await page.waitForTimeout(600);
+    const estateShotPath = path.join(ARTIFACT_DIR, 'estate_interactive_drawer.png');
+    await page.screenshot({ path: estateShotPath });
+    console.log('Captured estate interactive drawer screenshot:', estateShotPath);
+
+    // Click inspect button
+    const inspectBtn = await page.$('.btn-inspect-estate');
+    if (inspectBtn) {
+      console.log('Clicking .btn-inspect-estate...');
+      await inspectBtn.click();
+      await page.waitForTimeout(500);
+    }
+
+    // Close estate drawer
+    const closeBtn = await page.$('[data-v="close"]');
+    if (closeBtn) {
+      await closeBtn.click();
+      await page.waitForTimeout(400);
+    }
+
     console.log('Errors count:', errors.length);
     if (errors.length > 0) throw new Error(errors.join(', '));
   } finally {

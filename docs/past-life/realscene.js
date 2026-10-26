@@ -2920,6 +2920,13 @@ export function createStage(canvas) {
       st.estate = estate;
       updateEstateProps(estate, showcaseSlot);
     },
+    inspectEstate(slot) {
+      if (W && W.estateProps && W.estateProps[slot]) {
+        updateEstateProps(st.estate, slot);
+        return true;
+      }
+      return false;
+    },
     // 올해의 패 (work·learn·family·body·rest, 고르지 않았으면 main 이 정한 저절로 값) → 내 사람이 하는 일·자리
     setFocus(id) { st.focus = id || null; st.card = null; spawnMe(false); },
     // 카드 등장 시 카드 상황에 맞춘 현장 연출 및 특수 기후

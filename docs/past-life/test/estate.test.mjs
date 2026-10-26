@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ESTATE_SLOTS, ESTATE_CATALOG, canBuyEstate, buyEstate, getEstatePropName } from '../estate.js';
+import { ESTATE_SLOTS, ESTATE_CATALOG, canBuyEstate, buyEstate, getEstatePropName, getInspectMessage } from '../estate.js';
+import { createSound } from '../sound.js';
 import { drawBirth } from '../birth.js';
 import { createLife } from '../life.js';
 import { createDynasty, prepareSuccessor } from '../dynasty.js';
@@ -118,4 +119,38 @@ test('가문 후계자 마당 살림(Estate) 상속 및 독립 복제 검증', (
   // 후계자의 생애 생성 시 상속된 estate 정상 적용
   const heirLife = createLife({ birth: res.birth, quiet: true });
   assert.deepEqual(heirLife.estate, { livestock: 3, transport: 1, household: 3, prestige: 1 });
+});
+
+test('getInspectMessage 마당 살림 둘러보기 감성 텍스트 검증', () => {
+  for (const slot of ESTATE_SLOTS) {
+    for (let t = 1; t <= 3; t++) {
+      const msgKo = getInspectMessage(slot, t, 'ko');
+      const msgEn = getInspectMessage(slot, t, 'en');
+      assert.ok(msgKo && msgKo.length >= 10, `${slot} t${t} ko text`);
+      assert.ok(msgEn && msgEn.length >= 10, `${slot} t${t} en text`);
+      assert.ok(msgKo.includes('('), 'Must contain stat bonus hint');
+    }
+  }
+});
+
+test('패키지 4: createSound 절차적 사운드 신시사이징(scroll, coin, brush) API 안정성 검증', () => {
+  const soundDisabled = createSound(() => false);
+  assert.doesNotThrow(() => {
+    soundDisabled.chime();
+    soundDisabled.tick();
+    soundDisabled.bell();
+    soundDisabled.scroll();
+    soundDisabled.coin();
+    soundDisabled.brush();
+  });
+
+  const soundEnabled = createSound(() => true);
+  assert.doesNotThrow(() => {
+    soundEnabled.chime();
+    soundEnabled.tick();
+    soundEnabled.bell();
+    soundEnabled.scroll();
+    soundEnabled.coin();
+    soundEnabled.brush();
+  });
 });
