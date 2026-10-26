@@ -16,6 +16,7 @@ export const SUCCESSION_CARDS = [
       {
         text: { ko: '가업을 이어받는다', en: 'Inherit the craft' },
         effects: { wealth: 18, family: 14, skill: 10 },
+        estate: { slot: 'household', tier: 1 },
         result: {
           ko: '부모님의 굳은살 박인 손을 잡았어요. 대를 잇는 발걸음에 집안이 든든해졌어요.',
           en: 'You took your parents’ weathered hands. Carrying on the craft brought security.',
@@ -177,6 +178,45 @@ export const SUCCESSION_CARDS = [
         result: {
           ko: '어두운 밤 봇짐을 싸고 고향을 등졌어요. 옛 인연은 끊겼지만 새 숨을 쉬게 되었어요.',
           en: 'Under the cover of night, you fled far away. Severing the past, you breathed free.',
+        },
+      },
+    ],
+  },
+  {
+    id: 'c.estate.homestead',
+    stage: ['adult', 'middle'],
+    when: { eraGroups: CIVIL_ERAS, tags: CIVIL_TAGS, minYear: -500, minAge: 25, maxAge: 52, stat: { wealth: [25, 100] } },
+    title: { ko: '마당 살림 장만', en: 'Expanding Estate' },
+    text: {
+      ko: '손수 모은 쌈짓돈으로 집안 살림을 늘릴 기회가 왔어요. 어디에 먼저 정성을 쏟을까요?',
+      en: 'With your savings in hand, you have the means to improve your home. Where will you invest?',
+    },
+    choices: [
+      {
+        text: { ko: '가축을 들인다', en: 'Buy livestock' },
+        effects: { wealth: -15, skill: 6, family: 6 },
+        estate: { slot: 'livestock', tier: 1 },
+        result: {
+          ko: '마당에 가축 울음소리가 번지니 아침마다 생기가 돌고 식구들이 미소 지었어요.',
+          en: 'Animal calls filled the yard with vibrant life, bringing warm smiles to all.',
+        },
+      },
+      {
+        text: { ko: '세간을 늘린다', en: 'Stock jars and goods' },
+        effects: { wealth: -12, family: 10, happy: 8 },
+        estate: { slot: 'household', tier: 1 },
+        result: {
+          ko: '처마 밑에 장독과 세간을 들여놓으니 겨우내 굶주릴 걱정이 사라졌어요.',
+          en: 'Neatly lined storage jars under the eaves chased away worries of winter.',
+        },
+      },
+      {
+        text: { ko: '짐수레를 장만한다', en: 'Acquire cart' },
+        effects: { wealth: -18, skill: 10, charm: 6 },
+        estate: { slot: 'transport', tier: 1 },
+        result: {
+          ko: '마당 한쪽에 짐수레를 들이니 무거운 짐과 곡식도 거뜬히 실어 나르게 되었어요.',
+          en: 'With a sturdy cart in the yard, hauling heavy goods became an effortless joy.',
         },
       },
     ],

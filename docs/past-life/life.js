@@ -60,6 +60,7 @@ export function createLife({ birth, traces = [], noDeath = false, quiet = false,
   const life = {
     birth, traces, noDeath, quiet, player: !!player, tenacity: player ? Math.max(1, tenacity) : tenacity, age: 0, year: birth.year, step: 0, stats, base: { wealth: birth.wealth },
     focus: null, focusYears: {}, flags: {}, route: null, kids: 0, wedWait: 0, skills: {}, dream: null, fulfilled: [], bond: null,
+    estate: (birth && birth.estate) ? { ...birth.estate } : { livestock: 0, transport: 0, household: 0, prestige: 0 },
     slots: slotAges(birth.seed), seen: [], linesSeen: [], eventsSeen: [], eventsStarted: [], pausesDone: [],
     log: [], journal: [], history: [{ age: 0, ...stats }], pending: null, death: null,
     // 모닥불 (memory.js): 꿴 기억 구슬, 메아리로 짙어진 흔적 (traceKey → 횟수), 멈춤마다 그때의 일지 길이, 이 생에 이미 보인 메아리 줄
@@ -337,6 +338,10 @@ export function choose(life, i) {
   for (const f of c.set || []) life.flags[f] = true;
   for (const f of c.unset || []) delete life.flags[f];
   if (c.route) setLifeRoute(life, c.route);
+  if (c.estate) {
+    life.estate = life.estate || { livestock: 0, transport: 0, household: 0, prestige: 0 };
+    life.estate[c.estate.slot] = Math.max(life.estate[c.estate.slot] || 0, c.estate.tier);
+  }
   // 혼인 카드에서 혼인하지 않는 쪽을 고르면 몇 해는 조용한 혼인도 쉰다 (kinYear)
   if (!(c.set || []).includes('married') && card.choices.some((x) => (x.set || []).includes('married'))) life.wedWait = life.age + 4;
   if (c.kids) life.kids += c.kids;

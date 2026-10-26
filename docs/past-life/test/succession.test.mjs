@@ -12,9 +12,9 @@ const LIM = {
 };
 
 test('상속 및 유언장 서사 카드 기본 규격 검증', () => {
-  assert.equal(SUCCESSION_CARDS.length, 6);
+  assert.equal(SUCCESSION_CARDS.length, 7);
   const ids = SUCCESSION_CARDS.map((c) => c.id);
-  assert.equal(new Set(ids).size, 6);
+  assert.equal(new Set(ids).size, 7);
 
   // DECK 에 모두 포함되어 있는지 확인
   for (const c of SUCCESSION_CARDS) {
@@ -100,4 +100,16 @@ test('상속 카드의 3D 장면 포커스(cardFocusOf) 정상 매핑 검증', (
     const focus = cardFocusOf(c);
     assert.ok(['family', 'work', 'learn', 'rest', 'body'].includes(focus), `${c.id} focus: ${focus}`);
   }
+});
+
+test('마당 살림 및 가업 상속 카드 estate 옵션 검증', () => {
+  const cInherit = SUCCESSION_CARDS.find((c) => c.id === 'c.succession.inherit');
+  assert.deepEqual(cInherit.choices[0].estate, { slot: 'household', tier: 1 });
+
+  const cHome = SUCCESSION_CARDS.find((c) => c.id === 'c.estate.homestead');
+  assert.ok(cHome, 'c.estate.homestead must exist');
+  assert.equal(cHome.choices.length, 3);
+  assert.deepEqual(cHome.choices[0].estate, { slot: 'livestock', tier: 1 });
+  assert.deepEqual(cHome.choices[1].estate, { slot: 'household', tier: 1 });
+  assert.deepEqual(cHome.choices[2].estate, { slot: 'transport', tier: 1 });
 });

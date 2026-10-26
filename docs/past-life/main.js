@@ -8,6 +8,7 @@ import { createSound } from './sound.js';
 import { newSoul, finishLife, addDex, makeStore } from './soul.js';
 import { drawBirth } from './birth.js';
 import { createLife, advance, choose, summarize, setFocus, autoChoice } from './life.js';
+import { buyEstate } from './estate.js';
 import { memoryCandidates, pickMemory, seeMemories } from './memory.js';
 import { beadsOf, encodeBeads } from './beads.js';
 import { autoFocus } from './focus.js';
@@ -34,7 +35,7 @@ const ui = createUI({ lang: S.lang, robot, fast });
 // 실사 3D 무대 (realscene.js createStage: 생마다 출생 시드로 마을을 짓는다. 옛 KayKit 육각 섬 village.js 와 메서드 이름이 같다)
 // three.js(CDN, 1 MB 남짓)를 뒤에서 받는다: 시작 화면은 바로 뜨고, 첫 생을 시작할 때 무대를 기다린다 (stageReady).
 // WebGL 이 없거나 꺼져 있거나 three 를 못 받으면 3D 마을 없이 글로만 간다. 빈 마을은 진짜 마을과 메서드 이름이 같다 (그림은 null → 족보·나누기가 건너뛴다)
-const NO_STAGE = { fast: false, preload() {}, setKit() {}, setLife() {}, setAge() {}, setFocus() {}, setCardFocus() {}, onChoice() {}, setWeather() {}, setPhase() {}, tick() {}, snapshot: () => null, setCampfire() {}, flameRise: () => Promise.resolve(), setView() {}, setQuality() {}, whenReady: () => Promise.resolve() };
+const NO_STAGE = { fast: false, preload() {}, setKit() {}, setLife() {}, setAge() {}, setFocus() {}, setCardFocus() {}, onChoice() {}, updateEstate() {}, setWeather() {}, setPhase() {}, tick() {}, snapshot: () => null, setCampfire() {}, flameRise: () => Promise.resolve(), setView() {}, setQuality() {}, whenReady: () => Promise.resolve() };
 let village = NO_STAGE, has3d = false;
 const textOnly = (e) => {
   console.warn('한 영혼의 여정: 3D 마을을 만들지 못해 글로만 진행한다', e);
@@ -72,6 +73,24 @@ ui.setHandlers({
   settings: () => openSettings(),
   exit: () => { S.exit = true; S.paused = false; },
   focus: (id) => { if (cur) { setFocus(cur.life, id); showFocus(cur.life); refresh(); } },
+  openEstate: async (curLife) => {
+    const l = curLife || (cur && cur.life);
+    if (!l) return;
+    const wasPaused = S.paused;
+    S.paused = true;
+    refresh();
+    await ui.showEstateDrawer(l, (slot, tier) => {
+      const item = buyEstate(l, slot, tier);
+      if (item) {
+        sound.chime();
+        village.updateEstate(l.estate, slot);
+        ui.toast(S.lang === 'ko' ? `✨ 마당에 [${item.name.ko}]을(를) 장만하였습니다!` : `✨ Acquired [${item.name.en}] for the estate!`, 3000);
+        refresh();
+      }
+    });
+    S.paused = wasPaused;
+    refresh();
+  },
 });
 
 // 설정 (시작 화면·게임 안 「더 보기」): 화질 · 해가 흐르는 기본 빠르기 · 소리 · 말 · 처음 안내 다시 보기. 게임 안에서 열면 그동안 멈춘다
@@ -208,7 +227,7 @@ async function playLife(soul) {
       sound.chime();
       ui.toast(S.lang === 'ko' ? '✨ 기사회생! 죽음의 고비를 넘기고 살아남았습니다.' : '✨ Miraculous Recovery! Overcame a fatal crisis.', 3500);
     }
-    village.setAge(life.age, life.year); village.setPhase(phaseOf(life.age)); showFocus(life);
+    village.setAge(life.age, life.year, life.stats.wealth, life.estate); village.setPhase(phaseOf(life.age)); showFocus(life);
     refresh();
     if (ev.type === 'death') break;
     if (ev.type === 'card') {
