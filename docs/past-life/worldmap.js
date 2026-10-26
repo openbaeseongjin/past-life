@@ -676,7 +676,7 @@ export function createWorldMap(canvas, opts = {}) {
   const living = () => anims.length || (!reduce && (dots.size || markers.length || (rosaryState && now() - rosaryState.t0 < rosaryState.ms + 100)));
   function loop() {
     raf = 0;
-    if (disposed) return;
+    if (disposed || (canvas && (canvas.parentElement?.hidden || !canvas.clientWidth))) return;
     render();
     if (living()) raf = requestAnimationFrame(loop);
   }

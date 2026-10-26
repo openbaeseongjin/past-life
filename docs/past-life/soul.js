@@ -92,7 +92,7 @@ export function makeStore(ls) {
     loadSound: () => get('pl.sound', true), saveSound: (on) => set('pl.sound', on),
     // 설정 (처음 하는 사람을 위한 다듬기): 해가 흐르는 기본 빠르기 · 화질(realscene.js 와 같은 열쇠 pl.quality) · 처음 안내를 봤는가
     loadSpeed: () => { const v = get('pl.speed', 'normal'); return ['slow', 'normal', 'fast', 'fastest'].includes(v) ? v : 'normal'; }, saveSpeed: (v) => set('pl.speed', v),
-    loadQuality: () => { const v = get('pl.quality', 'high'); return v === 'normal' ? 'normal' : 'high'; }, saveQuality: (v) => set('pl.quality', v),
+    loadQuality: () => { const v = get('pl.quality', 'high'); return v === 'normal' || v === 'low' ? v : 'high'; }, saveQuality: (v) => set('pl.quality', v),
     loadCoach: () => get('pl.coach', false) === true, saveCoach: (done) => set('pl.coach', !!done),
     // 이제 쓰지 않는 옛 저장값을 지운다: pl.pauses (옛 「다음부터 모닥불 건너뛰기」). 저장소가 막혀도 조용히
     clearLegacy: () => { try { if (ls) ls.removeItem('pl.pauses'); } catch { /* 막힌 저장소 */ } },

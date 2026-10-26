@@ -130,9 +130,11 @@ function landPreset(base, land) {
   return P;
 }
 // 화질 단계: 높음 = 지금 장면 그대로, 보통 = AO 끔 · 그림자 지도 2048 · 가까운 나무 반경 줄임(빌보드로) · 먼 숲 덜
+// 화질 단계: 높음 = 풀옵션(AO·4K그림자), 보통 = 60FPS 권장(AO끔·그림자2048·나무65m), 낮음 = 성능 우선(후처리끔·그림자1024·나무35m)
 const QUALITY = {
-  high: { ao: true, shadow: 4096, treeNear: 210, forest: 1 },
-  normal: { ao: false, shadow: 2048, treeNear: 150, forest: 0.6 },
+  high: { ao: true, shadow: 4096, treeNear: 120, shadowR: 70, forest: 1, shadowEvery: 3, samples: 4, post: true, bloom: true },
+  normal: { ao: false, shadow: 2048, treeNear: 65, shadowR: 45, forest: 0.6, shadowEvery: 6, samples: 0, post: true, bloom: true },
+  low: { ao: false, shadow: 1024, treeNear: 35, shadowR: 25, forest: 0.3, shadowEvery: 12, samples: 0, post: false, bloom: false },
 };
 
 // 텍스처는 그리개마다 한 번만 받는다 (게임에서 생이 바뀌어 장면을 다시 지어도 같은 텍스처를 쓴다)
@@ -630,7 +632,7 @@ export function createRealScene(canvas, opts = {}) {
   const TREE_KEY = (opts.land || 'temperate') + '|' + KIT;
   const P = landPreset(PRESETS[presetKey(opts.era, opts.region, KIT)], opts.land), LD = P.land;
   const QL = QUALITY[opts.quality] || QUALITY.normal;
-  const state = { time: opts.timeOfDay ?? 7, post: opts.post ?? true, ao: opts.ao ?? QL.ao, bloom: opts.bloom ?? true, orbit: false, disposed: false, view: opts.view || 'overview', quality: QUALITY[opts.quality] ? opts.quality : 'normal' };
+  const state = { time: opts.timeOfDay ?? 7, post: opts.post ?? QL.post ?? true, ao: opts.ao ?? QL.ao, bloom: opts.bloom ?? QL.bloom ?? true, orbit: false, disposed: false, view: opts.view || 'overview', quality: QUALITY[opts.quality] ? opts.quality : 'normal' };
   const quality = state.quality;
 
   const ownRenderer = !opts.renderer;
@@ -642,7 +644,7 @@ export function createRealScene(canvas, opts = {}) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.shadowMap.autoUpdate = false;           // 그림자는 몇 프레임에 한 번 (정적 장면 + 작은 사람들)
-  const SHADOW_EVERY = opts.shadowEvery ?? (quality === 'normal' ? 6 : 3);
+  const SHADOW_EVERY = opts.shadowEvery ?? (QL.shadowEvery ?? (quality === 'normal' ? 6 : 3));
   let frameNo = 0;
 
   const scene = new THREE.Scene();
@@ -1250,10 +1252,10 @@ export function createRealScene(canvas, opts = {}) {
           transformed.z += (cos(uTime * 1.4 + ph) * 0.4 + 0.3 + wave * 0.4) * lean;`);
       sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', THREE.ShaderChunk.normal_fragment_begin.replace('normal *= faceDirection;', ''));
     })(mat.onBeforeCompile);
-    const isNormal = quality === 'normal';
-    const baseTarget = isNormal ? 45000 : 75000;
-    const BASE = Math.round(baseTarget * Math.min(1.3, LD.tufts)), COUNT = BASE + (isNormal ? 15000 : 25000);
-    const scaleMul = isNormal ? 1.35 : 1.25;
+    const isNormal = quality === 'normal', isLow = quality === 'low';
+    const baseTarget = isLow ? 15000 : isNormal ? 36000 : 75000;
+    const BASE = Math.round(baseTarget * Math.min(1.3, LD.tufts)), COUNT = BASE + (isLow ? 5000 : isNormal ? 10000 : 25000);
+    const scaleMul = isLow ? 1.6 : isNormal ? 1.35 : 1.25;
     const im = new THREE.InstancedMesh(geo, mat, COUNT), r = rng(4), m4 = new THREE.Matrix4(), c = new THREE.Color();
     let n = 0, tries = 0, maxTries = BASE * 3;
     while (n < BASE && tries < maxTries) {
@@ -1286,7 +1288,7 @@ export function createRealScene(canvas, opts = {}) {
     // 들꽃 포기: 키 큰 풀 무더기 둘레와 풀밭 군데군데 (잡음이 높은 곳에 무리 지어)
     const ftex = flowerTex(); disposables.push(ftex);
     const fmat = mat.clone(); fmat.map = ftex; fmat.color = new THREE.Color(1, 1, 1); fmat.onBeforeCompile = mat.onBeforeCompile; fmat.customProgramCacheKey = mat.customProgramCacheKey; disposables.push(fmat);
-    const FC = Math.max(200, Math.round((isNormal ? 8000 : 14000) * LD.flowers)), fl = new THREE.InstancedMesh(geo, fmat, FC); let fn = 0;
+    const FC = Math.max(100, Math.round((isLow ? 2000 : isNormal ? 6000 : 14000) * LD.flowers)), fl = new THREE.InstancedMesh(geo, fmat, FC); let fn = 0;
     const flower = (x, z, s) => { if (fn >= FC || riverIdx.edge(x, z) < RIVER_HW || roadIdx.edge(x, z) < 0.4) return;
       m4.compose(_v1.set(x, heightAt(x, z) - 0.03, z), _q.setFromAxisAngle(_v2.set(0, 1, 0), r() * 6.28), _s.set(s * 1.1, s, s * 1.1)); fl.setMatrixAt(fn++, m4); };
     for (const [cx, cz, cr] of dressing.tall) if (r() < 0.55) for (let q = 0, k = 4 + Math.floor(r() * 9); q < k; q++) { const a = r() * 6.28, d = cr * (0.6 + r() * 0.8); flower(cx + Math.cos(a) * d, cz + Math.sin(a) * d, 0.32 + r() * 0.3); }
@@ -1298,7 +1300,7 @@ export function createRealScene(canvas, opts = {}) {
     }
     fl.count = fn; fl.receiveShadow = true; fl.layers.set(1); scene.add(fl);
     // 갈대: 물가를 따라 키 큰 포기
-    const reedN = isNormal ? 3500 : 5000, reeds = new THREE.InstancedMesh(geo, mat, reedN); let rn = 0;
+    const reedN = isLow ? 1200 : isNormal ? 2500 : 5000, reeds = new THREE.InstancedMesh(geo, mat, reedN); let rn = 0;
     for (let k = 0; k < RIVER.length - 1 && rn < reedN; k++) {
       const [x0, z0] = RIVER[k]; if (Math.hypot(x0 - VC.x, z0 - VC.z) > 650) continue;
       const [x1, z1] = RIVER[k + 1], Lg = Math.hypot(x1 - x0, z1 - z0) || 1;
@@ -1413,7 +1415,7 @@ export function createRealScene(canvas, opts = {}) {
     }
     // 가까운 것 / 먼 것 나누기. 가까운 것은 다시 묶음으로 나눠 InstancedMesh 마다 경계 구가 작게 (화면·그림자·물 반사 밖이면 안 그린다):
     //   안쪽 고리(그림자 드리움) / 바깥 고리(그림자 없음) × 강가 60 m 안(물 반사 0번 층) / 밖(1번 층) × 네 쪽
-    const NEAR_R = opts.treeNear ?? QL.treeNear, SHADOW_R = Math.min(150, NEAR_R);
+    const NEAR_R = opts.treeNear ?? QL.treeNear, SHADOW_R = opts.shadowR ?? QL.shadowR ?? Math.min(45, NEAR_R);
     const groups = new Map(), farList = [];
     for (const s of spots) {
       const dx = s[0] - VC.x, dz = s[1] - VC.z, d = Math.hypot(dx, dz);
@@ -1691,7 +1693,8 @@ export function createRealScene(canvas, opts = {}) {
   const size = new THREE.Vector2();
   renderer.getSize(size);
   const depthTex = new THREE.DepthTexture(); depthTex.type = THREE.UnsignedIntType;
-  const rt = new THREE.WebGLRenderTarget(16, 16, { type: THREE.HalfFloatType, samples: 4, depthTexture: depthTex });
+  const samples = QL.samples ?? (quality === 'high' ? 4 : 0);
+  const rt = new THREE.WebGLRenderTarget(16, 16, { type: THREE.HalfFloatType, samples, depthTexture: depthTex });
   const composer = new EffectComposer(renderer, rt);
   const renderPass = new RenderPass(scene, camera);
   const gtao = new GTAOPass(scene, camera, 16, 16);
@@ -1727,7 +1730,7 @@ export function createRealScene(canvas, opts = {}) {
         vec2 d = (vUv - uSunUV) * vec2(uAspect, 1.0);
         col += uSunCol * uSunGlow * (exp(-dot(d, d) * 6.0) * 0.75 + exp(-dot(d, d) * 40.0) * 0.5) * (1.0 - 0.6 * dot(col, LW));
         vec2 q = vUv - 0.5; q.x *= 1.2; col *= 1.0 - uVig * smoothstep(0.25, 0.85, length(q));
-        float grain = (fract(sin(dot(vUv * 640.0, vec2(12.9898, 78.233)) + fract(uTime * 17.0)) * 43758.5453) - 0.5) * uGrain;
+        float grain = (fract((vUv.x * 43.1 + vUv.y * 119.7 + fract(uTime * 17.0)) * 37241.63) - 0.5) * uGrain;
         col += grain * (0.8 + 0.4 * l);
         gl_FragColor = vec4(col, c.a); }`,
   });
@@ -1902,7 +1905,7 @@ export function createRealScene(canvas, opts = {}) {
     updateSunGlow();
     if (++frameNo % SHADOW_EVERY === 0) renderer.shadowMap.needsUpdate = true;
     renderer.info.reset();
-    composer.render(dt);
+    if (state.post) composer.render(dt); else renderer.render(scene, camera);
   }
   const ready = (async () => {
     await new Promise((r) => setTimeout(r, 0));
@@ -1947,7 +1950,7 @@ export function createRealScene(canvas, opts = {}) {
     skyColors() { return { fogC: fogC.clone(), sunSide: sunSideC.clone() }; },
     setQuality(q) {
       const Q2 = QUALITY[q]; if (!Q2) return;
-      state.quality = q; state.ao = Q2.ao; rebuildComposer();
+      state.quality = q; state.ao = Q2.ao; state.post = Q2.post ?? true; state.bloom = Q2.bloom ?? true; rebuildComposer();
       if (sun.shadow.mapSize.x !== Q2.shadow) { sun.shadow.mapSize.set(Q2.shadow, Q2.shadow); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } renderer.shadowMap.needsUpdate = true; }
     },
     // 동기 측정: n 프레임을 그리고 1px 읽어 GPU 를 기다린다
@@ -2020,8 +2023,8 @@ export function createStage(canvas) {
   const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   // 화질: 주소의 ?q=high|normal 은 이번 판에만 (저장하지 않는다. 공유 링크가 받은 사람의 설정을 바꾸지 않게). 없으면 저장된 값(setQuality), 그것도 없으면 높음
   let quality = 'normal';
-  try { const s = JSON.parse(localStorage.getItem(QUALITY_KEY)); if (s === 'high' || s === 'normal') quality = s; } catch (e) { /* 저장소가 없으면 보통 */ }
-  try { const q = new URLSearchParams(location.search).get('q'); if (q === 'high' || q === 'normal') quality = q; } catch (e) { /* 주소를 못 읽으면 그대로 */ }
+  try { const s = JSON.parse(localStorage.getItem(QUALITY_KEY)); if (s === 'high' || s === 'normal' || s === 'low') quality = s; } catch (e) { /* 저장소가 없으면 보통 */ }
+  try { const q = new URLSearchParams(location.search).get('q'); if (q === 'high' || q === 'normal' || q === 'low') quality = q; } catch (e) { /* 주소를 못 읽으면 그대로 */ }
 
   const st = {
     fast: false, birth: null, errors: [], lifeErr: new Set(), failed: false,
@@ -2560,7 +2563,7 @@ export function createStage(canvas) {
     const e = tr.t * tr.t * (3 - 2 * tr.t);
     st.time = ((tr.from + tr.d * e) % 24 + 24) % 24;
     _mix.fogC.copy(tr.a.fogC).lerp(tr.b.fogC, e); _mix.sunSide.copy(tr.a.sunSide).lerp(tr.b.sunSide, e);
-    const now = performance.now(), full = tr.t >= 1 || now - st.fullAt > 400;
+    const now = performance.now(), full = tr.t >= 1;
     W.sc.setTime(st.time, { light: !full, colors: _mix });
     if (full) st.fullAt = now;
     if (tr.t >= 1) st.tr = null;
@@ -2809,7 +2812,7 @@ export function createStage(canvas) {
       return Promise.allSettled([w.sc.ready, w.me.ready]).then(() => undefined);
     },
     setQuality(q) {
-      if (q !== 'high' && q !== 'normal') return;
+      if (q !== 'high' && q !== 'normal' && q !== 'low') return;
       quality = q; try { localStorage.setItem(QUALITY_KEY, JSON.stringify(q)); } catch (e) { /* 저장 못 해도 지금 장면에는 쓴다 */ }
       if (W) W.sc.setQuality(q);
     },
