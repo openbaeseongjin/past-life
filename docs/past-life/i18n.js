@@ -110,6 +110,7 @@ const STR = {
     lead: ['지금까지 태어난 약 1,170억 명 가운데 한 사람으로 태어나요.', '해는 저절로 흐르고, 갈림길에서만 당신이 골라요.', '생이 끝나면 같은 영혼이 다음 시대에 다시 태어나요.'],
     stageLoading: '마을을 짓는 중…', loadingGame: '불러오는 중…',
     setTitle: '설정', setQuality: '화질', qHigh: '높음', qNormal: '보통 (권장)', qLow: '낮음 (성능)', qHint: '보통은 부드러운 60FPS를 유지하며, 낮음은 후처리·그림자를 간소화해 저사양 PC에서도 매끄럽습니다.',
+    hwWarn: '⚠️ 브라우저의 그래픽 가속(하드웨어 가속)이 꺼져 있어 CPU 소프트웨어로 동작 중입니다. Chrome 설정(chrome://settings/system)에서 "가능한 경우 그래픽 가속 사용"을 켜시면 외장 그래픽으로 120 FPS 이상의 매끄러운 화면을 즐기실 수 있습니다.',
     setSpeed: '해가 흐르는 빠르기', setSound: '소리', setLang: '말', setCoach: '처음 안내 다시 보기', coachAgain: '다음 생을 시작할 때 다시 보여 드릴게요.',
     coachSkip: '건너뛰기', coachNext: '다음', coachDone: '시작하기', coachStep: (i, n) => `${i} / ${n}`,
     coach: [
@@ -223,6 +224,7 @@ const STR = {
     lead: ['You are born as one of the roughly 117 billion people who have ever lived.', 'The years pass on their own; you choose only at the crossroads.', 'When a life ends, the same soul is born again in a later age.'],
     stageLoading: 'Building the village…', loadingGame: 'Loading…',
     setTitle: 'Settings', setQuality: 'Graphics', qHigh: 'High', qNormal: 'Normal (Rec.)', qLow: 'Low (Fast)', qHint: 'Normal targets smooth 60 FPS. Low simplifies shadows/effects for maximum speed on slower laptops.',
+    hwWarn: '⚠️ Browser hardware graphics acceleration is disabled, running on CPU software. Turn on "Use graphics acceleration when available" in Chrome settings (chrome://settings/system) for 120+ FPS hardware acceleration.',
     setSpeed: 'How fast the years pass', setSound: 'Sound', setLang: 'Language', setCoach: 'Show the first-time guide again', coachAgain: 'You will see it again when your next life begins.',
     coachSkip: 'Skip', coachNext: 'Next', coachDone: 'Begin', coachStep: (i, n) => `${i} / ${n}`,
     coach: [

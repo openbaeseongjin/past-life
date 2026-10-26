@@ -110,6 +110,19 @@
     - `low` 모드: **133 FPS** (평균 프레임 타임 7.52ms, 89 드로우콜, 1.31M 폴리곤).
     - UI 설정 모달에 `낮음 (성능 우선)` / `보통 (권장 60FPS)` / `높음 (품질)` 3단 버튼 지원 및 다국어(ko/en) 완비.
 - **단위 시험:** 346개 전수 통과 (0 fail).
+- **Chrome 하드웨어 가속 꺼짐(WARP CPU 렌더링) 규명 및 적응형 소프트웨어 폴백 시스템 구축:**
+  - *원인 분석 (실측치 비교):*
+    - Chrome `Local State` 파일의 `hardware_acceleration_mode.enabled`가 `false`로 설정되어 있었음.
+    - Chrome GPU 프로세스(PID 24044)가 `--use-angle=d3d11-warp-webgl` (Microsoft Basic Render Driver WARP CPU 래스터라이저)로 실행되어 외장 그래픽(RTX 2060)을 전혀 사용하지 않고 CPU 100%로 WebGL을 소프트웨어 렌더링 중이었음.
+    - 실측 벤치마크:
+      - **NVIDIA GeForce RTX 2060 (하드웨어 가속 켬)**: **128.3 FPS** (평균 프레임 타임 **7.79 ms**)
+      - **Microsoft WARP (하드웨어 가속 끔 / 사용자 현재 Chrome 상태)**: **1.0 FPS** (평균 프레임 타임 **978.41 ms**) - 128배 격차!
+  - *웹 엔진 적응형 방어 조치:*
+    1. `soul.js` 기본 화질을 `'high'`에서 `'normal'`로 정규화 (`settings.test.mjs` 검증 통과).
+    2. WebGL 소프트웨어 래스터라이저 감지 함수 `isSoftwareWebGL(gl)` 구현.
+    3. 소프트웨어 렌더러 감지 시 초기 화질을 자동으로 `'low'`(초경량)로 즉시 폴백.
+    4. `low` 화질의 그림자 패스를 완전 비활성화(`shadowMap: false`, `shadow: 0`)하고 잔디 인스턴스를 4,000개로 축소하여 CPU 연산량 최소화.
+    5. 설정 모달 및 UI에 브라우저 하드웨어 가속 활성화 가이드 배너(`hwWarn`) 다국어(ko/en) 표기.
 - **GitHub Pages 배포:** `https://openbaeseongjin.github.io/past-life/` 최신 빌드 배포 완료 (`main` 가지).
 
 ## 다음 할 일 (순서)

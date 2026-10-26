@@ -79,7 +79,7 @@ async function openSettings() {
   const wasPaused = S.paused;
   S.paused = true; refresh();
   await ui.settings({
-    get: () => ({ quality: store.loadQuality(), speed: S.speed, sound: S.sound, lang: S.lang }),
+    get: () => ({ quality: store.loadQuality(), speed: S.speed, sound: S.sound, lang: S.lang, software: village.isSoftware }),
     quality: (q) => { store.saveQuality(q); village.setQuality(q); },
     speed: (v) => { S.speed = v; store.saveSpeed(v); },
     sound: () => { S.sound = !S.sound; store.saveSound(S.sound); },

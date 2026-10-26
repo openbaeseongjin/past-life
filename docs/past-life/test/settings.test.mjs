@@ -9,11 +9,11 @@ const fakeLs = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ?
 
 test('설정 저장: 빠르기·화질·안내 — 처음 값과 이상한 값은 기본으로', () => {
   const ls = fakeLs(), st = makeStore(ls);
-  assert.equal(st.loadSpeed(), 'normal'); assert.equal(st.loadQuality(), 'high'); assert.equal(st.loadCoach(), false);
-  st.saveSpeed('fast'); st.saveQuality('normal'); st.saveCoach(true);
-  assert.equal(st.loadSpeed(), 'fast'); assert.equal(st.loadQuality(), 'normal'); assert.equal(st.loadCoach(), true);
+  assert.equal(st.loadSpeed(), 'normal'); assert.equal(st.loadQuality(), 'normal'); assert.equal(st.loadCoach(), false);
+  st.saveSpeed('fast'); st.saveQuality('low'); st.saveCoach(true);
+  assert.equal(st.loadSpeed(), 'fast'); assert.equal(st.loadQuality(), 'low'); assert.equal(st.loadCoach(), true);
   ls.setItem('pl.speed', JSON.stringify('warp')); ls.setItem('pl.quality', JSON.stringify('ultra')); ls.setItem('pl.coach', 'nonsense');
-  assert.equal(st.loadSpeed(), 'normal'); assert.equal(st.loadQuality(), 'high'); assert.equal(st.loadCoach(), false);
+  assert.equal(st.loadSpeed(), 'normal'); assert.equal(st.loadQuality(), 'normal'); assert.equal(st.loadCoach(), false);
   const none = makeStore(null);
   assert.equal(none.loadSpeed(), 'normal'); assert.equal(none.saveCoach(true), false, '저장소가 없어도 던지지 않는다');
 });
