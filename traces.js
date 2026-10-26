@@ -5,20 +5,22 @@ export const FEARS = ['sea', 'fire', 'war', 'plague', 'hunger', 'heights', 'beas
 export const TALENTS = ['craft', 'sea', 'letters', 'heal', 'music', 'trade', 'farm', 'fight'];
 export const DREAMS = ['sea', 'letters', 'travel', 'city', 'music'];
 export const BONDS = ['friend', 'rival'];
-export const KIND_TEXT = { fear: ['두려움', 'Fear'], talent: ['재능', 'Talent'], dream: ['못다 한 꿈', 'Unfinished dream'], bond: ['인연', 'Bond'] };
+export const KIND_TEXT = { fear: ['두려움', 'Fear'], talent: ['재능', 'Talent'], dream: ['못다 한 꿈', 'Unfinished dream'], bond: ['인연', 'Bond'], karmic: ['전생의 각인', 'Karmic Imprint'] };
 export const TRACE_TEXT = {
   fear: { sea: ['바다가 무섭다', 'afraid of the sea'], fire: ['불이 무섭다', 'afraid of fire'], war: ['군인이 무섭다', 'afraid of soldiers'], plague: ['아픈 사람 곁이 무섭다', 'afraid of sickness'], hunger: ['빈 그릇이 무섭다', 'afraid of an empty bowl'], heights: ['높은 곳이 무섭다', 'afraid of heights'], beast: ['짐승이 무섭다', 'afraid of wild animals'] },
   talent: { craft: ['손재주', 'clever hands'], sea: ['바다 감각', 'a feel for the sea'], letters: ['글 솜씨', 'a way with words'], heal: ['약초 지식', 'healing hands'], music: ['노래', 'a singing voice'], trade: ['셈', 'a head for numbers'], farm: ['땅 냄새', 'a nose for soil'], fight: ['싸움 감각', 'quick fists'] },
   dream: { sea: ['배를 타 보고 싶었다', 'wanted to sail'], letters: ['글을 배우고 싶었다', 'wanted to read'], travel: ['먼 곳에 가 보고 싶었다', 'wanted to see far places'], city: ['큰 도시에 살아 보고 싶었다', 'wanted to live in a city'], music: ['노래로 이름을 남기고 싶었다', 'wanted to be known for a song'] },
   bond: { friend: ['앞 생의 벗', 'a friend from before'], rival: ['앞 생의 원수', 'a rival from before'] },
+  karmic: { vow: ['전생의 결단과 맹세', 'a vow from a past life'] },
 };
 export const traceKey = (t) => (t ? `${t.kind}:${t.key}` : null);
 
-// 죽을 때: 사인 두려움 > 못다 한 꿈 > 마지막 인연 > 3번 이상 연습한 재능 가운데 가장 많은 것
+// 죽을 때: 사인 두려움 > 영혼의 결단 각인 > 못다 한 꿈 > 마지막 인연 > 3번 이상 연습한 재능 가운데 가장 많은 것
 export function computeTraces(life) {
   const out = [];
   const fear = life.death && CAUSES[life.death.cause] && CAUSES[life.death.cause].fear;
   if (fear) out.push({ kind: 'fear', key: fear });
+  if (life.willEcho) out.push({ kind: 'karmic', key: 'vow', vow: life.willEcho.entity || life.willEcho.intent, entity: life.willEcho.entity, intent: life.willEcho.intent });
   if (life.dream && !life.fulfilled.includes(life.dream)) out.push({ kind: 'dream', key: life.dream });
   if (life.bond) out.push({ kind: 'bond', key: life.bond.kind, who: life.bond.who });
   const best = Object.entries(life.skills || {}).filter(([, n]) => n >= 3).sort((a, b) => b[1] - a[1])[0];
@@ -27,7 +29,7 @@ export function computeTraces(life) {
 }
 
 const has = (traces, kind, key) => traces.some((t) => t.kind === kind && t.key === key);
-export const startMods = (traces) => ({ happy: traces.some((t) => t.kind === 'talent') ? 5 : 0 });
+export const startMods = (traces) => ({ happy: traces.some((t) => t.kind === 'talent' || t.kind === 'karmic') ? 5 : 0 });
 // 시작 능력치에 닿는 흔적 (sim2 설계 2.2): 재능 → 이어지는 능력치 +8, 인연 friend → 친화력 +5. 두려움·꿈·원수는 닿지 않는다
 export const TALENT_ATTR = { letters: 'know', heal: 'know', craft: 'skill', farm: 'skill', sea: 'skill', fight: 'skill', music: 'charm', trade: 'charm' };
 export function attrMods(traces) {
@@ -35,6 +37,11 @@ export function attrMods(traces) {
   for (const t of traces || []) {
     if (t.kind === 'talent' && TALENT_ATTR[t.key]) add(TALENT_ATTR[t.key], 8);
     if (t.kind === 'bond' && t.key === 'friend') add('charm', 5);
+    if (t.kind === 'karmic' && t.key === 'vow') {
+      add('know', 4);
+      add('skill', 4);
+      add('happy', 4);
+    }
   }
   return out;
 }

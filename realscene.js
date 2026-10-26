@@ -2404,9 +2404,12 @@ export function createStage(canvas) {
     if (!W || !W.meReady || !st.birth) return;
     const a = st.age, b = st.birth, variant = meVariant(b, a), scale = meScale(a);
     const act = st.campOn ? { key: 'camp', spot: { x: W.campSeat[0], z: W.campSeat[1], face: W.campSeat[2] }, action: a >= 13 && a < 60 ? 'kneel' : 'stand' } : activity();
-    const handProp = cardHandPropOf(st.card, { age: a });
-    const headwear = (act.action === 'hoe' || act.spot === W.spots.field) ? 'satgat'
-      : (st.focus === 'learn' || st.card?.focus === 'learn') ? 'scholar_cap'
+    const handProp = cardHandPropOf(st.card, { age: a, route: st.route });
+    const headwear = (act.action === 'hoe' || act.spot === W.spots.field || st.route?.id === 'homesteader' || st.route?.id === 'artist') ? 'satgat'
+      : (st.focus === 'learn' || st.card?.focus === 'learn' || st.route?.id === 'scholar') ? 'scholar_cap'
+      : (st.route?.id === 'warrior') ? 'warrior_helm'
+      : (st.route?.id === 'artisan') ? 'headband'
+      : (st.route?.id === 'seeker') ? 'monk_cowl'
       : null;
     const wTier = (st.wealth != null) ? (st.wealth >= 120 ? 'noble' : st.wealth >= 60 ? 'rich' : st.wealth < 15 ? 'poor' : 'mid') : 'mid';
     // 다시 세우는 열쇠: 변형·자리·동작·소품·모자·재산등급·곁 사람.
@@ -2893,20 +2896,25 @@ export function createStage(canvas) {
       const initW = seasonalWeatherOf({ age: 0, year: birth.year, birth });
       if (W && W.sc.setWeather) W.sc.setWeather(initW, initW === 'clear' ? 0.0 : 0.75);
     },
-    // 나이·해·재산·살림: 내 사람 크기·옷·걸음·하는 일
-    setAge(age, year, wealth, estate) {
+    // 나이·해·재산·살림·진로: 내 사람 크기·옷·걸음·하는 일
+    setAge(age, year, wealth, estate, route) {
       st.age = age; if (year != null) st.year = year;
       if (wealth != null) st.wealth = wealth;
       if (estate != null) {
         st.estate = estate;
         updateEstateProps(estate);
       }
+      if (route !== undefined) st.route = route;
       if (st.birth) st.kitNow = stageOf({ ...st.birth, year: st.year }).kit;
       spawnMe(false);
       if (!st.card && st.birth && W && W.sc.setWeather) {
         const sw = seasonalWeatherOf({ age: st.age, year: st.year, birth: st.birth });
         W.sc.setWeather(sw, sw === 'clear' ? 0.0 : 0.75);
       }
+    },
+    setRoute(route) {
+      st.route = route || null;
+      spawnMe(false);
     },
     updateEstate(estate, showcaseSlot) {
       st.estate = estate;

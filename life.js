@@ -265,8 +265,21 @@ export function advance(life, deck, { lines = [], yearly = false } = {}) {
     if (life.step === 1) {   // 정해진 나이 결정
       life.step = 2;
       if (life.slots.includes(a)) {
-        const card = pickCard(echoDeck(deck, life), ctxOf(life, life.seen), sub(seed, a, 'card'));
-        if (card) { life.pending = { card, kind: 'slot' }; return { type: 'card', card }; }
+        let card = pickCard(echoDeck(deck, life), ctxOf(life, life.seen), sub(seed, a, 'card'));
+        if (card) {
+          if (card.karmic && life.willEcho?.entity) {
+            const ent = life.willEcho.entity;
+            card = {
+              ...card,
+              text: {
+                ko: card.text.ko.replace(/(오래전|젊은 날|과거 그 시절|남몰래 모아두었던|정성을 다했던|치료해주었던|꽃다발을 건네며|서당 뒤뜰 엿을 서리하고|학문의 뜻을 품었던|뜻을 품고 살았던)/, `$1 『${ent}』`),
+                en: card.text.en.replace(/(long ago|years ago|sweetheart|memories)/i, `$1 (${ent})`),
+              },
+            };
+          }
+          life.pending = { card, kind: 'slot' };
+          return { type: 'card', card };
+        }
       }
     }
     if (life.step === 2) {   // 잠시 멈춤 (모닥불). 그때의 일지 길이를 적어 둔다: 기억 후보는 앞 멈춤 표시부터 이 표시까지 (memory.js)
@@ -343,6 +356,22 @@ export function choose(life, i) {
   if (life.attrs) { for (const k of ATTRS) if (effects[k]) life.attrs[k] = clampAttr(life.attrs[k] + effects[k]); readCheck(life); }
   for (const f of (c.set || c.flags || [])) life.flags[f] = true;
   for (const f of c.unset || []) delete life.flags[f];
+  if (c.custom) {
+    const routeId = c.route?.id || null;
+    const intent = c.intent || c.ai?.intent || c.willIntent || 'general_will';
+    const entity = c.entity || c.ai?.entity || c.willEntity || null;
+    life.willEcho = {
+      intent,
+      entity,
+      route: routeId,
+      routeId,
+      age: life.age,
+      year: life.year,
+    };
+    life.flags.will_echo_pending = true;
+    if (routeId) life.flags[`echo_${routeId}`] = true;
+    if (intent) life.flags[`echo_${intent}`] = true;
+  }
   if (c.route) setLifeRoute(life, c.route);
   if (c.estate) {
     life.estate = life.estate || { livestock: 0, transport: 0, household: 0, prestige: 0 };
