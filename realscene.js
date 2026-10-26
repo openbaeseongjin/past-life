@@ -38,6 +38,7 @@ import { planPeople, peopleSeed, PEOPLE_DEFAULT, paletteOf, dressVariant } from 
 import { createPeople, touchPeople, sweepPeople, peopleCacheSize, preloadPeople } from './realpeople.js';
 import { stageOf, stageSeed, builtKit, sceneKitOf, LAND_LOOK, morphologyOf } from './lands.js';
 import { cardFocusOf, cardWorkSpotOf, cardShotOf, cardHandPropOf, cardMoodOf } from './cardscene.js';
+import { getEstatePropName } from './estate.js';
 import { createWeather, cardWeatherOf, seasonalWeatherOf } from './weather.js';
 import { t as tr } from './i18n.js';
 
@@ -1632,8 +1633,28 @@ export function createRealScene(canvas, opts = {}) {
   const PROP_NOSHADOW = new Set(['flower_patch', 'chicken', 'duck']);
   const PROP_TINT = new Set(['fleece', 'hide', 'canvas_b', 'down', 'hide_dark', 'hide_goat']);      // 마리·천막마다 색 변주(instanceColor)를 받는 재질 (down = 오리 깃털: 부리·눈은 palette 라 안 물든다)
   const propMeshes = [];
+  let propKit = null;
+  function createPropObject(pieceName) {
+    if (!propKit) return null;
+    const root = propKit.pieces.get(pieceName);
+    if (!root) return null;
+    const grp = new THREE.Group();
+    root.traverse((o) => {
+      if (o.isMesh) {
+        const mat = kitMaterial(o.material);
+        const m = new THREE.Mesh(o.geometry.clone(), mat);
+        m.castShadow = true; m.receiveShadow = true;
+        m.position.copy(o.position);
+        m.quaternion.copy(o.quaternion);
+        m.scale.copy(o.scale);
+        grp.add(m);
+      }
+    });
+    return grp;
+  }
   async function buildProps() {
     const pk = await loadKit(PROPS_URL_S);
+    propKit = pk;
     await nextTask();
     if (state.disposed) return;
     const byPiece = new Map();
@@ -1969,6 +1990,7 @@ export function createRealScene(canvas, opts = {}) {
     renderFrame(dt) { if (state.disposed) return; dt = Math.min(dt, 0.1); tAcc += dt; renderOnce(dt); },
     heightAt, groundAt, layout, dressing, state, sunDir, fogify, skyColorsAt, kit: KIT, kitDims: KD, propDims: PD, recipe: RC, flavor: FL, peopleUrl, setting: opts.setting || RC.setting || 'village', household: opts.household || null, env: ENV,
     skyColors() { return { fogC: fogC.clone(), sunSide: sunSideC.clone() }; },
+    createPropObject,
     setQuality(q) {
       const Q2 = QUALITY[q]; if (!Q2) return;
       state.quality = q; state.ao = Q2.ao; state.post = Q2.post ?? true; state.bloom = Q2.bloom ?? true; rebuildComposer();
@@ -2362,15 +2384,33 @@ export function createStage(canvas) {
   function mePalette(seed, k, sc = W && W.sc) {
     const r = rng((seed ^ 0x51ed27) + k * 7919), pick = (a) => a[Math.floor(r() * a.length)], PAL = paletteOf(sc ? sc.kit : 'england', sc && sc.flavor, !!(sc && sc.recipe.camp));
     const [s0, sr] = sc ? sc.recipe.activity.meSkin : [0.92, 0.12], s = s0 + r() * sr;
-    return { prim: pick(PAL.dyes), sec: pick(PAL.plain), hair: pick(PAL.hairs), skin: [s * 1.02, s, s * 0.97], nat: 0.95 + r() * 0.1, linen: pick(PAL.linens) };
+    const pal = { prim: pick(PAL.dyes), sec: pick(PAL.plain), hair: pick(PAL.hairs), skin: [s * 1.02, s, s * 0.97], nat: 0.95 + r() * 0.1, linen: pick(PAL.linens) };
+    if (k === 0 && st.wealth != null) {
+      const w = st.wealth;
+      if (w < 15) {
+        pal.prim = pal.prim.map((v) => Math.max(0.12, v * 0.72));
+        pal.sec = pal.sec.map((v) => Math.max(0.12, v * 0.75));
+      } else if (w >= 120 || st.birth?.household === 'elite') {
+        const richDyes = [[0.18, 0.24, 0.48], [0.55, 0.16, 0.22], [0.15, 0.42, 0.35], [0.65, 0.45, 0.18]];
+        pal.prim = richDyes[Math.floor(r() * richDyes.length)];
+        pal.linen = [0.95, 0.94, 0.92];
+      } else if (w >= 60) {
+        pal.prim = pal.prim.map((v) => Math.min(1.0, v * 1.15));
+      }
+    }
+    return pal;
   }
   function spawnMe(force) {
     if (!W || !W.meReady || !st.birth) return;
     const a = st.age, b = st.birth, variant = meVariant(b, a), scale = meScale(a);
     const act = st.campOn ? { key: 'camp', spot: { x: W.campSeat[0], z: W.campSeat[1], face: W.campSeat[2] }, action: a >= 13 && a < 60 ? 'kneel' : 'stand' } : activity();
     const handProp = cardHandPropOf(st.card, { age: a });
-    // 다시 세우는 열쇠: 변형·자리·동작·소품·곁 사람. 크기만 바뀌면 (해마다 자라는 아이) 그 자리에서 크기만 바꾼다 (곁 사람을 해마다 다시 세우지 않는다)
-    const key = [variant, act.key, act.action, handProp || '', (act.mates || []).map((m) => m[0] + m[1]).join(',')].join('|');
+    const headwear = (act.action === 'hoe' || act.spot === W.spots.field) ? 'satgat'
+      : (st.focus === 'learn' || st.card?.focus === 'learn') ? 'scholar_cap'
+      : null;
+    const wTier = (st.wealth != null) ? (st.wealth >= 120 ? 'noble' : st.wealth >= 60 ? 'rich' : st.wealth < 15 ? 'poor' : 'mid') : 'mid';
+    // 다시 세우는 열쇠: 변형·자리·동작·소품·모자·재산등급·곁 사람.
+    const key = [variant, act.key, act.action, handProp || '', headwear || '', wTier, (act.mates || []).map((m) => m[0] + m[1]).join(',')].join('|');
     if (key === st.meKey && !force) {
       const P0 = W.me.people[0];
       if (P0 && Math.abs(P0.obj.scale.x - scale) > 1e-3) { P0.obj.scale.setScalar(scale); P0.p.scale = scale; }
@@ -2385,7 +2425,7 @@ export function createStage(canvas) {
     // (아이는 어른 곁 사람이 카메라 앞을 가리지 않게 더 뒤쪽·멀리)
     //   아이: 곁 어른은 아이 뒤(카메라 반대쪽 150° 남짓)에 모여 선다 → 아이가 앞에서 크게, 어른은 뒤에서 화면 가운데 쪽에 머리까지 (오른쪽 두루마리 밑으로 가지 않게)
     const small = a < 13, side = cAz + (small ? 2.75 : 1.8), face = act.mates && !act.mates[0][2] ? cAz + (small ? 1.2 : 1.15) : act.action === 'hoe' ? cAz + 1.75 : sp.face;
-    const p = { id: 0, variant, action: act.action, handProp, place: 'you', speed: a >= 60 ? 0.62 : a < 13 ? 1.15 : 1.05, phase: 0.3, scale, palette: pal, x: sp.x, z: sp.z, face };
+    const p = { id: 0, variant, action: act.action, handProp, headwear, place: 'you', speed: a >= 60 ? 0.62 : a < 13 ? 1.15 : 1.05, phase: 0.3, scale, palette: pal, x: sp.x, z: sp.z, face };
     if (act.action === 'walk' || act.action === 'carry') { p.path = sp.path || W.path; p.x = p.path[0][0]; p.z = p.path[0][1]; }
     if (act.action === 'sit') p.sitOn = sp.sitOn ?? 0.45;
     const plan = [p];
@@ -2426,6 +2466,69 @@ export function createStage(canvas) {
     if (moved) st.rate = 1.4;   // 자리를 옮기면 카메라가 천천히 따라간다
   }
   const meObj = () => (W && W.me.people[0] ? W.me.people[0].obj : null);
+
+  function updateEstateProps(estate, showcaseSlot = null) {
+    if (!W || !W.spots || !W.spots.home || !W.sc || !W.sc.createPropObject) return;
+    const home = W.spots.home;
+    const hf = home.face || 0;
+    const fx = Math.sin(hf), fz = Math.cos(hf);
+    const rx = Math.cos(hf), rz = -Math.sin(hf);
+
+    const slotOffsets = {
+      livestock: { x: home.x + rx * 3.6 + fx * 1.5, z: home.z + rz * 3.6 + fz * 1.5, rot: hf - 0.7 },
+      transport: { x: home.x - rx * 3.4 + fx * 1.8, z: home.z - rz * 3.4 + fz * 1.8, rot: hf + 0.9 },
+      household: { x: home.x - rx * 2.1 - fx * 0.8, z: home.z - rz * 2.1 - fz * 0.8, rot: hf },
+      prestige:  { x: home.x + rx * 2.2 + fx * 3.4, z: home.z + rz * 2.2 + fz * 3.4, rot: hf + 1.5 },
+    };
+
+    W.estateProps = W.estateProps || {};
+    const kit = W.sc.kit || 'eastasia';
+
+    for (const slot of ['livestock', 'transport', 'household', 'prestige']) {
+      const tier = (estate && estate[slot]) || 0;
+      const propName = getEstatePropName(slot, tier, kit);
+      const current = W.estateProps[slot];
+
+      if (current && current.propName === propName) {
+        continue;
+      }
+
+      if (current) {
+        W.sc.scene.remove(current.obj);
+        current.obj.traverse((o) => { if (o.isMesh && o.geometry) o.geometry.dispose(); });
+        delete W.estateProps[slot];
+      }
+
+      if (propName) {
+        const obj = W.sc.createPropObject(propName);
+        if (obj) {
+          const off = slotOffsets[slot];
+          const y = W.sc.groundAt(off.x, off.z);
+          obj.position.set(off.x, y, off.z);
+          obj.rotation.y = off.rot;
+          W.sc.scene.add(obj);
+          W.estateProps[slot] = { propName, obj, x: off.x, y, z: off.z };
+
+          if (showcaseSlot === slot) {
+            if (W.me && W.me.react) W.me.react('nod', 1.5);
+            if (W.cam) {
+              if (!W.cam.tgt) W.cam.tgt = new THREE.Vector3(off.x, y + 1.0, off.z);
+              else W.cam.tgt.set(off.x, y + 1.0, off.z);
+              st.rate = 2.2;
+            }
+            obj.scale.set(1.25, 1.25, 1.25);
+            let elapsed = 0;
+            const bounce = setInterval(() => {
+              elapsed += 0.05;
+              const s = Math.max(1, 1.25 - elapsed * 0.5);
+              obj.scale.set(s, s, s);
+              if (s <= 1) clearInterval(bounce);
+            }, 50);
+          }
+        }
+      }
+    }
+  }
 
   // ── 모닥불 ──
   function buildFire(sc) {
@@ -2790,15 +2893,24 @@ export function createStage(canvas) {
       const initW = seasonalWeatherOf({ age: 0, year: birth.year, birth });
       if (W && W.sc.setWeather) W.sc.setWeather(initW, initW === 'clear' ? 0.0 : 0.75);
     },
-    // 나이·해: 내 사람 크기·옷·걸음·하는 일. 시대가 바뀌면 세트 이름을 다시 정한다 (1단계는 잉글랜드 세트 하나라 그림은 그대로)
-    setAge(age, year) {
+    // 나이·해·재산·살림: 내 사람 크기·옷·걸음·하는 일
+    setAge(age, year, wealth, estate) {
       st.age = age; if (year != null) st.year = year;
+      if (wealth != null) st.wealth = wealth;
+      if (estate != null) {
+        st.estate = estate;
+        updateEstateProps(estate);
+      }
       if (st.birth) st.kitNow = stageOf({ ...st.birth, year: st.year }).kit;
       spawnMe(false);
       if (!st.card && st.birth && W && W.sc.setWeather) {
         const sw = seasonalWeatherOf({ age: st.age, year: st.year, birth: st.birth });
         W.sc.setWeather(sw, sw === 'clear' ? 0.0 : 0.75);
       }
+    },
+    updateEstate(estate, showcaseSlot) {
+      st.estate = estate;
+      updateEstateProps(estate, showcaseSlot);
     },
     // 올해의 패 (work·learn·family·body·rest, 고르지 않았으면 main 이 정한 저절로 값) → 내 사람이 하는 일·자리
     setFocus(id) { st.focus = id || null; st.card = null; spawnMe(false); },

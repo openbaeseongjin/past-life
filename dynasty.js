@@ -369,6 +369,7 @@ export function prepareSuccessor({ parentLife, dynasty }) {
     household: hh,
     tags: [...b.tags],
     wealth: totalWealth,
+    estate: parentLife.estate ? { ...parentLife.estate } : null,
     sex: successorSex,
     order: 1, // 장남 또는 장녀
     status: Math.min(5, Math.max(1, (parentLife.status || 2) + (tier.perks.statusBoost || 0))),

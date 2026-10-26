@@ -168,7 +168,11 @@ export function createPeople(scene, opts) {
     m.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, U);
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uHair; uniform vec3 uSkin;')
-        .replace('#include <color_fragment>', '#ifdef USE_COLOR_ALPHA\n diffuseColor.rgb *= vColor.r * uHair + vColor.g * uSkin + vColor.b;\n#endif');
+        .replace('#include <color_fragment>', '#ifdef USE_COLOR_ALPHA\n diffuseColor.rgb *= vColor.r * uHair + vColor.g * uSkin + vColor.b;\n#endif')
+        .replace('#include <opaque_fragment>', `#include <opaque_fragment>
+          vec3 V = normalize(-vViewPosition);
+          float rim = pow(clamp(1.0 - dot(normal, V), 0.0, 1.0), 3.5);
+          outgoingLight += outgoingLight * rim * 0.22;`);
     };
     m.envMapIntensity = opts.envI ? opts.envI() : 0.6;
     return fogify(m, 'people_skin');
@@ -211,12 +215,31 @@ export function createPeople(scene, opts) {
           nxy *= normalScale * ( fa > 0.17 && fa < 0.5 ? 0.6 : 1.0 );
           vec3 mapN = vec3( nxy, sqrt( max( 0.0, 1.0 - dot( nxy, nxy ) ) ) );
           normal = normalize( tbn * mapN );
-        #endif`);
+        #endif`)
+        .replace('#include <opaque_fragment>', `#include <opaque_fragment>
+          vec3 V = normalize(-vViewPosition);
+          float rim = pow(clamp(1.0 - dot(normal, V), 0.0, 1.0), 3.0);
+          outgoingLight += outgoingLight * rim * 0.32;`);
     };
     m.envMapIntensity = opts.envI ? opts.envI() : 0.6;
     return fogify(m, 'people_cloth');
   }
   let toolMat = null;
+  let shadowMat = null;
+  function getShadowMat() {
+    if (shadowMat) return shadowMat;
+    if (typeof document === 'undefined') return null;
+    const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(32, 32, 4, 32, 32, 30);
+    g.addColorStop(0, 'rgba(10, 12, 18, 0.52)');
+    g.addColorStop(0.5, 'rgba(10, 12, 18, 0.22)');
+    g.addColorStop(1, 'rgba(10, 12, 18, 0.0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64);
+    const tex = new THREE.CanvasTexture(c);
+    shadowMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
+    return shadowMat;
+  }
 
   function clear() {
     for (const P of people) {
@@ -269,6 +292,15 @@ export function createPeople(scene, opts) {
       const bone = (n) => obj.getObjectByName(n);
       const B = {};
       for (const n of ['pelvis', 'spine_01', 'spine_02', 'spine_03', 'neck_01', 'Head', 'upperarm_r', 'lowerarm_r', 'hand_r', 'upperarm_l', 'lowerarm_l', 'hand_l']) B[n] = bone(n);
+      // 발 밑 소프트 접지 그림자 (저사양 무그림자 모드에서도 인물이 바닥에 밀착되게)
+      const sm = getShadowMat();
+      if (sm) {
+        const sGeo = new THREE.PlaneGeometry(0.85, 0.85);
+        sGeo.rotateX(-Math.PI / 2);
+        const smesh = new THREE.Mesh(sGeo, sm);
+        smesh.position.y = 0.02;
+        obj.add(smesh);
+      }
       const armNode = B.pelvis.parent.parent;            // 뼈대 노드 (뿌리 뼈의 부모) = 뼈대 공간
       const P = { p, obj, B, armNode, lod0, lod1, skeletons, near: true, mats: [sk, cl], t: p.phase * 10, s: 0, dir: 1, props: {}, tick: p.id, acc: 0 };
       P.ua = B.lowerarm_r.position.length(); P.la = B.hand_r.position.length();
@@ -364,6 +396,21 @@ export function createPeople(scene, opts) {
           bk.rotation.set(-0.2, 0.3, 0.1);
           B.hand_r.add(bk); P.props.book = bk;
         }
+      }
+      if (p.headwear === 'satgat' && B.Head && !P.props.headwear) {
+        const hGeo = new THREE.ConeGeometry(0.25, 0.1, 9);
+        const hMat = new THREE.MeshLambertMaterial({ color: 0xbd9f67 });
+        const hm = new THREE.Mesh(hGeo, hMat);
+        hm.position.set(0, 0.16, 0);
+        hm.userData = { disposableMat: true };
+        B.Head.add(hm); P.props.headwear = hm;
+      } else if (p.headwear === 'scholar_cap' && B.Head && !P.props.headwear) {
+        const hGeo = new THREE.BoxGeometry(0.13, 0.11, 0.13);
+        const hMat = new THREE.MeshLambertMaterial({ color: 0x222228 });
+        const hm = new THREE.Mesh(hGeo, hMat);
+        hm.position.set(0, 0.16, 0);
+        hm.userData = { disposableMat: true };
+        B.Head.add(hm); P.props.headwear = hm;
       }
       // 자리
       if (p.path) {

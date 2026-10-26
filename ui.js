@@ -21,6 +21,7 @@ import { holdingsOf } from './holdings.js';
 import { openChoices, chanceOf } from './life.js';
 import { DECK } from './deck.js';
 import { ROUTES, getRouteBadge, careerSummary } from './routes.js';
+import { ESTATE_SLOTS, ESTATE_CATALOG, canBuyEstate, buyEstate } from './estate.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -130,6 +131,12 @@ export function createUI({ lang, robot = false, fast = false }) {
   }
   $('focusBox').addEventListener('click', (e) => { const b = e.target.closest('[data-focus]'); if (b && h.focus) h.focus(b.dataset.focus === 'auto' ? null : b.dataset.focus); });
   $('traceBeads').addEventListener('click', (e) => { const b = e.target.closest('[data-tr]'); if (b) say(b.dataset.tr); });
+  const btnEstate = $('btnEstate');
+  if (btnEstate) {
+    btnEstate.addEventListener('click', () => {
+      if (cur && cur.life && h.openEstate) h.openEstate(cur.life);
+    });
+  }
   document.addEventListener('click', (e) => { if (moreOpen && !dial.contains(e.target)) setMore(false); });
   // 시대의 바람 띠: 누르면 그해 맥락 카드 (올해의 일 · 전쟁 · 질병·의술 · 기술 · 경제 · 신분제 · 배움). 밖을 누르거나 Esc·닫기면 접는다
   const windBtn = $('eraWind'), windCard = $('windCard');
@@ -762,6 +769,8 @@ export function createUI({ lang, robot = false, fast = false }) {
       $('traceBeads').innerHTML = (life.traces.length || life.heirloom) ? `<span>${esc(t(L, 'trace'))}</span>${heirloomHtml}${beadsHtml}` : '';
       if (grew && !reduced()) { const box = $('traceBeads'); box.classList.remove('pulse'); void box.offsetWidth; box.classList.add('pulse'); }   // 짙어지면 한 번 반짝
     }
+    const be = $('btnEstate');
+    if (be) { be.style.display = (life && life.age >= 12) ? 'inline-flex' : 'none'; }
     // 수치 판: 건강·재산·곁·마음 = 숫자 · 막대 · 구체적인 한 줄 (상태 낱말·앓은 일 / 그 땅 단위 살림 / 짝·아이·이웃 / 마음 낱말)
     const ctx = life.ctx();
     const lines = {
@@ -1328,7 +1337,95 @@ export function createUI({ lang, robot = false, fast = false }) {
     return pick(screen).then(() => { screen.hidden = true; });
   }
 
+  function showEstateDrawer(life, onBuy) {
+    return new Promise((resolve) => {
+      const screen = $('screen');
+    const renderContent = () => {
+      const w = Math.round(life.stats ? life.stats.wealth : 0);
+      const estate = life.estate || { livestock: 0, transport: 0, household: 0, prestige: 0 };
+      const slotHtml = ESTATE_SLOTS.map((slot) => {
+        const curTier = estate[slot] || 0;
+        const catalog = ESTATE_CATALOG[slot];
+        const nextItem = catalog.find((x) => x.tier === curTier + 1);
+        const curItem = catalog.find((x) => x.tier === curTier);
+        const canBuy = nextItem && w >= nextItem.cost;
+
+        const curLabel = curItem ? `${curItem.name[L]} (${curTier}단계)` : (L === 'ko' ? '미보유' : 'None');
+        const nextLabel = nextItem
+          ? `<div class="next-box" style="margin-top:8px;padding:8px 12px;background:rgba(226,182,94,0.08);border:1px solid rgba(226,182,94,0.3);border-radius:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <span style="font-weight:700;color:var(--gold2)">${esc(nextItem.name[L])} (${curTier + 1}단계)</span>
+                <span style="font-weight:700;color:${canBuy ? 'var(--gold2)' : 'var(--muted)'}">🪙 ${nextItem.cost} ${esc(L === 'ko' ? '은화' : 'wealth')}</span>
+              </div>
+              <div style="font-size:12px;color:var(--ink-soft);line-height:1.4">${esc(nextItem.desc[L])}</div>
+              <button type="button" class="primary btn-buy-estate" data-slot="${slot}" data-tier="${curTier + 1}" ${canBuy ? '' : 'disabled'} style="margin-top:8px;width:100%;padding:6px;font-size:13px;border-radius:6px;min-height:34px;cursor:pointer">
+                ${esc(canBuy ? (L === 'ko' ? '장만하기' : 'Acquire') : (L === 'ko' ? '재산 부족' : 'Need more wealth'))}
+              </button>
+            </div>`
+          : `<div style="font-size:12px;color:#2e7d32;font-weight:600;margin-top:6px">✨ ${esc(L === 'ko' ? '최고 단계 살림 달성' : 'Max tier achieved')}</div>`;
+
+        const slotIcons = { livestock: '🐂', transport: '🪵', household: '🏺', prestige: '🥬' };
+        const slotTitles = {
+          livestock: { ko: '가축과 외양간', en: 'Livestock & Stable' },
+          transport: { ko: '운송과 생업 도구', en: 'Transport & Tools' },
+          household: { ko: '가재도구와 처마', en: 'Household & Porch' },
+          prestige: { ko: '가문의 품격과 정원', en: 'Prestige & Garden' },
+        };
+
+        return `<div class="estate-card" style="padding:12px;background:var(--card);border:1px solid var(--line);border-radius:10px">
+          <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;color:var(--ink)">
+            <span>${slotIcons[slot]}</span> <span>${esc(slotTitles[slot][L])}</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">
+            ${esc(L === 'ko' ? '현재 보유' : 'Current')}: <b>${esc(curLabel)}</b>
+          </div>
+          ${nextLabel}
+        </div>`;
+      }).join('');
+
+      return `<article class="sheet estate-sheet" style="max-width:540px;margin:25px auto;max-height:85vh;overflow-y:auto;padding:18px 24px">
+        <header style="text-align:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px">
+          <h2 style="margin:0;font:700 20px var(--serif);color:var(--ink)">🏡 ${esc(L === 'ko' ? '마당 살림 장만' : 'Estate & Assets')}</h2>
+          <p style="margin:5px 0 0;font-size:12.5px;color:var(--muted)">
+            ${esc(L === 'ko' ? '한평생 모은 재산으로 마당에 실물 가재도구와 가축을 들입니다.' : 'Acquire tangible livestock and assets for your estate with hard-earned wealth.')}
+          </p>
+          <div style="margin-top:6px;font:700 15px var(--ui);color:var(--gold2)">
+            🪙 ${esc(L === 'ko' ? `보유 재산: ${w} 은화` : `Wealth: ${w}`)}
+          </div>
+        </header>
+        <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px">
+          ${slotHtml}
+        </div>
+        <div class="btns" style="display:flex;justify-content:flex-end">
+          <button type="button" class="primary" data-v="close" style="padding:8px 20px">${esc(L === 'ko' ? '마당으로 돌아가기' : 'Return to Yard')}</button>
+        </div>
+      </article>`;
+    };
+
+    screen.hidden = false;
+    screen.innerHTML = renderContent();
+
+    screen.onclick = (e) => {
+      const buyBtn = e.target.closest('.btn-buy-estate');
+      if (buyBtn && !buyBtn.disabled) {
+        const slot = buyBtn.dataset.slot;
+        const tier = Number(buyBtn.dataset.tier);
+        if (onBuy) onBuy(slot, tier);
+        screen.innerHTML = renderContent();
+        return;
+      }
+      const closeBtn = e.target.closest('[data-v="close"]');
+      if (closeBtn) {
+        screen.hidden = true;
+        screen.onclick = null;
+        resolve();
+      }
+    };
+    });
+  }
+
   return {
+    showEstateDrawer,
     setHandlers: (x) => { h = x; },
     toast: say,
     setLang(l) { L = l; labels(); if (cur && !app.hidden) { shown = 0; memShown = (cur.life.memories || []).length; $('journal').innerHTML = ''; hideTip(); update(cur.life, cur.peers); } },
