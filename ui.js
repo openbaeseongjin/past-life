@@ -1177,7 +1177,7 @@ export function createUI({ lang, robot = false, fast = false }) {
       const seg = (name, list, curV) => `<div class="seg" role="group">${list.map(([v, label]) => `<button data-v="${name}:${v}" aria-pressed="${v === curV}">${esc(label)}</button>`).join('')}</div>`;
       modal.className = 'settings';
       modal.innerHTML = `<div class="setsheet" role="dialog" aria-modal="true" aria-labelledby="setT"><h2 id="setT">${esc(t(L, 'setTitle'))}</h2>
-        <div class="row"><b>${esc(t(L, 'setQuality'))}</b>${seg('q', [['high', t(L, 'qHigh')], ['normal', t(L, 'qNormal')], ['low', t(L, 'qLow')]], st.quality)}<small>${esc(t(L, 'qHint'))}</small></div>
+        <div class="row"><b>${esc(t(L, 'setQuality'))}</b>${seg('q', [['high', t(L, 'qHigh')], ['normal', t(L, 'qNormal')], ['low', t(L, 'qLow')]], st.quality)}<small>${esc(t(L, 'qHint'))}</small>${st.software ? `<div class="hw-warn" style="margin-top:8px;padding:8px 12px;border-radius:10px;background:rgba(212,122,58,0.18);border:1px solid rgba(212,122,58,0.45);color:var(--gold-soft);font-size:12px;line-height:1.5">${esc(t(L, 'hwWarn'))}</div>` : ''}</div>
         <div class="row"><b>${esc(t(L, 'setSpeed'))}</b>${seg('sp', ['slow', 'normal', 'fast', 'fastest'].map((k) => [k, sp[k]]), st.speed)}</div>
         <div class="row"><b>${esc(t(L, 'setSound'))}</b>${seg('snd', [['on', t(L, 'soundOn')], ['off', t(L, 'soundOff')]], st.sound ? 'on' : 'off')}</div>
         <div class="row"><b>${esc(t(L, 'setLang'))}</b>${seg('lang', [['ko', '한국어'], ['en', 'English']], st.lang)}</div>

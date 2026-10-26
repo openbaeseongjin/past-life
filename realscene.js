@@ -134,8 +134,18 @@ function landPreset(base, land) {
 const QUALITY = {
   high: { ao: true, shadow: 4096, treeNear: 120, shadowR: 70, forest: 1, shadowEvery: 3, samples: 4, post: true, bloom: true },
   normal: { ao: false, shadow: 2048, treeNear: 65, shadowR: 45, forest: 0.6, shadowEvery: 6, samples: 0, post: true, bloom: true },
-  low: { ao: false, shadow: 1024, treeNear: 35, shadowR: 25, forest: 0.3, shadowEvery: 12, samples: 0, post: false, bloom: false },
+  low: { ao: false, shadow: 0, treeNear: 25, shadowR: 0, forest: 0.2, shadowEvery: 60, samples: 0, post: false, bloom: false, shadowMap: false },
 };
+
+export function isSoftwareWebGL(gl) {
+  try {
+    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    const r = (dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) || '';
+    return /basic render|swiftshader|warp|software|llvmpipe/i.test(r);
+  } catch {
+    return false;
+  }
+}
 
 // 텍스처는 그리개마다 한 번만 받는다 (게임에서 생이 바뀌어 장면을 다시 지어도 같은 텍스처를 쓴다)
 const texCaches = new WeakMap();
@@ -641,7 +651,7 @@ export function createRealScene(canvas, opts = {}) {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.6;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = QL.shadowMap !== false && (QL.shadow > 0);
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.shadowMap.autoUpdate = false;           // 그림자는 몇 프레임에 한 번 (정적 장면 + 작은 사람들)
   const SHADOW_EVERY = opts.shadowEvery ?? (QL.shadowEvery ?? (quality === 'normal' ? 6 : 3));
@@ -1253,9 +1263,9 @@ export function createRealScene(canvas, opts = {}) {
       sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', THREE.ShaderChunk.normal_fragment_begin.replace('normal *= faceDirection;', ''));
     })(mat.onBeforeCompile);
     const isNormal = quality === 'normal', isLow = quality === 'low';
-    const baseTarget = isLow ? 15000 : isNormal ? 36000 : 75000;
-    const BASE = Math.round(baseTarget * Math.min(1.3, LD.tufts)), COUNT = BASE + (isLow ? 5000 : isNormal ? 10000 : 25000);
-    const scaleMul = isLow ? 1.6 : isNormal ? 1.35 : 1.25;
+    const baseTarget = isLow ? 4000 : isNormal ? 36000 : 75000;
+    const BASE = Math.round(baseTarget * Math.min(1.3, LD.tufts)), COUNT = BASE + (isLow ? 1000 : isNormal ? 10000 : 25000);
+    const scaleMul = isLow ? 2.0 : isNormal ? 1.35 : 1.25;
     const im = new THREE.InstancedMesh(geo, mat, COUNT), r = rng(4), m4 = new THREE.Matrix4(), c = new THREE.Color();
     let n = 0, tries = 0, maxTries = BASE * 3;
     while (n < BASE && tries < maxTries) {
@@ -1951,7 +1961,8 @@ export function createRealScene(canvas, opts = {}) {
     setQuality(q) {
       const Q2 = QUALITY[q]; if (!Q2) return;
       state.quality = q; state.ao = Q2.ao; state.post = Q2.post ?? true; state.bloom = Q2.bloom ?? true; rebuildComposer();
-      if (sun.shadow.mapSize.x !== Q2.shadow) { sun.shadow.mapSize.set(Q2.shadow, Q2.shadow); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } renderer.shadowMap.needsUpdate = true; }
+      renderer.shadowMap.enabled = Q2.shadowMap !== false && (Q2.shadow > 0);
+      if (sun.shadow.mapSize.x !== (Q2.shadow || 512)) { sun.shadow.mapSize.set(Q2.shadow || 512, Q2.shadow || 512); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } if (renderer.shadowMap.enabled) renderer.shadowMap.needsUpdate = true; }
     },
     // 동기 측정: n 프레임을 그리고 1px 읽어 GPU 를 기다린다
     bench(n = 60) {
@@ -2022,7 +2033,9 @@ export function createStage(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
   const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   // 화질: 주소의 ?q=high|normal 은 이번 판에만 (저장하지 않는다. 공유 링크가 받은 사람의 설정을 바꾸지 않게). 없으면 저장된 값(setQuality), 그것도 없으면 높음
-  let quality = 'normal';
+  let isSoftware = false;
+  try { isSoftware = isSoftwareWebGL(renderer.getContext()); } catch {}
+  let quality = isSoftware ? 'low' : 'normal';
   try { const s = JSON.parse(localStorage.getItem(QUALITY_KEY)); if (s === 'high' || s === 'normal' || s === 'low') quality = s; } catch (e) { /* 저장소가 없으면 보통 */ }
   try { const q = new URLSearchParams(location.search).get('q'); if (q === 'high' || q === 'normal' || q === 'low') quality = q; } catch (e) { /* 주소를 못 읽으면 그대로 */ }
 
@@ -2735,6 +2748,7 @@ export function createStage(canvas) {
   requestAnimationFrame(frame);
 
   return {
+    get isSoftware() { return isSoftware; },
     get fast() { return st.fast; },
     set fast(v) { st.fast = !!v; },
     preload(birth) { preloadAssets(birth); },
