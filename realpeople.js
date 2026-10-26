@@ -223,6 +223,16 @@ export function createPeople(scene, opts) {
       scene.remove(P.obj); P.mixer.stopAllAction(); P.mixer.uncacheRoot(P.obj);
       for (const m of P.mats) m.dispose();
       for (const sk of P.skeletons) sk.dispose();       // 뼈 텍스처 (사람마다 복제)
+      if (P.props) {
+        for (const pr of Object.values(P.props)) {
+          if (pr) pr.traverse((o) => {
+            if (o.isMesh) {
+              if (o.userData?.disposableMat && o.material) o.material.dispose();
+              if (o.userData?.disposableMat && o.geometry) o.geometry.dispose();
+            }
+          });
+        }
+      }
     }
     people.length = 0;
   }
@@ -262,7 +272,7 @@ export function createPeople(scene, opts) {
       const armNode = B.pelvis.parent.parent;            // 뼈대 노드 (뿌리 뼈의 부모) = 뼈대 공간
       const P = { p, obj, B, armNode, lod0, lod1, skeletons, near: true, mats: [sk, cl], t: p.phase * 10, s: 0, dir: 1, props: {}, tick: p.id, acc: 0 };
       P.ua = B.lowerarm_r.position.length(); P.la = B.hand_r.position.length();
-      P.over = p.action === 'hammer' || p.action === 'hoe' || (p.variant === 'elder' && (p.action === 'walk' || p.action === 'stand' || p.action === 'talk'));
+      P.over = p.action === 'hammer' || p.action === 'hoe' || p.handProp === 'hoe' || (p.variant === 'elder' && (p.action === 'walk' || p.action === 'stand' || p.action === 'talk')) || p.handProp === 'staff';
       const mixer = P.mixer = new THREE.AnimationMixer(obj);
       const play = (clip, ts = 1) => { const a = mixer.clipAction(clip); a.play(); a.timeScale = ts; a.time = p.phase * clip.duration; return a; };
       const act = p.action;
@@ -286,16 +296,73 @@ export function createPeople(scene, opts) {
         o.traverse((m) => { if (m.isMesh) { m.material = m.material.name === 'people_cloth' ? cl : toolMat; m.castShadow = true; m.layers.set(1); } });
         const g = new THREE.Group(); g.add(o); return g;
       };
+      // 0비용 절차적 기본 도형 소품 생성 (GLTF 자산에 없는 책/두루마리, 봇짐, 지팡이 등)
+      const makeProceduralProp = (type) => {
+        if (type === 'book') {
+          const g = new THREE.Group();
+          const geo = new THREE.BoxGeometry(0.12, 0.16, 0.035);
+          const mat = new THREE.MeshLambertMaterial({ color: 0x4a2a16 });
+          const m = new THREE.Mesh(geo, mat);
+          m.userData = { disposableMat: true };
+          m.castShadow = true; m.layers.set(1);
+          g.add(m);
+          return g;
+        }
+        if (type === 'pack' || type === 'sack') {
+          const g = new THREE.Group();
+          const geo = new THREE.BoxGeometry(0.22, 0.28, 0.16);
+          const mat = cl || new THREE.MeshLambertMaterial({ color: 0x7a6b56 });
+          const m = new THREE.Mesh(geo, mat);
+          m.userData = { disposableMat: !cl };
+          m.castShadow = true; m.layers.set(1);
+          g.add(m);
+          return g;
+        }
+        if (type === 'staff') {
+          const g = new THREE.Group();
+          const geo = new THREE.CylinderGeometry(0.015, 0.018, 1.05, 6);
+          const mat = toolMat || new THREE.MeshLambertMaterial({ color: 0x5c4033 });
+          const m = new THREE.Mesh(geo, mat);
+          m.userData = { disposableMat: !toolMat };
+          m.castShadow = true; m.layers.set(1);
+          g.add(m);
+          return g;
+        }
+        if (type === 'hoe') {
+          const g = new THREE.Group();
+          const hGeo = new THREE.CylinderGeometry(0.014, 0.016, 0.85, 6);
+          const hMat = new THREE.MeshLambertMaterial({ color: 0x6e4a2e });
+          const hm = new THREE.Mesh(hGeo, hMat); hm.userData = { disposableMat: true };
+          hm.castShadow = true; hm.layers.set(1);
+          const bGeo = new THREE.BoxGeometry(0.05, 0.12, 0.02);
+          bGeo.translate(0, 0.42, 0.05);
+          const bMat = toolMat || new THREE.MeshLambertMaterial({ color: 0x444444 });
+          const bm = new THREE.Mesh(bGeo, bMat); bm.userData = { disposableMat: !toolMat };
+          bm.castShadow = true; bm.layers.set(1);
+          g.add(hm); g.add(bm);
+          return g;
+        }
+        return null;
+      };
+      const hProp = p.handProp;
       if (act === 'hammer') { P.props.hammer = prop('hammer'); armNode.add(P.props.hammer); }
-      if (act === 'hoe') { P.props.hoe = prop('hoe'); armNode.add(P.props.hoe); }
-      if (act === 'walk' && p.variant === 'elder') { P.props.staff = prop('staff'); armNode.add(P.props.staff); }
-      if (act === 'carry') {   // 왼어깨 자루: 등뼈(spine_03)에 붙인다. 붙일 자리는 쉼 자세(지금 막 복제한 뼈) 뼈대 공간에서 정한다
-        const sack = prop('sack');   // (IBM 은 meshopt 양자화가 바꿔 놓아 뼈대 공간이 아니다 → 쉼 자세 TRS 를 곱해 쓴다)
-        if (sack) {
+      if (act === 'hoe' || hProp === 'hoe') { P.props.hoe = prop('hoe') || makeProceduralProp('hoe'); if (P.props.hoe) armNode.add(P.props.hoe); }
+      if ((act === 'walk' && p.variant === 'elder') || hProp === 'staff') { P.props.staff = prop('staff') || makeProceduralProp('staff'); if (P.props.staff) armNode.add(P.props.staff); }
+      if (act === 'carry' || hProp === 'pack') {   // 왼어깨 자루/봇짐: 등뼈(spine_03)에 붙인다
+        const sack = prop('sack') || makeProceduralProp('pack');
+        if (sack && !P.props.sack) {
           const rest = new THREE.Matrix4().compose(charP(B.spine_03, new THREE.Vector3()), charQ(B.spine_03, new THREE.Quaternion()), V(1, 1, 1));
           const want = new THREE.Matrix4().compose(V(0.19, charP(B.upperarm_l, new THREE.Vector3()).y + 0.1, 0.02), new THREE.Quaternion().setFromAxisAngle(Y, -Math.PI / 2), V(1, 1, 1));
           rest.invert().multiply(want).decompose(sack.position, sack.quaternion, sack.scale);
           B.spine_03.add(sack); P.props.sack = sack;
+        }
+      }
+      if (hProp === 'book' && B.hand_r && !P.props.book) {
+        const bk = prop('book') || makeProceduralProp('book');
+        if (bk) {
+          bk.position.set(0.04, -0.05, 0.02);
+          bk.rotation.set(-0.2, 0.3, 0.1);
+          B.hand_r.add(bk); P.props.book = bk;
         }
       }
       // 자리
@@ -352,12 +419,28 @@ export function createPeople(scene, opts) {
       charP(B.upperarm_r, _S); ik2(_S, _R, P.ua, P.la, HOE.poleR, _E, _T); aim(B.upperarm_r, B.lowerarm_r, _E); aim(B.lowerarm_r, B.hand_r, _T);
       charP(B.upperarm_l, _S); ik2(_S, _L, P.ua, P.la, HOE.poleL, _E, _T); aim(B.upperarm_l, B.lowerarm_l, _E); aim(B.lowerarm_l, B.hand_l, _T);
       if (P.props.hoe) orient(P.props.hoe, _R, _G.subVectors(_R, _L).normalize(), _H.set(0, -1, -0.3));
-    } else if (p.variant === 'elder' && (act === 'walk' || act === 'stand' || act === 'talk')) {
-      bend(B.spine_01, X, 0.2); bend(B.spine_02, X, 0.14); bend(B.neck_01, X, -0.16); bend(B.Head, X, -0.1);
-      if (P.props.staff) {
-        charP(B.upperarm_r, _S); _H.set(-0.27, 0.93 + 0.02 * Math.sin(P.t * 7), 0.3);
-        ik2(_S, _H, P.ua, P.la, V(-0.5, -0.6, -0.4), _E, _T); aim(B.upperarm_r, B.lowerarm_r, _E); aim(B.lowerarm_r, B.hand_r, _T);
-        P.props.staff.position.copy(_T); P.props.staff.quaternion.identity();
+    } else if (P.props.staff && (p.variant === 'elder' || p.handProp === 'staff')) {
+      if (p.variant === 'elder') {
+        bend(B.spine_01, X, 0.2); bend(B.spine_02, X, 0.14); bend(B.neck_01, X, -0.16); bend(B.Head, X, -0.1);
+      }
+      charP(B.upperarm_r, _S); _H.set(-0.27, 0.93 + 0.02 * Math.sin(P.t * 7), 0.3);
+      ik2(_S, _H, P.ua, P.la, V(-0.5, -0.6, -0.4), _E, _T); aim(B.upperarm_r, B.lowerarm_r, _E); aim(B.lowerarm_r, B.hand_r, _T);
+      P.props.staff.position.copy(_T); P.props.staff.quaternion.identity();
+    }
+    // 선택지 반응 등 0비용 리액션
+    if (P.react) {
+      P.react.t -= P.lastDt || 0.016;
+      if (P.react.t <= 0) {
+        P.react = null;
+      } else {
+        const k = Math.sin((P.react.dur - P.react.t) / P.react.dur * Math.PI);
+        if (P.react.type === 'nod') {
+          bend(B.neck_01, X, 0.24 * k);
+          bend(B.Head, X, 0.16 * k);
+        } else if (P.react.type === 'flinch') {
+          bend(B.spine_02, X, -0.14 * k);
+          bend(B.neck_01, X, -0.1 * k);
+        }
       }
     }
   }
@@ -382,11 +465,12 @@ export function createPeople(scene, opts) {
       P.acc = (P.acc || 0) + dt;
       const every = nr ? 1 : d < 90 ? 2 : 3;
       if (++P.tick % every !== 0) continue;
+      P.lastDt = dt * every;
       // 덧씌우기를 되돌린 뒤 믹서를 돌린다: 믹서는 값이 바뀐 곡선만 뼈에 다시 쓰므로(PropertyMixer),
       // 상수 곡선(줄인 키)의 뼈는 덧씌운 회전이 남아 프레임마다 쌓인다
       if (P.saved) for (let i = 0; i < OVER.length; i++) { const b = P.B[OVER[i]]; if (b) b.quaternion.fromArray(P.saved, i * 4); }
       P.mixer.update(P.acc); P.acc = 0;
-      if (P.over) {
+      if (P.over || P.react) {
         P.saved = P.saved || new Float32Array(OVER.length * 4);
         for (let i = 0; i < OVER.length; i++) { const b = P.B[OVER[i]]; if (b) b.quaternion.toArray(P.saved, i * 4); }
         overlay(P);
@@ -396,5 +480,11 @@ export function createPeople(scene, opts) {
     info.stepMs = info.stepMs == null ? performance.now() - t0 : info.stepMs * 0.95 + (performance.now() - t0) * 0.05;   // 사람 갱신(CPU) 시간, 지수 평균
   }
 
-  return { ready, spawn, step, clear, info, people, dispose() { clear(); } };
+  function react(type = 'nod', dur = 0.8) {
+    for (const P of people) {
+      P.react = { type, dur, t: dur };
+    }
+  }
+
+  return { ready, spawn, step, clear, info, people, react, dispose() { clear(); } };
 }

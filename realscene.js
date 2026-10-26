@@ -37,7 +37,7 @@ import { lerp, smooth, rng, hash2, fbm, obb, obbLocal, obbHas, VC, WATER_Y, RIVE
 import { planPeople, peopleSeed, PEOPLE_DEFAULT, paletteOf, dressVariant } from './peopleplan.js';
 import { createPeople, touchPeople, sweepPeople, peopleCacheSize, preloadPeople } from './realpeople.js';
 import { stageOf, stageSeed, builtKit, sceneKitOf, LAND_LOOK, morphologyOf } from './lands.js';
-import { cardFocusOf, cardWorkSpotOf } from './cardscene.js';
+import { cardFocusOf, cardWorkSpotOf, cardShotOf, cardHandPropOf, cardMoodOf } from './cardscene.js';
 import { createWeather, cardWeatherOf, seasonalWeatherOf } from './weather.js';
 import { t as tr } from './i18n.js';
 
@@ -1952,6 +1952,17 @@ export function createRealScene(canvas, opts = {}) {
     setOrbit(on) { state.orbit = !!on; if (!on) setView(state.view); },
     setWeather(name, intensity = 1.0) { weatherSys.setWeather(name, intensity); },
     get weather() { return weatherSys; },
+    setCardMood(mood) {
+      if (mood === 'warm') {
+        hemi.color.lerp(new THREE.Color(0xffe4b5), 0.16);
+        scene.fog.color.lerp(new THREE.Color(0xffeed6), 0.12);
+      } else if (mood === 'crisis') {
+        hemi.color.lerp(new THREE.Color(0x949da6), 0.22);
+        scene.fog.color.multiplyScalar(0.86);
+      } else {
+        setTime(state.time);
+      }
+    },
     // 지금 장면을 PNG dataURL 로
     snapshot() { renderOnce(0); return canvas.toDataURL('image/png'); },
     // 게임 무대(createStage)용: 바깥 고리에서 한 프레임 그리기 (autoStart: false 일 때), 땅 높이, 마을 배치, 화질
@@ -2357,8 +2368,9 @@ export function createStage(canvas) {
     if (!W || !W.meReady || !st.birth) return;
     const a = st.age, b = st.birth, variant = meVariant(b, a), scale = meScale(a);
     const act = st.campOn ? { key: 'camp', spot: { x: W.campSeat[0], z: W.campSeat[1], face: W.campSeat[2] }, action: a >= 13 && a < 60 ? 'kneel' : 'stand' } : activity();
-    // 다시 세우는 열쇠: 변형·자리·동작·곁 사람. 크기만 바뀌면 (해마다 자라는 아이) 그 자리에서 크기만 바꾼다 (곁 사람을 해마다 다시 세우지 않는다)
-    const key = [variant, act.key, act.action, (act.mates || []).map((m) => m[0] + m[1]).join(',')].join('|');
+    const handProp = cardHandPropOf(st.card, { age: a });
+    // 다시 세우는 열쇠: 변형·자리·동작·소품·곁 사람. 크기만 바뀌면 (해마다 자라는 아이) 그 자리에서 크기만 바꾼다 (곁 사람을 해마다 다시 세우지 않는다)
+    const key = [variant, act.key, act.action, handProp || '', (act.mates || []).map((m) => m[0] + m[1]).join(',')].join('|');
     if (key === st.meKey && !force) {
       const P0 = W.me.people[0];
       if (P0 && Math.abs(P0.obj.scale.x - scale) > 1e-3) { P0.obj.scale.setScalar(scale); P0.p.scale = scale; }
@@ -2373,7 +2385,7 @@ export function createStage(canvas) {
     // (아이는 어른 곁 사람이 카메라 앞을 가리지 않게 더 뒤쪽·멀리)
     //   아이: 곁 어른은 아이 뒤(카메라 반대쪽 150° 남짓)에 모여 선다 → 아이가 앞에서 크게, 어른은 뒤에서 화면 가운데 쪽에 머리까지 (오른쪽 두루마리 밑으로 가지 않게)
     const small = a < 13, side = cAz + (small ? 2.75 : 1.8), face = act.mates && !act.mates[0][2] ? cAz + (small ? 1.2 : 1.15) : act.action === 'hoe' ? cAz + 1.75 : sp.face;
-    const p = { id: 0, variant, action: act.action, place: 'you', speed: a >= 60 ? 0.62 : a < 13 ? 1.15 : 1.05, phase: 0.3, scale, palette: pal, x: sp.x, z: sp.z, face };
+    const p = { id: 0, variant, action: act.action, handProp, place: 'you', speed: a >= 60 ? 0.62 : a < 13 ? 1.15 : 1.05, phase: 0.3, scale, palette: pal, x: sp.x, z: sp.z, face };
     if (act.action === 'walk' || act.action === 'carry') { p.path = sp.path || W.path; p.x = p.path[0][0]; p.z = p.path[0][1]; }
     if (act.action === 'sit') p.sitOn = sp.sitOn ?? 0.45;
     const plan = [p];
@@ -2606,9 +2618,22 @@ export function createStage(canvas) {
     //   곁 어른이 있으면 카메라를 거의 수평(어른 허리 높이)으로 낮추고 보는 점을 0.95 m 로 올린다 → 아이가 주인공으로 크게, 뒤에 선 어른 머리도 화면 안에
     const small = h < 1.2;
     if (small && grp) T.y = Math.max(T.y, me.position.y + 0.95);
-    const pitch = THREE.MathUtils.clamp((small ? (grp ? 0.08 : 0.28) : 0.2) + st.user.pitch, -0.05, 0.9);
-    const d0 = small ? THREE.MathUtils.clamp(THREE.MathUtils.clamp(3.2 * h, 2.2, 3.4) * (grp ? 1.12 : 1) * st.user.zoom, 2, 15)
+    const shot = st.card ? cardShotOf(st.card) : null;
+    let pitch = THREE.MathUtils.clamp((small ? (grp ? 0.08 : 0.28) : 0.2) + st.user.pitch, -0.05, 0.9);
+    let d0 = small ? THREE.MathUtils.clamp(THREE.MathUtils.clamp(3.2 * h, 2.2, 3.4) * (grp ? 1.12 : 1) * st.user.zoom, 2, 15)
       : THREE.MathUtils.clamp(Math.max(3.2 * h + 0.6, grp ? 5.4 : 0) * (grp ? 1.05 : 1) * st.user.zoom, 3, 15);   // 어른: 화면 높이의 37~39%
+
+    if (shot === 'intimate') {
+      if (grp) { T.x = lerp(T.x, grp[0], 0.35); T.z = lerp(T.z, grp[1], 0.35); }
+      pitch = THREE.MathUtils.clamp(0.12 + st.user.pitch, -0.05, 0.9);
+      d0 = THREE.MathUtils.clamp(Math.max(2.4 * h, 2.2) * st.user.zoom, 2, 15);
+    } else if (shot === 'solo') {
+      pitch = THREE.MathUtils.clamp(0.08 + st.user.pitch, -0.05, 0.9);
+      d0 = THREE.MathUtils.clamp(Math.max(2.2 * h, 2.0) * st.user.zoom, 1.8, 15);
+    } else if (shot === 'epic') {
+      pitch = THREE.MathUtils.clamp(0.55 + st.user.pitch, -0.05, 0.9);
+      d0 = THREE.MathUtils.clamp(Math.max(6.5 * h, 8.5) * st.user.zoom, 5, 25);
+    }
     const chestY = me.position.y + h * 0.5;   // 곁 사람 가림 검사는 내 사람 가슴으로
     // 가림: 지난번에 쓴 방향부터, 거리를 줄여 보고, 안 되면 좌우로 돌린다
     const tries = [st.colDa, 0, 0.35, -0.35, 0.7, -0.7, 1.05, -1.05, 1.5, -1.5, 2.1, -2.1];
@@ -2781,12 +2806,26 @@ export function createStage(canvas) {
     setCardFocus(card) {
       st.card = card || null;
       spawnMe(false);
+      st.rate = 1.6;
       if (card) {
         const cw = cardWeatherOf(card);
         if (cw && W && W.sc.setWeather) W.sc.setWeather(cw, 1.0);
-      } else if (st.birth && W && W.sc.setWeather) {
-        const sw = seasonalWeatherOf({ age: st.age, year: st.year, birth: st.birth });
-        W.sc.setWeather(sw, sw === 'clear' ? 0.0 : 0.75);
+        const mood = cardMoodOf(card);
+        st.cardMood = mood;
+        if (W && W.sc.setCardMood) W.sc.setCardMood(mood);
+      } else {
+        st.cardMood = 'clear';
+        if (W && W.sc.setCardMood) W.sc.setCardMood('clear');
+        if (st.birth && W && W.sc.setWeather) {
+          const sw = seasonalWeatherOf({ age: st.age, year: st.year, birth: st.birth });
+          W.sc.setWeather(sw, sw === 'clear' ? 0.0 : 0.75);
+        }
+      }
+    },
+    onChoice(card, choiceIndex) {
+      if (W && W.me && W.me.react) {
+        const risk = card?.choices?.[choiceIndex]?.risk;
+        W.me.react(risk ? 'flinch' : 'nod', 0.85);
       }
     },
     setWeather(name, intensity = 1.0) {

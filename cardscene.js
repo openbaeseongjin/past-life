@@ -1,7 +1,8 @@
 // cardscene.js
 // 카드와 3D 장면·인물 행동의 논리적 정합성 연동 모듈
 // 카드가 다루는 서사(농사, 대장간, 상업, 학문, 종교, 가족, 질병, 여행 등)에 맞추어
-// 3D 무대의 인물 위치(spot), 동작(action), 곁 사람(mates), 포커스(focus)를 결정한다.
+// 3D 무대의 인물 위치(spot), 동작(action), 곁 사람(mates), 포커스(focus),
+// 카메라 쇼트(shot), 손 소품(handProp), 대기 무드(mood)를 저사양 0비용으로 결정한다.
 
 export function cardFocusOf(card) {
   if (!card) return 'work';
@@ -58,4 +59,100 @@ export function cardWorkSpotOf(card) {
     return 'field';
   }
   return null;
+}
+
+// ── [저사양 특화] 카드 서사 맞춤형 4대 카메라 쇼트 ──
+// 'intimate' (친밀·가족·혼례·아이) : 2.5m 거리 3/4 정면 투샷
+// 'epic'     (전쟁·기근·역병·재앙) : 32m 고도 상공 하이앵글 와이드 (원경 조망)
+// 'solo'     (학문·과거·성찰·기도) : 2.2m 처마/나무 밑 로우앵글 클로즈업
+// 'work'     (농사·대장간·장터·일) : 4.5m 일터 워크스테이션 스테이징
+export function cardShotOf(card) {
+  if (!card) return 'work';
+  const id = card.id || '';
+  const textKo = card.text?.ko || '';
+  const textEn = card.text?.en || '';
+  const titleKo = card.title?.ko || '';
+  const full = `${id} ${titleKo} ${textKo} ${textEn}`.toLowerCase();
+
+  // 1. 위기 / 전쟁 / 역병 / 기근 / 대재앙 -> epic 하이앵글
+  if (/war|soldier|battle|conscription|plague|famine|flood|drought|tempest|bandit|ruin|전쟁|징집|군대|피란|달아나|역병|흑사병|기근|가뭄|홍수|난리|도적|수탈|불길|폐허/.test(full)) {
+    return 'epic';
+  }
+
+  // 2. 가족 / 혼인 / 출생 / 아이 / 사랑 / 우정 -> intimate 투샷
+  if (/marry|wedding|birth|baby|child|kin|family|friend|lover|sibling|elder|grandkids|혼례|혼인|출생|첫아이|아기|아이|식구|가족|짝을|사랑|동무|형제|자매|부모|할머니|손주|옛이야기/.test(full)) {
+    return 'intimate';
+  }
+
+  // 3. 학문 / 서당 / 사원 / 과거 / 성찰 / 질병 -> solo 클로즈업
+  if (/exam|learn|book|scroll|scriptorium|temple|shrine|church|monastery|pray|monk|priest|alone|solitude|sick|fever|wound|hospital|과거|시험|서당|사원|사찰|절|성당|수도원|경전|글공부|천자문|스승|도서관|지식|책|홀로|고독|열병|앓아|요양/.test(full)) {
+    return 'solo';
+  }
+
+  return 'work';
+}
+
+// ── [저사양 특화] 초경량 인물 손 소품 (0 다운로드, 기본 도형 기반) ──
+// 'book'  : 서책 / 두루마리 (학문, 과거, 서당, 경전)
+// 'hoe'   : 나무 괭이 / 낫 (농사, 논밭, 모내기, 수확)
+// 'pack'  : 봇짐 / 광주리 (상업, 장터, 무역, 여행, 피란)
+// 'staff' : 나무 지팡이 (노년기 60세~, 유랑)
+// 'pray'  : 합장 (사찰, 성당, 수도원, 기도, 시주)
+export function cardHandPropOf(card, { age = 20 } = {}) {
+  if (!card) {
+    return age >= 60 ? 'staff' : null;
+  }
+  const id = card.id || '';
+  const textKo = card.text?.ko || '';
+  const textEn = card.text?.en || '';
+  const titleKo = card.title?.ko || '';
+  const full = `${id} ${titleKo} ${textKo} ${textEn}`.toLowerCase();
+
+  // 1. 학문 / 서책 / 두루마리
+  if (/exam|learn|book|scroll|scriptorium|read|write|study|과거|시험|서책|책|두루마리|서당|글공부|천자문|사서삼경|경전|성경|도서관/.test(full)) {
+    return 'book';
+  }
+
+  // 2. 신앙 / 기도 / 사원 / 불공 / 시주
+  if (/temple|shrine|church|monastery|pray|monk|priest|offering|vow|사원|사찰|절|성당|수도원|기도|불공|시주|공덕|예배|제사|합장/.test(full)) {
+    return 'pray';
+  }
+
+  // 3. 상업 / 장터 / 봇짐 / 보따리 / 여행
+  if (/market|trade|merchant|shop|caravan|baggage|pack|travel|journey|flee|장터|시장|상인|좌판|봇짐|보따리|광주리|무역|행상|피란|길을 떠나/.test(full)) {
+    return 'pack';
+  }
+
+  // 4. 농경 / 밭일 / 괭이 / 낫 / 수확
+  if (/farm|paddy|harvest|wheat|rice|crop|plow|field|weed|밭|논|모내기|벼|밀|보리|수확|김매기|괭이|낫|쟁기/.test(full)) {
+    return 'hoe';
+  }
+
+  // 5. 노년기 기본 지팡이
+  if (age >= 60 || /지팡이|노인|지팡|staff|cane/.test(full)) {
+    return 'staff';
+  }
+
+  return null;
+}
+
+// ── [저사양 특화] 카드 서사별 0비용 대기 조명 틴트 (Ambient Color Shift) ──
+// 'warm'   : 혼례 / 축제 / 사랑 / 잔치 / 기쁨 (온화한 황금빛)
+// 'crisis' : 전쟁 / 역병 / 기근 / 대재앙 (차가운 잿빛)
+// 'clear'  : 평온한 일상 (자연광)
+export function cardMoodOf(card) {
+  if (!card) return 'clear';
+  const id = card.id || '';
+  const textKo = card.text?.ko || '';
+  const textEn = card.text?.en || '';
+  const titleKo = card.title?.ko || '';
+  const full = `${id} ${titleKo} ${textKo} ${textEn}`.toLowerCase();
+
+  if (/war|plague|famine|flood|drought|crisis|bandit|전쟁|역병|기근|가뭄|난리|홍수|도적|수탈|흑사병|열병/.test(full)) {
+    return 'crisis';
+  }
+  if (/marry|wedding|festival|birth|feast|love|joy|혼례|혼인|축제|잔치|첫아이|아기|사랑|경사|풍년|급제/.test(full)) {
+    return 'warm';
+  }
+  return 'clear';
 }

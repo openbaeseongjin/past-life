@@ -34,7 +34,7 @@ const ui = createUI({ lang: S.lang, robot, fast });
 // 실사 3D 무대 (realscene.js createStage: 생마다 출생 시드로 마을을 짓는다. 옛 KayKit 육각 섬 village.js 와 메서드 이름이 같다)
 // three.js(CDN, 1 MB 남짓)를 뒤에서 받는다: 시작 화면은 바로 뜨고, 첫 생을 시작할 때 무대를 기다린다 (stageReady).
 // WebGL 이 없거나 꺼져 있거나 three 를 못 받으면 3D 마을 없이 글로만 간다. 빈 마을은 진짜 마을과 메서드 이름이 같다 (그림은 null → 족보·나누기가 건너뛴다)
-const NO_STAGE = { fast: false, preload() {}, setKit() {}, setLife() {}, setAge() {}, setFocus() {}, setCardFocus() {}, setWeather() {}, setPhase() {}, tick() {}, snapshot: () => null, setCampfire() {}, flameRise: () => Promise.resolve(), setView() {}, setQuality() {}, whenReady: () => Promise.resolve() };
+const NO_STAGE = { fast: false, preload() {}, setKit() {}, setLife() {}, setAge() {}, setFocus() {}, setCardFocus() {}, onChoice() {}, setWeather() {}, setPhase() {}, tick() {}, snapshot: () => null, setCampfire() {}, flameRise: () => Promise.resolve(), setView() {}, setQuality() {}, whenReady: () => Promise.resolve() };
 let village = NO_STAGE, has3d = false;
 const textOnly = (e) => {
   console.warn('한 영혼의 여정: 3D 마을을 만들지 못해 글로만 진행한다', e);
@@ -215,6 +215,7 @@ async function playLife(soul) {
       S.skipping = false; refresh();
       village.setCardFocus(ev.card);
       const i = await ui.decision(ev.card, life, { badge: badgeFor(ev.card, life.traces), autoIndex: autoChoice(life, ev.card), auto: S.auto || robot });
+      village.onChoice?.(ev.card, i);
       village.setCardFocus(null);
       sound.tick(); choose(life, i); refresh();
       continue;
