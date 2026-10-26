@@ -219,3 +219,30 @@ export function getEstatePropName(slot, tier, kit = 'eastasia') {
   const byKit = item.propByKit || {};
   return byKit[kit] || byKit.eastasia || byKit.england || null;
 }
+
+export function getInspectMessage(slot, tier, lang = 'ko') {
+  const msgs = {
+    livestock: {
+      1: { ko: '🐔 닭과 오리들이 모이를 쪼며 정겹게 울어댑니다. (행복 +1)', en: '🐔 The chickens and ducks peck happily in the yard. (Happy +1)' },
+      2: { ko: '🐷 돼지우리에서 건강한 가축들이 평화롭게 숨을 쉽니다. (행복 +1)', en: '🐷 The healthy livestock in the pen rest peacefully. (Happy +1)' },
+      3: { ko: '🐂 우직한 누렁소의 따뜻한 등을 다정하게 어루만졌습니다. (행복 +1)', en: '🐂 You pat the gentle ox affectionately on its warm back. (Happy +1)' },
+    },
+    transport: {
+      1: { ko: '🪵 가지런히 쌓인 장작더미에서 은은한 소나무 향이 납니다. (건강 +1)', en: '🪵 Fresh pine aroma rises from the neatly stacked firewood. (Health +1)' },
+      2: { ko: '🛒 튼튼한 손수레바퀴를 굴리며 장터에 나설 채비를 점검합니다. (손재주 +1)', en: '🛒 You test the sturdy cart wheels, prepared for the market. (Skill +1)' },
+      3: { ko: '🐎 위세 있는 대형 달구지를 어루만지며 먼 교역길을 가늠합니다. (친화 +1)', en: '🐎 Touching the covered wagon, you envision the grand trade route. (Charm +1)' },
+    },
+    household: {
+      1: { ko: '🏺 서늘한 옹기 항아리에 맑은 샘물이 가득 차 있습니다. (건강 +1)', en: '🏺 Cool spring water fills the earthenware storage jars. (Health +1)' },
+      2: { ko: '🍶 장독대 뚜껑을 열자 깊게 익은 그윽한 된장 향이 차오릅니다. (가족 +1)', en: '🍶 Lifting the jar lid, rich fermented aromas greet you warmly. (Family +1)' },
+      3: { ko: '🪑 처마 밑 평상에 걸터앉아 부드러운 바람을 맞으며 숨을 고릅니다. (행복 +1)', en: '🪑 Sitting on the porch bench, you savor the soothing breeze. (Happy +1)' },
+    },
+    prestige: {
+      1: { ko: '🥬 텃밭 나물 잎사귀에 맺힌 맑은 아침 이슬을 텁니다. (건강 +1)', en: '🥬 You brush fresh morning dew off the kitchen garden greens. (Health +1)' },
+      2: { ko: '🌸 조경석 곁에 피어난 소담스러운 꽃잎을 감상합니다. (행복 +1)', en: '🌸 You admire the elegant garden blossoms blooming by the stones. (Happy +1)' },
+      3: { ko: '🪨 선대의 음덕이 서린 가문 빗돌을 경건하게 어루만집니다. (명망 +1)', en: '🪨 Reverently touching the ancestral stele, you honor your lineage. (Prestige +1)' },
+    },
+  };
+  const m = msgs[slot]?.[tier] || msgs[slot]?.[1];
+  return (m && m[lang]) || (m && m.ko) || '✨ 마당의 살림을 정성스레 보살폈습니다.';
+}

@@ -9,7 +9,7 @@ import { createSound } from './sound.js';
 import { newSoul, finishLife, addDex, makeStore } from './soul.js';
 import { drawBirth } from './birth.js';
 import { createLife, advance, choose, summarize, setFocus, autoChoice } from './life.js';
-import { buyEstate } from './estate.js';
+import { buyEstate, getInspectMessage } from './estate.js';
 import { memoryCandidates, pickMemory, seeMemories } from './memory.js';
 import { beadsOf, encodeBeads } from './beads.js';
 import { autoFocus } from './focus.js';
@@ -36,7 +36,7 @@ const ui = createUI({ lang: S.lang, robot, fast });
 // 실사 3D 무대 (realscene.js createStage: 생마다 출생 시드로 마을을 짓는다. 옛 KayKit 육각 섬 village.js 와 메서드 이름이 같다)
 // three.js(CDN, 1 MB 남짓)를 뒤에서 받는다: 시작 화면은 바로 뜨고, 첫 생을 시작할 때 무대를 기다린다 (stageReady).
 // WebGL 이 없거나 꺼져 있거나 three 를 못 받으면 3D 마을 없이 글로만 간다. 빈 마을은 진짜 마을과 메서드 이름이 같다 (그림은 null → 족보·나누기가 건너뛴다)
-const NO_STAGE = { fast: false, preload() {}, setKit() {}, setLife() {}, setAge() {}, setRoute() {}, setFocus() {}, setCardFocus() {}, onChoice() {}, updateEstate() {}, setWeather() {}, setPhase() {}, tick() {}, snapshot: () => null, setCampfire() {}, flameRise: () => Promise.resolve(), setView() {}, setQuality() {}, whenReady: () => Promise.resolve() };
+const NO_STAGE = { fast: false, preload() {}, setKit() {}, setLife() {}, setAge() {}, setRoute() {}, setFocus() {}, setCardFocus() {}, onChoice() {}, updateEstate() {}, inspectEstate() { return false; }, setWeather() {}, setPhase() {}, tick() {}, snapshot: () => null, setCampfire() {}, flameRise: () => Promise.resolve(), setView() {}, setQuality() {}, whenReady: () => Promise.resolve() };
 let village = NO_STAGE, has3d = false;
 const textOnly = (e) => {
   console.warn('한 영혼의 여정: 3D 마을을 만들지 못해 글로만 진행한다', e);
@@ -83,11 +83,18 @@ ui.setHandlers({
     await ui.showEstateDrawer(l, (slot, tier) => {
       const item = buyEstate(l, slot, tier);
       if (item) {
-        sound.chime();
+        sound.coin();
         village.updateEstate(l.estate, slot);
         ui.toast(S.lang === 'ko' ? `✨ 마당에 [${item.name.ko}]을(를) 장만하였습니다!` : `✨ Acquired [${item.name.en}] for the estate!`, 3000);
         refresh();
       }
+    }, (slot, tier) => {
+      village.inspectEstate?.(slot);
+      sound.coin();
+      const msg = getInspectMessage(slot, tier, S.lang);
+      ui.toast(msg, 3200);
+      if (l.stats) l.stats.happy = Math.min(100, (l.stats.happy || 50) + 1);
+      refresh();
     });
     S.paused = wasPaused;
     refresh();
@@ -218,6 +225,16 @@ async function playLife(soul) {
   applyView();
   village.setPhase(phaseOf(0)); showFocus(life);
   await ui.mapZoom();   // 지도가 태어난 자리로 다가가며 걷히고 무대가 드러난다 (지도가 없으면 그냥 지나간다)
+  if (birth.dynasty && birth.dynasty.gen > 1 && life.estate) {
+    const hasAny = life.estate.livestock || life.estate.transport || life.estate.household || life.estate.prestige;
+    if (hasAny) {
+      sound.scroll();
+      const msg = S.lang === 'ko'
+        ? `🏡 [가문의 터전 계승] 선대가 일군 마당 살림을 제${birth.dynasty.gen}대 가주가 온전히 이어받았습니다!`
+        : `🏡 [Estate Heritage] The ${birth.dynasty.gen}th generation inherits the thriving family estate!`;
+      ui.toast(msg, 3800);
+    }
+  }
   // 처음 하는 사람: 수치 판 → 올해의 패 → 갈림길과 모닥불 (건너뛸 수 있다. 한 번 보면 다시 나오지 않는다. 설정에서 다시 켠다)
   if (!robot && !store.loadCoach()) { S.paused = true; refresh(); await ui.coach(); store.saveCoach(true); S.paused = false; refresh(); }
   for (;;) {
@@ -234,13 +251,22 @@ async function playLife(soul) {
     if (ev.type === 'card') {
       S.skipping = false; refresh();
       village.setCardFocus(ev.card);
-      const i = await ui.decision(ev.card, life, { badge: badgeFor(ev.card, life.traces), autoIndex: autoChoice(life, ev.card), auto: S.auto || robot });
+      const i = await ui.decision(ev.card, life, {
+        badge: badgeFor(ev.card, life.traces),
+        autoIndex: autoChoice(life, ev.card),
+        auto: S.auto || robot,
+        onWillExpand: () => sound.scroll(),
+        onWillSubmit: () => sound.brush(),
+      });
       village.onChoice?.(ev.card, i);
       if (typeof i === 'object' && i !== null && i.scene?.focus) {
         village.setFocus(i.scene.focus);
       }
       village.setCardFocus(null);
       sound.tick();
+      if (typeof i === 'object' && i !== null && i.effects?.wealth && i.effects.wealth > 0) {
+        sound.coin();
+      }
       const prevRouteId = life.route?.id;
       choose(life, i);
       if (life.route?.id && life.route.id !== prevRouteId) {

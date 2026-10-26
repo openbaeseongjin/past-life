@@ -863,7 +863,8 @@ export function createUI({ lang, robot = false, fast = false }) {
   }
 
   // 갈림길: 마을이 흐려지고 종이 카드. 맡긴 상태면 카드 테두리에 금빛이 차오른 뒤 autoIndex 길로 간다 (카드를 누르면 멈춘다)
-  function decision(card, life, { badge: tr, autoIndex = 0, auto = false }) {
+  function decision(card, life, opts = {}) {
+    const { badge: tr, autoIndex = 0, auto = false, onWillExpand, onWillSubmit } = opts;
     const b = life.birth, marks = traceIdx(card, tr), trName = tr ? traceText(tr, L) : '', open = openChoices(life, card);
     const presets = getWillPresets({ lang: L, era: b ? b.era : 9 }, life);
     const bead = tr ? `<i class="trace-bead" title="${esc(trName)}" aria-label="${esc(t(L, 'trace'))} · ${esc(trName)}" role="img"></i>` : '';
@@ -958,6 +959,7 @@ export function createUI({ lang, robot = false, fast = false }) {
         if (willExpandBtn) willExpandBtn.textContent = isHidden ? (L === 'ko' ? '접기 ▲' : 'Close ▲') : (L === 'ko' ? '직접 적기 ▼' : 'Open ▼');
         if (isHidden) {
           stop();
+          opts.onWillExpand?.();
           $('autoBtn').hidden = false;
           const inp = willBox.querySelector('.will-input');
           if (inp) inp.focus();
@@ -982,6 +984,7 @@ export function createUI({ lang, robot = false, fast = false }) {
       const val = inp ? inp.value.trim() : '';
       if (!val) return;
       stop();
+      opts.onWillSubmit?.();
       const outcome = parseSoulWill(val, life.ctx ? life.ctx() : { lang: L }, life);
       customPickedChoice = {
         text: outcome.text,
@@ -1427,7 +1430,7 @@ export function createUI({ lang, robot = false, fast = false }) {
     return pick(screen).then(() => { screen.hidden = true; });
   }
 
-  function showEstateDrawer(life, onBuy) {
+  function showEstateDrawer(life, onBuy, onInspect) {
     return new Promise((resolve) => {
       const screen = $('screen');
     const renderContent = () => {
@@ -1441,6 +1444,11 @@ export function createUI({ lang, robot = false, fast = false }) {
         const canBuy = nextItem && w >= nextItem.cost;
 
         const curLabel = curItem ? `${curItem.name[L]} (${curTier}단계)` : (L === 'ko' ? '미보유' : 'None');
+        const inspectBtn = curItem
+          ? `<button type="button" class="btn-inspect-estate" data-slot="${slot}" data-tier="${curTier}" style="margin-left:8px;padding:2px 8px;font-size:11px;background:rgba(226,182,94,0.12);border:1px solid rgba(226,182,94,0.3);border-radius:10px;cursor:pointer;color:var(--gold2)">
+              <span>👀</span> <span>${esc(L === 'ko' ? '둘러보기' : 'Inspect')}</span>
+            </button>`
+          : '';
         const nextLabel = nextItem
           ? `<div class="next-box" style="margin-top:8px;padding:8px 12px;background:rgba(226,182,94,0.08);border:1px solid rgba(226,182,94,0.3);border-radius:8px">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
@@ -1466,8 +1474,8 @@ export function createUI({ lang, robot = false, fast = false }) {
           <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;color:var(--ink)">
             <span>${slotIcons[slot]}</span> <span>${esc(slotTitles[slot][L])}</span>
           </div>
-          <div style="font-size:12px;color:var(--muted);margin-top:3px">
-            ${esc(L === 'ko' ? '현재 보유' : 'Current')}: <b>${esc(curLabel)}</b>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px;display:flex;align-items:center;flex-wrap:wrap">
+            ${esc(L === 'ko' ? '현재 보유' : 'Current')}: <b>${esc(curLabel)}</b> ${inspectBtn}
           </div>
           ${nextLabel}
         </div>`;
@@ -1502,6 +1510,13 @@ export function createUI({ lang, robot = false, fast = false }) {
         const tier = Number(buyBtn.dataset.tier);
         if (onBuy) onBuy(slot, tier);
         screen.innerHTML = renderContent();
+        return;
+      }
+      const inspectBtn = e.target.closest('.btn-inspect-estate');
+      if (inspectBtn) {
+        const slot = inspectBtn.dataset.slot;
+        const tier = Number(inspectBtn.dataset.tier);
+        if (onInspect) onInspect(slot, tier);
         return;
       }
       const closeBtn = e.target.closest('[data-v="close"]');
