@@ -2936,7 +2936,9 @@ export function createStage(canvas) {
     },
     onChoice(card, choiceIndex) {
       if (W && W.me && W.me.react) {
-        const risk = card?.choices?.[choiceIndex]?.risk;
+        const risk = (typeof choiceIndex === 'object' && choiceIndex !== null)
+          ? (choiceIndex.risk || choiceIndex.scene?.anim === 'flinch')
+          : card?.choices?.[choiceIndex]?.risk;
         W.me.react(risk ? 'flinch' : 'nod', 0.85);
       }
     },

@@ -235,6 +235,9 @@ async function playLife(soul) {
       village.setCardFocus(ev.card);
       const i = await ui.decision(ev.card, life, { badge: badgeFor(ev.card, life.traces), autoIndex: autoChoice(life, ev.card), auto: S.auto || robot });
       village.onChoice?.(ev.card, i);
+      if (typeof i === 'object' && i !== null && i.scene?.focus) {
+        village.setFocus(i.scene.focus);
+      }
       village.setCardFocus(null);
       sound.tick(); choose(life, i); refresh();
       continue;

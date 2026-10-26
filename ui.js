@@ -22,6 +22,7 @@ import { openChoices, chanceOf } from './life.js';
 import { DECK } from './deck.js';
 import { ROUTES, getRouteBadge, careerSummary } from './routes.js';
 import { ESTATE_SLOTS, ESTATE_CATALOG, canBuyEstate, buyEstate } from './estate.js';
+import { parseSoulWill, getWillPresets } from './will.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -864,6 +865,7 @@ export function createUI({ lang, robot = false, fast = false }) {
   // 갈림길: 마을이 흐려지고 종이 카드. 맡긴 상태면 카드 테두리에 금빛이 차오른 뒤 autoIndex 길로 간다 (카드를 누르면 멈춘다)
   function decision(card, life, { badge: tr, autoIndex = 0, auto = false }) {
     const b = life.birth, marks = traceIdx(card, tr), trName = tr ? traceText(tr, L) : '', open = openChoices(life, card);
+    const presets = getWillPresets({ lang: L, era: b ? b.era : 9 }, life);
     const bead = tr ? `<i class="trace-bead" title="${esc(trName)}" aria-label="${esc(t(L, 'trace'))} · ${esc(trName)}" role="img"></i>` : '';
     hideTip(); setMore(false); setWind(false);
     app.classList.add('deciding'); hudInert(true); document.body.classList.add('dof-focus');
@@ -886,6 +888,25 @@ export function createUI({ lang, robot = false, fast = false }) {
         const hint = pathHint(life, c), eff = pathEffects(life, c.chance ? addEff(c.effects, c.chance.win.effects) : c.effects);
         return `<li><button class="path" data-v="${i}" data-i="${i}" title="${esc(hint)}" aria-label="${esc(`${i + 1}. ${txt}${hint ? ' — ' + hint : ''}${marks.includes(i) ? ' — ' + t(L, 'trace') : ''}`)}">${marks.includes(i) ? bead : ''}<span class="num">${i + 1}</span><span class="pt">${esc(txt)}</span><span class="pfx" aria-hidden="true">${c.chance ? `<small class="luck">${esc(t(L, 'chanceX', pctOf(life, c)))}</small>` : ''}${fxHtml(partsOf(life, eff))}</span></button></li>`;
       }).join('')}</ol>
+      <div class="will-section" style="margin-top:10px;padding:8px 12px;background:rgba(226,182,94,0.06);border:1px dashed rgba(226,182,94,0.35);border-radius:8px">
+        <div class="will-toggle-row" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+          <span style="font-weight:700;font-size:12.5px;color:var(--gold2);display:inline-flex;align-items:center;gap:4px">
+            ✍️ ${esc(L === 'ko' ? '영혼의 결단 (원하는 행동 직접 적기)' : 'Soul Will (Type Custom Action)')}
+          </span>
+          <button type="button" class="btn-will-expand" style="background:none;border:none;color:var(--muted);font-size:11.5px;cursor:pointer;padding:2px 6px">
+            ${esc(L === 'ko' ? '직접 적기 ▼' : 'Open ▼')}
+          </button>
+        </div>
+        <div class="will-box" style="display:none;margin-top:8px">
+          <div class="will-pills" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
+            ${presets.map((p) => `<button type="button" class="btn-will-pill" data-will="${esc(p)}" style="padding:2px 8px;font-size:11px;background:rgba(226,182,94,0.12);border:1px solid rgba(226,182,94,0.25);border-radius:10px;color:var(--ink-soft);cursor:pointer">${esc(p)}</button>`).join('')}
+          </div>
+          <div style="display:flex;gap:6px">
+            <input type="text" class="will-input" placeholder="${esc(L === 'ko' ? '하고 싶은 행동을 적어보세요... (예: 서당 엿을 훔친다)' : 'Type what you want to do...')}" maxlength="45" style="flex:1;padding:5px 8px;font-size:12.5px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">
+            <button type="button" class="primary btn-will-act" style="padding:5px 12px;font-size:12.5px;border-radius:6px;white-space:nowrap;cursor:pointer">${esc(L === 'ko' ? '결단하기' : 'Act')}</button>
+          </div>
+        </div>
+      </div>
       <div class="xfoot"><p class="xline" id="autoLine" aria-live="polite"></p><button class="xauto" id="autoBtn">${esc(t(L, 'autoX'))}</button></div>
     </div>`);
     const xc = modal.firstElementChild, WAIT = fast ? 20 : robot ? 300 : 5000;
@@ -925,9 +946,76 @@ export function createUI({ lang, robot = false, fast = false }) {
     };
     document.addEventListener('keydown', key); document.addEventListener('keyup', key);
     xc.focus({ preventScroll: true });   // 첫 길이 아니라 카드에: Tab 으로 길에 가고, 1·2·3·Enter 로 고른다
+    let customPickedChoice = null;
+    const willToggle = xc.querySelector('.will-toggle-row');
+    const willBox = xc.querySelector('.will-box');
+    const willExpandBtn = xc.querySelector('.btn-will-expand');
+    if (willToggle && willBox) {
+      willToggle.onclick = (e) => {
+        e.stopPropagation();
+        const isHidden = willBox.style.display === 'none';
+        willBox.style.display = isHidden ? 'block' : 'none';
+        if (willExpandBtn) willExpandBtn.textContent = isHidden ? (L === 'ko' ? '접기 ▲' : 'Close ▲') : (L === 'ko' ? '직접 적기 ▼' : 'Open ▼');
+        if (isHidden) {
+          stop();
+          $('autoBtn').hidden = false;
+          const inp = willBox.querySelector('.will-input');
+          if (inp) inp.focus();
+        }
+      };
+    }
+
+    xc.querySelectorAll('.btn-will-pill').forEach((pill) => {
+      pill.onclick = (e) => {
+        e.stopPropagation();
+        const inp = xc.querySelector('.will-input');
+        if (inp) {
+          inp.value = pill.dataset.will;
+          inp.focus();
+        }
+      };
+    });
+
+    const actBtn = xc.querySelector('.btn-will-act');
+    const doSubmitWill = () => {
+      const inp = xc.querySelector('.will-input');
+      const val = inp ? inp.value.trim() : '';
+      if (!val) return;
+      stop();
+      const outcome = parseSoulWill(val, life.ctx ? life.ctx() : { lang: L }, life);
+      customPickedChoice = {
+        text: outcome.text,
+        result: outcome.result,
+        effects: outcome.effects,
+        scene: outcome.scene,
+        flags: outcome.flags,
+        custom: true,
+      };
+      const f = document.createElement('button');
+      f.dataset.v = '__custom_will__';
+      xc.appendChild(f);
+      f.click();
+    };
+
+    if (actBtn) {
+      actBtn.onclick = (e) => { e.stopPropagation(); doSubmitWill(); };
+    }
+    const willInput = xc.querySelector('.will-input');
+    if (willInput) {
+      willInput.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault(); e.stopPropagation();
+          doSubmitWill();
+        }
+      };
+    }
+
     return pick(modal, null).then((v) => {
       stop(); document.removeEventListener('keydown', key); document.removeEventListener('keyup', key);
       modal.hidden = true; modal.className = ''; app.classList.remove('deciding'); hudInert(false); document.body.classList.remove('dof-focus');
+      if (v === '__custom_will__' && customPickedChoice) {
+        return customPickedChoice;
+      }
       return Number(v);
     });
   }
