@@ -171,3 +171,29 @@ test('choose(life, customChoice) 영혼의 결단 생애 시스템 통합 검증
   assert.equal(life.route.pivoted, true);
   assert.equal(life.flags['route:scholar'], true);
 });
+
+test('학습된 AI 추론기(Trained Model) 및 동적 개체명 생성(Entity Synthesis) 검증', () => {
+  const dummyCtx = { era: 9, lang: 'ko' };
+
+  // 복합 자연어 1: 학문 + 동적 개체명(논어)
+  const res1 = parseSoulWill('동네 꼬마들에게 논어와 소학을 가르쳐준다', dummyCtx);
+  assert.equal(res1.route?.id, 'scholar');
+  assert.ok(res1.ai);
+  assert.ok(res1.ai.confidence > 0.8);
+  assert.ok(res1.result.ko.includes('논어'));
+
+  // 복합 자연어 2: 통치 + 사또의 비리
+  const res2 = parseSoulWill('사또의 비리를 암행어사에게 고변한다', dummyCtx);
+  assert.equal(res2.route?.id, 'statesman');
+  assert.ok(res2.result.ko.includes('사또'));
+
+  // 복합 자연어 3: 치유 + 약
+  const res3 = parseSoulWill('아픈 병자의 환부에 침을 놓고 약을 달인다', dummyCtx);
+  assert.equal(res3.route?.id, 'healer');
+  assert.ok(res3.ai.confidence > 0.8);
+
+  // 복합 자연어 4: 연애 + 꽃다발
+  const res4 = parseSoulWill('사랑하는 이에게 수줍게 꽃다발을 건넨다', dummyCtx);
+  assert.equal(res4.route?.id, 'homesteader');
+  assert.ok(res4.result.ko.includes('꽃다발'));
+});
